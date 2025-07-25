@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Prototipo Completo – Kualifin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-yellow-50 flex items-center justify-center min-h-screen p-4">
+
+  <!-- 1. ¿La venta es viable? -->
+  <div id="screen-question" class="screen w-full max-w-xs bg-white rounded-3xl shadow-lg p-6">
+    <h1 class="text-xl font-bold text-center mb-4">¿La venta es viable?</h1>
+    <div class="flex justify-around">
+      <button onclick="show('screen-viable')" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:opacity-90">Sí</button>
+      <button onclick="show('screen-not-viable')" class="px-6 py-3 bg-red-600 text-white rounded-lg hover:opacity-90">No</button>
+    </div>
+  </div>
+
+  <!-- 2. Venta viable -->
+  <div id="screen-viable" class="screen hidden w-full max-w-xs bg-gradient-to-b from-yellow-200 to-yellow-100 rounded-3xl shadow-lg p-6 text-center">
+    <h1 class="text-2xl font-bold mb-4">VENTA VIABLE</h1>
+    <p class="mb-6">¡Felicidades, toda tu venta es viable!</p>
+    <button onclick="alert('Venta finalizada y enviada')" class="w-full bg-[#6B021F] text-white py-3 rounded-xl hover:opacity-90">Finalizar &amp; Enviar</button>
+    <button onclick="show('screen-question')" class="mt-3 w-full text-gray-800 hover:underline">Volver</button>
+  </div>
+
+  <!-- 3. Venta no viable -->
+  <div id="screen-not-viable" class="screen hidden w-full max-w-xs bg-gradient-to-b from-yellow-200 to-yellow-100 rounded-3xl shadow-lg p-6">
+    <h1 class="text-2xl font-bold text-center mb-4">Elementos no viables</h1>
+    <p class="text-sm mb-4">Lo sentimos, los siguientes elementos de tu venta no son viables:</p>
+    <ul class="text-sm space-y-2 mb-6">
+      <li><strong>José Herrera:</strong> Cliente con deuda</li>
+      <li><strong>Rosa Morales:</strong> Cliente de otra plaza</li>
+      <li><strong>Arturo Reyes:</strong> Límite de firmas como aval</li>
+    </ul>
+    <button onclick="show('screen-question')" class="w-full bg-[#6B021F] text-white py-3 rounded-xl hover:opacity-90">Corregir elementos</button>
+  </div>
+
+  <!-- 4. Mi Venta (Resumen) -->
+  <div id="screen-venta" class="screen hidden w-full max-w-xs bg-white rounded-3xl shadow-lg p-6">
+    <h1 class="text-xl font-bold text-center mb-2">Tu venta para el día<br/><span class="text-2xl">25 de julio de 2025</span></h1>
+    <div class="text-sm space-y-1">
+      <p><strong>Promotora:</strong> Elena Díaz González</p>
+      <p><strong>Supervisora:</strong> Ángeles Castillo</p>
+      <p><strong>Ejecutivo:</strong> Raúl Pérez</p>
+    </div>
+    <div class="mt-3 flex justify-between text-sm font-semibold">
+      <span>Debe semanal:</span><span>$24,240.00</span>
+    </div>
+    <hr class="my-3"/>
+    <div class="space-y-1 text-sm">
+      <div class="flex justify-between"><span>Isabel Ramos</span><span>$5,200.00</span></div>
+      <div class="flex justify-between"><span>Héctor Muñoz (nvo.)</span><span>$6,950.00</span></div>
+      <div class="flex justify-between"><span>Mariana Ortiz</span><span>$3,000.00</span></div>
+      <div class="flex justify-between"><span>Javier Pérez</span><span>$4,800.00</span></div>
+      <div class="flex justify-between"><span>Patricia Suárez</span><span>$3,000.00</span></div>
+      <div class="flex justify-between"><span>Eduardo Vega</span><span>$7,000.00</span></div>
+    </div>
+    <hr class="my-3"/>
+    <div class="flex justify-between font-semibold">
+      <span>Total del préstamo</span><span>$29,950.00</span>
+    </div>
+    <button onclick="show('screen-insert-options')" class="mt-6 w-full bg-[#6B021F] text-white py-3 rounded-xl hover:opacity-90">Ingresar venta</button>
+    <button onclick="show('screen-main')" class="mt-3 w-full text-gray-800 hover:underline">Regresar</button>
+  </div>
+
+  <!-- 5. Ingresar venta: Opciones -->
+  <div id="screen-insert-options" class="screen hidden w-full max-w-xs bg-white rounded-3xl shadow-lg p-6">
+    <h1 class="text-xl font-bold text-center mb-4">Ingresar venta</h1>
+    <div class="space-y-3">
+      <button onclick="show('screen-insert-data-new')" class="w-full bg-yellow-400 text-[#6B021F] py-3 rounded-xl hover:opacity-90">Cliente nuevo</button>
+      <button onclick="show('screen-insert-data-re')" class="w-full bg-yellow-400 text-[#6B021F] py-3 rounded-xl hover:opacity-90">Recrédito</button>
+    </div>
+    <button onclick="show('screen-venta')" class="mt-4 w-full border border-[#6B021F] py-3 rounded-xl hover:bg-gray-50">Cancelar</button>
+  </div>
+
+  <!-- 6a. Ingresar datos (Cliente nuevo) -->
+  <div id="screen-insert-data-new" class="screen hidden w-full max-w-xs bg-white rounded-3xl shadow-lg p-6">
+    <h1 class="text-xl font-bold uppercase text-center text-[#6B021F] mb-4">Ingresar datos</h1>
+    <p class="font-semibold text-sm">Datos del cliente:</p>
+    <input type="text" placeholder="CURP" class="w-full border border-yellow-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-600"/>
+    <div class="flex space-x-2 mt-2">
+      <button class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:opacity-90">CURP</button>
+      <button class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:opacity-90">Comp. dom.</button>
+    </div>
+    <p class="font-semibold text-sm mt-4">Datos del aval:</p>
+    <input type="text" placeholder="CURP" class="w-full border border-yellow-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-400"/>
+    <div class="flex space-x-2 mt-2">
+      <button class="flex-1 bg-yellow-400 text-[#6B021F] py-2 rounded-lg hover:opacity-90">INE</button>
+      <button class="flex-1 bg-yellow-400 text-[#6B021F] py-2 rounded-lg hover:opacity-90">Comp. dom.</button>
+    </div>
+    <button onclick="show('screen-venta')" class="mt-6 w-full bg-[#6B021F] text-white py-3 rounded-xl hover:opacity-90">Agregar</button>
+    <button onclick="show('screen-insert-options')" class="mt-3 w-full text-gray-800 hover:underline">Regresar</button>
+  </div>
+
+  <!-- 6b. Ingresar datos (Recrédito) -->
+  <div id="screen-insert-data-re" class="screen hidden w-full max-w-xs bg-white rounded-3xl shadow-lg p-6">
+    <h1 class="text-xl font-bold uppercase text-center text-[#6B021F] mb-4">Ingresar datos</h1>
+    <!-- Misma estructura que cliente nuevo -->
+    <p class="font-semibold text-sm">Datos del cliente:</p>
+    <input type="text" placeholder="CURP" class="w-full border border-yellow-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-600"/>
+    <div class="flex space-x-2 mt-2">
+      <button class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:opacity-90">CURP</button>
+      <button class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:opacity-90">Comp. dom.</button>
+    </div>
+    <p class="font-semibold text-sm mt-4">Datos del aval:</p>
+    <input type="text" placeholder="CURP" class="w-full border border-yellow-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-400"/>
+    <div class="flex space-x-2 mt-2">
+      <button class="flex-1 bg-yellow-400 text-[#6B021F] py-2 rounded-lg hover:opacity-90">INE</button>
+      <button class="flex-1 bg-yellow-400 text-[#6B021F] py-2 rounded-lg hover:opacity-90">Comp. dom.</button>
+    </div>
+    <button onclick="show('screen-venta')" class="mt-6 w-full bg-[#6B021F] text-white py-3 rounded-xl hover:opacity-90">Agregar</button>
+    <button onclick="show('screen-insert-options')" class="mt-3 w-full text-gray-800 hover:underline">Regresar</button>
+  </div>
+
+  <!-- 7. Mi Cartera -->
+  <div id="screen-cartera-list" class="screen hidden w-full max-w-xs bg-white rounded-3xl shadow-lg p-6">
+    <h1 class="text-xl font-bold text-center mb-4">Tu Cartera</h1>
+    <div class="space-y-3 text-sm">
+      <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+        <div><p class="font-semibold">Laura Beltrán</p><p>sem 1 – $6,640</p></div>
+        <button onclick="show('screen-pago')" class="bg-green-600 text-white px-2 py-1 rounded hover:opacity-90 text-xs">Pago</button>
+      </div>
+      <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+        <div><p class="font-semibold">José Pérez</p><p>sem 2 – $6,640</p></div>
+        <button onclick="show('screen-pago')" class="bg-green-600 text-white px-2 py-1 rounded hover:opacity-90 text-xs">Pago</button>
+      </div>
+      <!-- …más clientes… -->
+    </div>
+    <button onclick="alert('Reporte enviado')" class="mt-6 w-full bg-blue-600 text-white py-3 rounded-xl hover:opacity-90">Enviar Reporte</button>
+    <button onclick="show('screen-main')" class="mt-3 w-full text-gray-800 hover:underline">Regresar</button>
+  </div>
+
+  <!-- 8. Historial de cliente -->
+  <div id="screen-cliente-history" class="screen hidden w-full max-w-xs bg-white rounded-3xl shadow-lg p-6">
+    <h1 class="text-xl font-bold text-center mb-4">Historial de Cliente</h1>
+    <div class="space-y-1 text-sm h-48 overflow-y-auto">
+      <div class="flex justify-between"><span>Ana Gómez</span><span>sem 1 – $640</span></div>
+      <div class="flex justify-between"><span>Ana Gómez</span><span>sem 2 – $640</span></div>
+      <div class="flex justify-between"><span>Ana Gómez</span><span>sem 3 – $640</span></div>
+      <!-- …más registros… -->
+    </div>
+    <button onclick="show('screen-cartera-list')" class="mt-6 w-full bg-[#6B021F] text-white py-3 rounded-xl hover:opacity-90">Regresar</button>
+  </div>
+
+  <!-- 9. Registro de Pago -->
+  <div id="screen-pago" class="screen hidden w-full max-w-xs bg-white rounded-3xl shadow-lg p-6">
+    <h1 class="text-xl font-bold text-center mb-4">Registro de Pago</h1>
+    <input id="inputPago" type="number" placeholder="Ingresa monto" class="w-full bg-gray-100 text-right text-xl p-3 rounded-lg focus:ring-2 focus:ring-green-600"/>
+    <button onclick="confirmPago()" class="mt-6 w-full bg-[#6B021F] text-white py-3 rounded-xl hover:opacity-90">Confirmar</button>
+    <button onclick="show('screen-cartera-list')" class="mt-3 w-full text-gray-800 hover:underline">Cancelar</button>
+  </div>
+
+  <!-- 10. Mi Objetivo -->
+  <div id="screen-objetivo" class="screen hidden w-full max-w-xs bg-white rounded-3xl shadow-lg p-6">
+    <h1 class="text-2xl font-bold text-center mb-4">Mi Objetivo</h1>
+    <div class="text-sm space-y-2">
+      <p><strong>Objetivo semanal:</strong> $25,000.00</p>
+      <p><strong>Resto del ejercicio:</strong> $400,000.00</p>
+      <p><strong>Ventas:</strong></p>
+      <ul class="list-disc list-inside">
+        <li>Sem 1: $20,000.00</li>
+        <li>Sem 2: $15,000.00</li>
+        <li>Sem 3: $12,000.00</li>
+      </ul>
+      <p class="mt-2 italic">¡Vas muy bien, pero falta un poco para llegar!</p>
+    </div>
+    <button onclick="show('screen-main')" class="mt-6 w-full bg-[#6B021F] text-white py-3 rounded-xl hover:opacity-90">Regresar</button>
+  </div>
+
+  <script>
+    function show(id) {
+      document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+    }
+    // Inicializa en la pantalla principal
+    show('screen-main');
+    // Lógica de pago
+    function confirmPago() {
+      const v = document.getElementById('inputPago').value || '0';
+      alert(`Pago de $${v} registrado.`);
+      document.getElementById('inputPago').value = '';
+      show('screen-cartera-list');
+    }
+  </script>
+
+</body>
+</html>
