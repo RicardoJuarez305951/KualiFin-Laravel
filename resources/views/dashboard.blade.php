@@ -1,8 +1,4 @@
 <x-layouts.authenticated>
-    <x-slot name="header">
-        <h2 class="text-2xl font-semibold">Dashboard Financiero</h2>
-    </x-slot>
-
     @php
         $summaryCards = [
             [ 'title' => 'Inversión Total',   'value' => 850000, 'change' => '+12.5%', 'changeType' => 'positive' ],

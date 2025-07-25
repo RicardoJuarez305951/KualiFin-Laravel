@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Cliente;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 
@@ -13,13 +12,14 @@ class ClienteController extends Controller
     // Mostrar formulario
     public function create()
     {
-        return Inertia::render('nuevoCliente'); 
+        return view('clientes.create'); 
     }
 
-    // Listar todos (JSON)
+    // Listar todos 
     public function index()
     {
-        return response()->json(Cliente::with('documentos')->get());
+        $clientes = Cliente::with('documentos')->get();
+        return view('clientes.index', compact('clientes'));
     }
 
     // Guardar nuevo cliente + documentos
@@ -87,7 +87,8 @@ class ClienteController extends Controller
     // Mostrar uno
     public function show($id)
     {
-        return response()->json(Cliente::with('documentos')->findOrFail($id));
+        $cliente = Cliente::with('documentos')->findOrFail($id);
+        return view('clientes.show', compact('cliente'));
     }
 
     // Actualizar
