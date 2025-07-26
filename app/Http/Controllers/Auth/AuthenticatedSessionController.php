@@ -35,12 +35,8 @@ class AuthenticatedSessionController extends Controller
             $role = Auth::user()->rol;
 
             switch ($role) {
-                case 'admin':
-                    return redirect()->intended('/admin/dashboard');
                 case 'promotor':
                     return redirect()->intended('/promotora/');
-                case 'cliente':
-                    return redirect()->intended('/cliente/inicio');
                 default:
                     return redirect()->intended('/dashboard');
             }
