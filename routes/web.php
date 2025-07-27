@@ -6,6 +6,7 @@ use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DocumentoClienteController;
 use App\Http\Controllers\PromotoraController;
+use App\Http\Controllers\AdminController;
 
 /*
 |--------------------------------------------------------------------------
@@ -69,14 +70,22 @@ Route::middleware(['auth','verified'])->group(function () {
          ->name('reportes');
     Route::get('/panelRevision',       fn() => view('PanelRevision'))
          ->name('panelRevision');
-    Route::get('/panelAdministrativo', fn() => view('AdminDashboard'))
-         ->name('AdminDashboard');
 
-    // Registro de empleados
-    Route::get('/registrarEmpleado',  fn() => view('Users.RegisterUserForm'))
-         ->name('register.form');
-    Route::post('/registrarEmpleado', [UserController::class, 'store'])
-         ->name('register.user');
+    // Panel Administrativo
+    Route::prefix('admin')->name('admin.')->group(function () {
+        // Dashboard administrativo
+        Route::get('/', function () {
+            return view('admin.index');
+        })->name('index');
+        
+        // Rutas de empleados
+        Route::get('/empleados/create', function () {
+            return view('admin.create-user');
+        })->name('empleados.create');
+        
+        Route::post('/empleados/create', [UserController::class, 'store'])
+            ->name('empleados.store');
+    });
 });
 
 // Rutas de autenticación (login, register, etc.)

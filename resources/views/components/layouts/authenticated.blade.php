@@ -71,7 +71,7 @@
                 <x-layouts.navlink route="panelRevision" icon="🔍" text="Panel de Revisión" />
                 <x-layouts.navlink route="reportes" icon="📊" text="Reportes" />
                 <x-layouts.navlink route="recreditoClientes" icon="🔄" text="Recrédito Clientes" />
-                <x-layouts.navlink route="AdminDashboard" icon="🧑‍💼" text="Panel Administrativo" />
+                <x-layouts.navlink route="admin.index" icon="🧑‍💼" text="Panel Administrativo" />
             </ul>
             
             <div class="pt-4 mt-4 space-y-2 border-t border-gray-200">
