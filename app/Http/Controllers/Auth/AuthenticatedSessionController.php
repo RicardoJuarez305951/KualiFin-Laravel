@@ -36,7 +36,7 @@ class AuthenticatedSessionController extends Controller
 
             switch ($role) {
                 case 'promotor':
-                    return redirect()->intended('/promotora/');
+                    return redirect()->intended('/promotora');
                 default:
                     return redirect()->intended('/dashboard');
             }

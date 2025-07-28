@@ -7,6 +7,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\DocumentoClienteController;
 use App\Http\Controllers\PromotoraController;
 use App\Http\Controllers\AdminController;
+use Illuminate\Support\Facades\Auth;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,8 +15,14 @@ use App\Http\Controllers\AdminController;
 |--------------------------------------------------------------------------
 */
 
+
 // Home redirige a login
-Route::get('/', fn() => redirect('/login'));
+Route::get('/', function () {
+    if (Auth::check() && Auth::user()->rol === 'promotor') {
+        return redirect()->route('promotora.index');
+    }
+    return redirect()->route('login');
+});
 
 // Rutas protegidas (autenticado y verificado)
 Route::middleware(['auth','verified'])->group(function () {
