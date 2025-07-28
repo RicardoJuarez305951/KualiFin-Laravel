@@ -70,6 +70,8 @@ Route::middleware(['auth','verified'])->group(function () {
          ->name('reportes');
     Route::get('/panelRevision',       fn() => view('PanelRevision'))
          ->name('panelRevision');
+    Route::get('/preAprobacion', fn() => view('preaprobacion.index'))
+         ->name('preAprobacion');
 
     // Panel Administrativo
     Route::prefix('admin')->name('admin.')->group(function () {

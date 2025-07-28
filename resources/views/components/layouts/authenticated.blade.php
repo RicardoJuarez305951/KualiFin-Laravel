@@ -69,6 +69,7 @@
                 <x-layouts.navlink route="solicitud" icon="📋" text="Nueva Solicitud" />
                 <x-layouts.navlink route="nuevoCliente" icon="👥" text="Nuevo Cliente" />
                 <x-layouts.navlink route="panelRevision" icon="🔍" text="Panel de Revisión" />
+                <x-layouts.navlink route="preAprobacion" icon="📝" text="Pre Aprobación" />
                 <x-layouts.navlink route="reportes" icon="📊" text="Reportes" />
                 <x-layouts.navlink route="recreditoClientes" icon="🔄" text="Recrédito Clientes" />
                 <x-layouts.navlink route="admin.index" icon="🧑‍💼" text="Panel Administrativo" />

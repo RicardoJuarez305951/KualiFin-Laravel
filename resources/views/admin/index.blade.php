@@ -31,32 +31,8 @@
                 </p>
             </div>
 
-            <!-- Admin Stats Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-                @foreach ($adminStats as $stat)
-                    <div class="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
-                        <div class="flex items-center justify-between space-y-0 pb-2">
-                            <div class="text-2xl">👥</div>
-                            <div class="text-sm font-medium {{ getChangeColor($stat['changeType']) }}">
-                                {{ $stat['change'] }}
-                            </div>
-                        </div>
-                        <div class="space-y-1">
-                            <p class="text-sm font-medium text-gray-600">{{ $stat['title'] }}</p>
-                            <p class="text-2xl font-bold">{{ $stat['value'] }}</p>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-
             <!-- Main Actions Section -->
             <div class="bg-white rounded-lg shadow-sm border">
-                <div class="p-6 border-b">
-                    <h2 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                        <span class="text-2xl">⚙️</span>
-                        Acciones Principales
-                    </h2>
-                </div>
                 <div class="p-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <!-- Agregar Nuevo Empleado -->
@@ -126,109 +102,6 @@
                                     Próximamente
                                 </button>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Stats Section -->
-            <div class="bg-white rounded-lg shadow-sm border">
-                <div class="p-6 border-b">
-                    <h2 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                        <span class="text-2xl">📈</span>
-                        Estadísticas Rápidas
-                    </h2>
-                </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div class="space-y-3">
-                            <div class="flex items-center gap-2">
-                                <span class="text-xl">👨‍💼</span>
-                                <span class="font-medium text-sm">Empleados Activos</span>
-                            </div>
-                            <div>
-                                <div class="text-2xl font-bold">10</div>
-                                <div class="text-sm text-gray-600">De 12 totales</div>
-                            </div>
-                        </div>
-
-                        <div class="space-y-3">
-                            <div class="flex items-center gap-2">
-                                <span class="text-xl">🎓</span>
-                                <span class="font-medium text-sm">En Capacitación</span>
-                            </div>
-                            <div>
-                                <div class="text-2xl font-bold">2</div>
-                                <div class="text-sm text-gray-600">Nuevos ingresos</div>
-                            </div>
-                        </div>
-
-                        <div class="space-y-3">
-                            <div class="flex items-center gap-2">
-                                <span class="text-xl">🏢</span>
-                                <span class="font-medium text-sm">Departamentos</span>
-                            </div>
-                            <div>
-                                <div class="text-2xl font-bold">4</div>
-                                <div class="text-sm text-gray-600">Áreas activas</div>
-                            </div>
-                        </div>
-
-                        <div class="space-y-3">
-                            <div class="flex items-center gap-2">
-                                <span class="text-xl">📅</span>
-                                <span class="font-medium text-sm">Este Mes</span>
-                            </div>
-                            <div>
-                                <div class="text-2xl font-bold">3</div>
-                                <div class="text-sm text-gray-600">Nuevos empleados</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recent Activity -->
-            <div class="bg-white rounded-lg shadow-sm border">
-                <div class="p-6 border-b">
-                    <h2 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                        <span class="text-2xl">📄</span>
-                        Actividad Reciente
-                    </h2>
-                </div>
-                <div class="p-6">
-                    <div class="space-y-4">
-                        <div class="flex items-center gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                            <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-medium">
-                                ✓
-                            </div>
-                            <div class="flex-1">
-                                <p class="font-medium text-gray-900">Nuevo empleado registrado</p>
-                                <p class="text-sm text-gray-600">Ana María González se unió al equipo de Finanzas</p>
-                            </div>
-                            <div class="text-sm text-gray-500">Hace 2 horas</div>
-                        </div>
-
-                        <div class="flex items-center gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                            <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
-                                📝
-                            </div>
-                            <div class="flex-1">
-                                <p class="font-medium text-gray-900">Actualización de perfil</p>
-                                <p class="text-sm text-gray-600">Carlos Mendoza actualizó su información de contacto</p>
-                            </div>
-                            <div class="text-sm text-gray-500">Hace 1 día</div>
-                        </div>
-
-                        <div class="flex items-center gap-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                            <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-white font-medium">
-                                🎓
-                            </div>
-                            <div class="flex-1">
-                                <p class="font-medium text-gray-900">Capacitación completada</p>
-                                <p class="text-sm text-gray-600">Roberto Silva finalizó el curso de seguridad laboral</p>
-                            </div>
-                            <div class="text-sm text-gray-500">Hace 2 días</div>
                         </div>
                     </div>
                 </div>
