@@ -1,6 +1,5 @@
 {{-- resources/views/promotora/promotora_index.blade.php --}}
 <x-layouts.promotora_mobile.mobile-layout title="Panel Promotora">
-  <div class="bg-gray-100 min-h-screen p-4 flex items-center justify-center">
     <div class="bg-white rounded-2xl shadow-md p-6 w-full max-w-md space-y-6">
       
       {{-- Saludo dinámico --}}

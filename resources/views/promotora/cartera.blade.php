@@ -4,7 +4,7 @@
     $faker = Faker::create('es_MX');
     $clients = collect(range(1, 8))->map(fn($i) => [
         'id'     => $i,
-        'name'   => $faker->name(),
+        'lastName'   => $faker->lastName(),
         'semana' => $faker->numberBetween(1, 12),
         'due'    => $faker->randomFloat(2, 100, 1000),
     ])->toArray();
@@ -15,9 +15,7 @@
         showCalc: false,
         calcAmount: '',
         clientName: ''
-      }"
-      class="bg-gray-100 min-h-screen p-4 flex items-center justify-center">
-    
+      }">    
     <div class="bg-white rounded-2xl shadow p-6 w-full max-w-md">
       <h2 class="text-center text-2xl font-bold text-gray-800 mb-6">Tu Cartera</h2>
       
@@ -25,10 +23,10 @@
         @foreach ($clients as $c)
           <li class="flex items-center justify-between">
             <div class="flex-1">
-              <span class="text-gray-800 font-medium">{{ $c['name'] }}</span>
+              <span class="text-gray-800 font-medium">{{ $c['lastName'] }}</span>
             </div>
             <div class="w-20 text-right">
-              <span class="text-yellow-600 text-xs">Semana {{ $c['semana'] }}</span>
+              <span class="text-yellow-600 text-xs">Sem {{ $c['semana'] }}</span>
             </div>
             <div class="w-24 text-right pr-1">
               <span class="text-gray-900 font-semibold">${{ number_format($c['due'], 2) }}</span>
@@ -36,7 +34,7 @@
             <div class="flex space-x-2 ml-2">
               {{-- Botón $ --}}
               <button
-                @click="clientName = '{{ $c['name'] }}'; showCalc = true; calcAmount = '';"
+                @click="clientName = '{{ $c['lastName'] }}'; showCalc = true; calcAmount = '';"
                 class="w-10 h-10 border-2 border-green-500 text-green-500 hover:bg-green-100 rounded-full flex items-center justify-center"
                 title="Registrar pago">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

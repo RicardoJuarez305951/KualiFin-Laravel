@@ -19,10 +19,9 @@
           this.avalCurpUploaded = false;
           this.avalDomUploaded = false;
         }
-      }"
-      class="bg-gray-100 min-h-screen p-4 flex items-center justify-center">
+      }">
 
-    <div class="bg-white rounded-2xl shadow-md p-6 w-full max-w-md space-y-4">
+    <div class="bg-white rounded-2xl shadow-md p-10 w-full max-w-md space-y-4">
       <h2 class="text-center text-lg font-semibold text-gray-900 uppercase">Ingresar Cliente</h2>
       <button @click="showCliente = true"
               class="flex items-center justify-center gap-2 w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-3 rounded-xl shadow-md transition ring-1 ring-blue-900/20 focus:outline-none focus:ring-2 focus:ring-blue-700">
