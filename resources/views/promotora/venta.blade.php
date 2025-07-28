@@ -1,4 +1,3 @@
-{{-- resources/views/promotora/venta.blade.php --}}
 @php
     $faker = \Faker\Factory::create('es_MX');
     $fecha = now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
@@ -10,76 +9,149 @@
         'amount' => $faker->randomFloat(2, 1000, 10000),
     ])->toArray();
     $total = array_sum(array_column($ventas, 'amount'));
+
+    function formatCurrency($value) {
+        return '$' . number_format($value, 2, '.', ',');
+    }
 @endphp
 
 <x-layouts.promotora_mobile.mobile-layout title="Mi Venta">
-  <div class="bg-gray-100 min-h-screen p-4 flex items-center justify-center">
-    <div class="bg-white rounded-2xl shadow p-6 w-full max-w-md">
+    <div class="bg-gray-100 min-h-screen p-4">
+        <div class="max-w-md mx-auto space-y-6">
 
-      {{-- Encabezado --}}
-      <h2 class="text-center text-lg font-semibold text-black">
-        Tu venta para el día<br>
-        <span class="text-2xl font-bold">{{ $fecha }}</span>
-      </h2>
+            <!-- Header Card -->
+            <div class="bg-white rounded-2xl shadow-md p-6">
+                <div class="text-center space-y-2">
+                    <h1 class="text-xl font-bold text-gray-900 uppercase">
+                        Tu venta para el día
+                    </h1>
+                    <p class="text-lg font-semibold text-blue-700">
+                        {{ $fecha }}
+                    </p>
+                </div>
+            </div>
 
-      {{-- Roles --}}
-      <div class="mt-4 space-y-1 text-sm text-black">
-        <p><span class="font-semibold">Promotora:</span> {{ auth()->user()->name }}</p>
-        <p><span class="font-semibold">Supervisora:</span> {{ $supervisora }}</p>
-        <p><span class="font-semibold">Ejecutivo:</span> {{ $ejecutivo }}</p>
-      </div>
+            <!-- Team Info Card -->
+            <div class="bg-white rounded-2xl shadow-md p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <!-- Reemplazo emoji por icono SVG (equipo) -->
+                    <svg class="w-6 h-6 text-blue-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"
+                         xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M17 20h5v-2a4 4 0 00-5-3.874M9 20H4v-2a4 4 0 015-3.874M12 12a4 4 0 100-8 4 4 0 000 8z"/>
+                    </svg>
+                    Equipo de Trabajo
+                </h2>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">Promotora:</span>
+                        <span class="font-semibold text-gray-900">{{ auth()->user()->name }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">Supervisora:</span>
+                        <span class="font-semibold text-gray-900">{{ $supervisora }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">Ejecutivo:</span>
+                        <span class="font-semibold text-gray-900">{{ $ejecutivo }}</span>
+                    </div>
+                </div>
+            </div>
 
-      {{-- Monto semanal --}}
-      <div class="flex justify-between items-center mt-4">
-        <span class="text-sm text-black">Debe semanal:</span>
-        <span class="text-sm font-bold text-black">
-          ${{ number_format($montoSemanal, 2) }}
-        </span>
-      </div>
-      <hr class="my-3 border-gray-200">
+            <!-- Weekly Amount Card -->
+            <div class="bg-gradient-to-r from-blue-700 to-blue-800 rounded-2xl shadow-md p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-blue-200 text-sm uppercase tracking-wide">Debe semanal</p>
+                        <p class="text-2xl font-bold">{{ formatCurrency($montoSemanal) }}</p>
+                    </div>
+                    <div class="text-4xl opacity-90" aria-hidden="true">
+                        <!-- Icono gráfico (bar chart) -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24"
+                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12h3v6H3v-6zm6-6h3v12h-3V6zm6 3h3v9h-3V9z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
 
-      {{-- Lista de ventas --}}
-      <ul class="divide-y divide-gray-200 text-sm text-black">
-        @foreach ($ventas as $venta)
-          <li class="flex justify-between py-2">
-            <span>{{ $venta['name'] }}</span>
-            <span>${{ number_format($venta['amount'], 2) }}</span>
-          </li>
-        @endforeach
-      </ul>
-      <hr class="my-3 border-gray-200">
+            <!-- Sales List Card -->
+            <div class="bg-white rounded-2xl shadow-md p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <!-- Reemplazo emoji por icono SVG documento -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-blue-700" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 12h6m-6 4h6m2 4H7a2 2 0 01-2-2V6a2 2 0 012-2h5l5 5v9a2 2 0 01-2 2z"/>
+                    </svg>
+                    Lista de Ventas
+                </h2>
+                <div class="divide-y divide-gray-200">
+                    @foreach ($ventas as $venta)
+                        <div class="flex justify-between items-center py-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-blue-700 rounded-full flex items-center justify-center text-white font-semibold text-sm select-none">
+                                    {{ strtoupper(substr($venta['name'], 0, 2)) }}
+                                </div>
+                                <span class="text-sm font-medium text-gray-900">{{ $venta['name'] }}</span>
+                            </div>
+                            <span class="text-sm font-bold text-gray-900">{{ formatCurrency($venta['amount']) }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
 
-      {{-- Total préstamo --}}
-      <div class="flex justify-between items-center">
-        <span class="text-sm font-semibold text-black">
-          Cantidad total del préstamo
-        </span>
-        <span class="text-sm font-bold text-black">
-          ${{ number_format($total, 2) }}
-        </span>
-      </div>
+            <!-- Total Card -->
+            <div class="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl shadow-md p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-green-200 text-sm uppercase tracking-wide">Cantidad total del préstamo</p>
+                        <p class="text-2xl font-bold">{{ formatCurrency($total) }}</p>
+                    </div>
+                    <div class="text-4xl opacity-90" aria-hidden="true">
+                        <!-- Icono dinero -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24"
+                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 8c-2.21 0-4 1.343-4 3s1.79 3 4 3 4-1.343 4-3-1.79-3-4-3z"/>
+                            <path d="M12 3v2m0 14v2m8-8h-2M6 12H4"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
 
-      {{-- Botones --}}
-      <div class="mt-6 space-y-3">
-        <a href="{{ route('promotora.ingresar_cliente') }}"
-           class="block w-full bg-blue-600 hover:bg-blue-700 text-white 
-                  font-semibold py-3 rounded-lg text-center transition">
-          Ingresar Cliente
-        </a>
-        <a href="{{ route('promotora.solicitar_venta') }}"
-           class="block w-full bg-blue-800 hover:bg-blue-900 text-white 
-                  font-semibold py-3 rounded-lg text-center transition">
-          Ingresar venta
-        </a>
+            <!-- Action Buttons -->
+            <div class="space-y-3">
+                <a href="{{ route('promotora.ingresar_cliente') }}"
+                   class="flex items-center justify-center gap-2 w-full bg-blue-800 hover:bg-blue-900 text-white 
+                          font-semibold py-4 rounded-xl text-center transition ring-1 ring-blue-900/20 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5"
+                         stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true" role="img">
+                        <path d="M12 4a4 4 0 100 8 4 4 0 000-8zm0 10c-4 0-8 2-8 6v2h16v-2c0-4-4-6-8-6z"/>
+                    </svg>
+                    <span>Ingresar Cliente</span>
+                </a>
 
-        <a href="{{ route('promotora.index') }}"
-                class="block w-full border border-blue-800 text-blue-800 font-medium py-3 rounded-lg text-center hover:bg-blue-50 transition">
-                Regresar
-        </a>
+                <a href="{{ route('promotora.solicitar_venta') }}"
+                   class="flex items-center justify-center gap-2 w-full bg-blue-800 hover:bg-blue-900 text-white 
+                          font-semibold py-4 rounded-xl text-center transition ring-1 ring-blue-900/20 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5"
+                         stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true" role="img">
+                        <path d="M3 7h18M6 7v6a6 6 0 0012 0V7"/>
+                        <path d="M9 10h6"/>
+                    </svg>
+                    <span>Ingresar Venta</span>
+                </a>
 
-        
-      </div>
+                <a href="{{ route('promotora.index') }}"
+                   class="flex items-center justify-center gap-2 w-full border-2 border-blue-800 text-blue-800 
+                          font-medium py-4 rounded-xl text-center hover:bg-blue-50 transition ring-1 ring-blue-900/20 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5"
+                         stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true" role="img">
+                        <path d="M3 12l6 6 12-12"/>
+                    </svg>
+                    <span>Regresar</span>
+                </a>
+            </div>
 
+        </div>
     </div>
-  </div>
 </x-layouts.promotora_mobile.mobile-layout>

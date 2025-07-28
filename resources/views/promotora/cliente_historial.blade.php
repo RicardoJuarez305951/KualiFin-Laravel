@@ -1,8 +1,6 @@
-{{-- resources/views/mobile/cliente_historial.blade.php --}}
 @php
     use Faker\Factory as Faker;
     $faker         = Faker::create('es_MX');
-    // Datos de encabezado
     $clientName    = $faker->name();
     $curp          = strtoupper($faker->regexify('[A-Z]{4}[0-9]{6}[A-Z]{6}[0-9]{2}'));
     $promotora     = auth()->user()->name;
@@ -12,41 +10,45 @@
     $totalWeeks    = rand(12, 24);
     $currentWeek   = rand(1, $totalWeeks);
     $weeklyAmount  = $totalLoan / $totalWeeks;
+
+    function formatCurrency($value) {
+        return '$' . number_format($value, 2, '.', ',');
+    }
 @endphp
 
 <x-layouts.promotora_mobile.mobile-layout title="Historial de {{ $clientName }}">
   <div class="bg-gray-100 min-h-screen p-4 flex items-center justify-center">
-    <div class="bg-white rounded-2xl shadow p-6 w-full max-w-md">
+
+    <div class="bg-white rounded-2xl shadow-md p-6 w-full max-w-md space-y-6">
+
       {{-- Encabezado --}}
-      <h2 class="text-center text-2xl font-bold text-black mb-4">{{ $clientName }}</h2>
-      <p class="text-sm text-black mb-1"><span class="font-semibold">CURP:</span> {{ $curp }}</p>
-      <p class="text-sm text-black mb-1"><span class="font-semibold">Promotora:</span> {{ $promotora }}</p>
-      <p class="text-sm text-black mb-1"><span class="font-semibold">Supervisora:</span> {{ $supervisora }}</p>
-      <p class="text-sm text-black mb-1 flex justify-between">
-        <span>Total prestado:</span>
-        <span class="font-semibold">${{ number_format($totalLoan,2) }}</span>
-      </p>
-      <p class="text-sm text-black mb-1 flex justify-between">
-        <span>Fecha crédito:</span>
-        <span class="font-semibold">{{ $creditDate }}</span>
-      </p>
-      <p class="text-sm text-black mb-4 flex justify-between">
-        <span>Semanas crédito:</span>
-        <span class="font-semibold">{{ $totalWeeks }}</span>
-      </p>
-      <p class="text-sm text-black mb-6 flex justify-between">
-        <span>Semana actual:</span>
-        <span class="font-semibold">sem {{ $currentWeek }}</span>
-      </p>
+      <div class="text-center space-y-1">
+        <h2 class="text-2xl font-bold text-gray-900">{{ $clientName }}</h2>
+        <p class="text-sm text-gray-700"><span class="font-semibold">CURP:</span> {{ $curp }}</p>
+      </div>
+
+      {{-- Info Cliente --}}
+      <div class="grid grid-cols-2 gap-x-4 text-sm text-gray-800">
+        <div>
+          <p><span class="font-semibold">Promotora:</span> {{ $promotora }}</p>
+          <p><span class="font-semibold">Supervisora:</span> {{ $supervisora }}</p>
+        </div>
+        <div class="text-right">
+          <p><span class="font-semibold">Total prestado:</span><br> <span class="text-lg font-bold text-green-700">{{ formatCurrency($totalLoan) }}</span></p>
+          <p><span class="font-semibold">Fecha crédito:</span><br> {{ $creditDate }}</p>
+          <p><span class="font-semibold">Semanas crédito:</span><br> {{ $totalWeeks }}</p>
+          <p><span class="font-semibold">Semana actual:</span><br> sem {{ $currentWeek }}</p>
+        </div>
+      </div>
 
       {{-- Tabla de semanas --}}
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm table-auto">
-          <thead>
-            <tr class="border-b">
-              <th class="text-left py-2">Semana</th>
-              <th class="text-right py-2 pr-4">Monto</th>
-              <th class="text-center py-2">Estado</th>
+      <div class="overflow-x-auto border rounded-lg shadow-sm">
+        <table class="w-full text-sm table-auto border-collapse">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="text-left py-3 px-4 border-b">Semana</th>
+              <th class="text-right py-3 px-4 border-b">Monto</th>
+              <th class="text-center py-3 px-4 border-b">Estado</th>
             </tr>
           </thead>
           <tbody>
@@ -59,17 +61,18 @@
                   $status = 'Pagar';
                 }
               @endphp
-              <tr class="border-b">
-                <td class="py-2">sem {{ $i }}</td>
-                <td class="py-2 text-right pr-4">${{ number_format($weeklyAmount,2) }}</td>
-                <td class="py-2 text-center">
+              <tr class="border-b hover:bg-gray-50">
+                <td class="py-2 px-4">sem {{ $i }}</td>
+                <td class="py-2 px-4 text-right">{{ formatCurrency($weeklyAmount) }}</td>
+                <td class="py-2 px-4 text-center">
                   @if($status === 'Pagado')
-                    <span class="bg-green-500 text-white px-2 rounded">{{ $status }}</span>
+                    <span class="inline-block bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold tracking-wide">Pagado</span>
                   @elseif($status === 'Anticipo')
-                    <span class="bg-yellow-400 text-black px-2 rounded">{{ $status }}</span>
+                    <span class="inline-block bg-yellow-400 text-black px-3 py-1 rounded-full text-xs font-semibold tracking-wide">Anticipo</span>
                   @elseif($status === 'Atrasado')
-                    <span class="bg-red-600 text-white px-2 rounded">{{ $status }}</span>
-                    
+                    <span class="inline-block bg-red-600 text-white px-3 py-1 rounded-full text-xs font-semibold tracking-wide">Atrasado</span>
+                  @else
+                    <span class="inline-block bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-xs font-semibold tracking-wide">Pagar</span>
                   @endif
                 </td>
               </tr>
@@ -78,13 +81,12 @@
         </table>
       </div>
 
-      {{-- Botones --}}
-      <div class="mt-6 space-y-3">
-        <a href="{{ route('promotora.cartera') }}"
-           class="block w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-3 rounded-lg text-center">
-          REGRESAR
-        </a>
-      </div>
+      {{-- Botón Regresar --}}
+      <a href="{{ route('promotora.cartera') }}"
+         class="block w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-3 rounded-xl text-center shadow-md transition ring-1 ring-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-700">
+        REGRESAR
+      </a>
+
     </div>
   </div>
 </x-layouts.promotora_mobile.mobile-layout>
