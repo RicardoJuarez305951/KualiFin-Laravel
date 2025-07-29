@@ -77,9 +77,9 @@
         <!-- Sales List Card -->
         <div class="bg-white rounded-2xl shadow-md p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <!-- Reemplazo emoji por icono SVG documento -->
+                <!-- Icono documento -->
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-blue-700" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 12h6m-6 4h6m2 4H7a2 2 0 01-2-2V6a2 2 0 012-2h5l5 5v9a2 2 0 01-2 2z"/>
                 </svg>
                 Lista de Ventas
@@ -93,11 +93,33 @@
                             </div>
                             <span class="text-sm font-medium text-gray-900">{{ $venta['name'] }}</span>
                         </div>
-                        <span class="text-sm font-bold text-gray-900">{{ formatCurrency($venta['amount']) }}</span>
+                        <div class="flex items-center gap-4">
+                            <span class="text-sm font-bold text-gray-900">{{ formatCurrency($venta['amount']) }}</span>
+
+                            <!-- Botón eliminar -->
+                            <button type="button"
+                                class="focus:outline-none"
+                                aria-label="Eliminar venta">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                    class="w-6 h-6 text-red-500 hover:text-red-700"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    stroke-width="1.5"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7" />
+                                    <path d="M10 11v6M14 11v6" />
+                                    <path d="M4 7h16" />
+                                    <path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 @endforeach
             </div>
         </div>
+
 
         <!-- Total Card -->
         <div class="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl shadow-md p-6 text-white">

@@ -13,12 +13,13 @@ return new class extends Migration {
             $table->string('apellido_m', 100);
             $table->string('curp', 18)->unique();
             $table->date('fecha_nac');
+            $table->integer('edad');
             $table->string('sexo', 10);
             $table->string('estado_civil',20);
+            $table->string('validez',100);
             $table->timestamp('creado_en')->useCurrent();
             $table->timestamp('actualizado_en')->useCurrent()->useCurrentOnUpdate();
             $table->boolean('activo');
-            $table->integer('edad');
         });
     }
 

@@ -28,9 +28,10 @@ class Cliente extends Model
         'apellido_m',
         'curp',
         'fecha_nac',
+        'edad',
         'sexo',
         'estado_civil',
-        'edad',
+        'validez',
         'activo',
         // No es necesario incluir 'creado_en' ni 'actualizado_en' aquí,
         // pues Eloquent los gestionará automáticamente.

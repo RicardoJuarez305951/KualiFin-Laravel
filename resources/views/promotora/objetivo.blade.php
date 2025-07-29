@@ -3,97 +3,128 @@
     use Faker\Factory as Faker;
     $faker = Faker::create('es_MX');
 
-    // Objetivos
-    $weeklyTarget           = $faker->randomFloat(2, 10000, 50000);
-    $exerciseTarget         = $faker->randomFloat(2, 100000, 500000);
+    // Metas semanales
+    $weeklyMoneyTarget   = $faker->randomFloat(2, 10000, 50000);
+    $weeklyClientTarget  = $faker->numberBetween(5, 15);
 
-    // Ventas históricas (3 semanas de ejemplo)
-    $salesHistory = [
-        $faker->randomFloat(2, 0, $weeklyTarget), 
-        $faker->randomFloat(2, 0, $weeklyTarget), 
-        $faker->randomFloat(2, 0, $weeklyTarget),
+    // Metas del ejercicio
+    $exerciseMoneyTarget   = $faker->randomFloat(2, 100000, 500000);
+    $exerciseClientTarget  = $faker->numberBetween(20, 60);
+
+    // Historial (3 semanas)
+    $moneyHistory   = [
+        $faker->randomFloat(2, 0, $weeklyMoneyTarget),
+        $faker->randomFloat(2, 0, $weeklyMoneyTarget),
+        $faker->randomFloat(2, 0, $weeklyMoneyTarget),
+    ];
+    $clientHistory  = [
+        $faker->numberBetween(0, $weeklyClientTarget),
+        $faker->numberBetween(0, $weeklyClientTarget),
+        $faker->numberBetween(0, $weeklyClientTarget),
     ];
 
     // Cálculos
-    $projectedDue            = max($weeklyTarget - $salesHistory[0], 0);
-    $remainingExerciseTarget = max($exerciseTarget - array_sum($salesHistory), 0);
+    $dueMoneyThisWeek     = max($weeklyMoneyTarget - $moneyHistory[0], 0);
+    $dueClientsThisWeek   = max($weeklyClientTarget - $clientHistory[0], 0);
+    $remainingMoneyTotal  = max($exerciseMoneyTarget - array_sum($moneyHistory), 0);
+    $remainingClientsTotal= max($exerciseClientTarget - array_sum($clientHistory), 0);
 
-    // Mensaje motivacional
-    $message = $projectedDue > 0
-        ? '¡Vas muy bien, pero falta un poco para llegar!'
-        : '¡Felicidades, objetivo semanal alcanzado!';
+    function formatCurrency($v) {
+        return '$' . number_format($v, 2, '.', ',');
+    }
 @endphp
 
 <x-layouts.promotora_mobile.mobile-layout title="Tu Objetivo">
-  <div class="bg-white rounded-2xl shadow-md p-6 w-full max-w-md space-y-6">
+  <div class="w-full max-w-md mx-auto space-y-6 p-4">
 
-    {{-- Título --}}
-    <div class="text-center">
-      <h2 class="text-xl font-bold text-gray-900">Resumen de tus Objetivos</h2>
-      <p class="text-sm text-gray-600">¡Sigue avanzando, estás muy cerca!</p>
-    </div>
-
-    {{-- Objetivo semanal --}}
-    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <div class="flex items-center gap-2 text-blue-900">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
-              viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M12 12c1.657 0 3-1.343 3-3S13.657 6 12 6s-3 1.343-3 3 1.343 3 3 3zm0 0v8m0-8H4m8 0h8" />
-        </svg>
-        <span class="font-semibold">Objetivo semanal</span>
+    {{-- Créditos y Clientes objetivo --}}
+    <div class="grid grid-cols-2 gap-4">
+      <div class="bg-gradient-to-br from-blue-600 to-blue-500 text-white rounded-2xl shadow-lg p-4 flex items-center gap-3">
+        <span class="font-bold">$</span>
+        <div>
+          <p class="text-xs uppercase tracking-wider opacity-80">Créditos objetivo</p>
+          <p class="text-xl font-bold">{{ formatCurrency($weeklyMoneyTarget) }}</p>
+        </div>
       </div>
-      <p class="text-2xl font-bold mt-1 text-blue-900">${{ number_format($weeklyTarget, 2) }}</p>
-    </div>
-
-    {{-- Objetivo del ejercicio --}}
-    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-      <div class="flex items-center gap-2 text-yellow-900">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
-              viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M11.25 3v1.5m0 15V21m-6.364-1.636l1.06-1.06m10.606 0l1.06 1.06M21 12h-1.5M3 12H1.5m1.636-6.364l1.06 1.06m12.728-1.06l1.06 1.06M6 12a6 6 0 1112 0 6 6 0 01-12 0z" />
+      <div class="bg-gradient-to-br from-green-600 to-green-500 text-white rounded-2xl shadow-lg p-4 flex items-center gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 opacity-90" fill="none" stroke="currentColor" stroke-width="1.5"
+             stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M12 12c1.657 0 3-1.343 3-3S13.657 6 12 6s-3 1.343-3 3 1.343 3 3 3z"/>
+          <path d="M12 12v8m0-8H4m8 0h8"/>
         </svg>
-        <span class="font-semibold">Resto del ejercicio</span>
+        <div>
+          <p class="text-xs uppercase tracking-wider opacity-80">Clientes objetivo</p>
+          <p class="text-xl font-bold">{{ $weeklyClientTarget }} N</p>
+        </div>
       </div>
-      <p class="text-2xl font-bold mt-1 text-yellow-900">${{ number_format($remainingExerciseTarget, 2) }}</p>
     </div>
 
-    {{-- Proyección actual --}}
-    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-      <div class="flex items-center gap-2 text-red-900">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
-              viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span class="font-semibold">Debe proyectado</span>
-      </div>
-      <p class="text-2xl font-bold mt-1 text-red-900">${{ number_format($projectedDue, 2) }}</p>
+    {{-- Tabla de metas y proyecciones --}}
+    <div class="bg-white rounded-2xl shadow-md divide-y">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="py-3 px-4 text-left font-medium">Dinero</th>
+            <th class="py-3 px-4 text-left font-medium">Clientes</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          <tr class="hover:bg-gray-50">
+            <td class="py-3 px-4 font-semibold">Meta</td>
+            <td class="py-3 px-4 font-semibold">{{ $weeklyClientTarget }}</td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="py-3 px-4">
+              {{ formatCurrency($remainingMoneyTotal) }}<br>
+              <span class="text-xs text-gray-500">restante del ejercicio</span>
+            </td>
+            <td class="py-3 px-4">
+              {{ $remainingClientsTotal }}<br>
+              <span class="text-xs text-gray-500">restantes del ejercicio</span>
+            </td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="py-3 px-4 text-red-600">
+              {{ formatCurrency($dueMoneyThisWeek) }}<br>
+              <span class="text-xs text-red-400">faltante esta semana</span>
+            </td>
+            <td class="py-3 px-4 text-red-600">
+              {{ $dueClientsThisWeek }}<br>
+              <span class="text-xs text-red-400">faltantes esta semana</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
-    {{-- Historial --}}
-    <div>
-      <h3 class="text-sm font-semibold text-gray-800 mb-2">Ventas anteriores</h3>
-      <ul class="space-y-1 text-sm text-gray-700">
-        @foreach ($salesHistory as $idx => $amt)
-          <li class="flex justify-between border-b border-gray-100 py-1">
-            <span class="text-gray-500">Semana {{ $idx + 1 }}</span>
-            <span class="font-medium">${{ number_format($amt, 2) }}</span>
-          </li>
-        @endforeach
-      </ul>
+    {{-- Historial (3 sem) --}}
+    <div class="bg-white rounded-2xl shadow-md p-4">
+      <h3 class="text-sm font-semibold text-gray-800 mb-3">Historial (3 sem)</h3>
+      <table class="w-full text-sm divide-y">
+        <thead>
+          <tr class="bg-gray-50">
+            <th class="py-2 px-3">Semana</th>
+            <th class="py-2 px-3 text-right">$</th>
+            <th class="py-2 px-3 text-right">Clientes</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for ($i = 0; $i < 3; $i++)
+            <tr class="hover:bg-gray-50">
+              <td class="py-2 px-3">{{ $i + 1 }}</td>
+              <td class="py-2 px-3 text-right">{{ formatCurrency($moneyHistory[$i]) }}</td>
+              <td class="py-2 px-3 text-right">{{ $clientHistory[$i] }}</td>
+            </tr>
+          @endfor
+        </tbody>
+      </table>
     </div>
 
-    {{-- Mensaje motivacional --}}
-    <div class="text-center bg-green-100 border border-green-200 text-green-900 text-sm rounded-lg p-3">
-      {{ $message }}
-    </div>
-
-    {{-- Botón --}}
+    {{-- Botón regresar --}}
     <a href="{{ route('promotora.index') }}"
-        class="block w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-3 rounded-lg text-center shadow-md transition">
-      REGRESAR
+       class="block text-center py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
+      ← Regresar
     </a>
+
   </div>
 </x-layouts.promotora_mobile.mobile-layout>

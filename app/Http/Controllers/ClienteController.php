@@ -34,6 +34,7 @@ class ClienteController extends Controller
             'fecha_nac'        => 'required|date',
             'sexo'             => 'required|string|max:10',
             'estado_civil'     => 'required|string|max:20',
+            'validez'             => 'nullable|string|max:100',
             'activo'           => 'required|boolean',
             'INE_doc'          => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
             'CURP_doc'         => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
@@ -50,9 +51,9 @@ class ClienteController extends Controller
             'apellido_m'    => $validated['apellido_m'] ?? null,
             'curp'          => $validated['curp'],
             'fecha_nac'     => $validated['fecha_nac'],
+            'edad'          => $validated['edad'],
             'sexo'          => $validated['sexo'],
             'estado_civil'  => $validated['estado_civil'],
-            'edad'          => $validated['edad'],
             'activo'        => $validated['activo'],
         ]);
 
