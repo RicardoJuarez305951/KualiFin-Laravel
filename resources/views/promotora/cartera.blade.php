@@ -16,7 +16,7 @@
         calcAmount: '',
         clientName: ''
       }">    
-    <div class="bg-white rounded-2xl shadow p-6 w-full max-w-md">
+    <div class="bg-white rounded-2xl shadow p-2  w-full max-w-md">
       <h2 class="text-center text-2xl font-bold text-gray-800 mb-6">Tu Cartera</h2>
       
       <ul class="space-y-4 text-sm">
@@ -37,9 +37,7 @@
                 @click="clientName = '{{ $c['lastName'] }}'; showCalc = true; calcAmount = '';"
                 class="w-10 h-10 border-2 border-green-500 text-green-500 hover:bg-green-100 rounded-full flex items-center justify-center"
                 title="Registrar pago">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-10v2m0 10v2" />
-                </svg>
+                $
               </button>
 
               {{-- Botón H --}}

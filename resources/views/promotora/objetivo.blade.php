@@ -43,7 +43,7 @@
         <span class="font-bold">$</span>
         <div>
           <p class="text-xs uppercase tracking-wider opacity-80">Créditos objetivo</p>
-          <p class="text-xl font-bold">{{ formatCurrency($weeklyMoneyTarget) }}</p>
+          <p class="text-base font-bold">{{ formatCurrency($weeklyMoneyTarget) }}</p>
         </div>
       </div>
       <div class="bg-gradient-to-br from-green-600 to-green-500 text-white rounded-2xl shadow-lg p-4 flex items-center gap-3">
@@ -54,7 +54,7 @@
         </svg>
         <div>
           <p class="text-xs uppercase tracking-wider opacity-80">Clientes objetivo</p>
-          <p class="text-xl font-bold">{{ $weeklyClientTarget }} N</p>
+          <p class="text-base font-bold">{{ $weeklyClientTarget }}</p>
         </div>
       </div>
     </div>

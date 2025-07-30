@@ -1,3 +1,4 @@
+{{-- resources/views/promotora/promotora_historial.blade.php --}}
 @php
     use Faker\Factory as Faker;
     $faker         = Faker::create('es_MX');
@@ -7,8 +8,9 @@
     $supervisora   = $faker->name();
     $totalLoan     = $faker->randomFloat(2, 20000, 100000);
     $creditDate    = now()->subWeeks(rand(1, 20))->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
-    $totalWeeks    = rand(12, 24);
+    $totalWeeks    = rand(17, 17);
     $currentWeek   = rand(1, $totalWeeks);
+    $zone          = strtoupper($faker->bothify('Z##'));
     $weeklyAmount  = $totalLoan / $totalWeeks;
 
     function formatCurrency($value) {
@@ -17,29 +19,49 @@
 @endphp
 
 <x-layouts.promotora_mobile.mobile-layout title="Historial de {{ $clientName }}">
-  <div class="bg-white rounded-2xl shadow-md p-6 w-full max-w-md space-y-6">
+  <div class="bg-white rounded-2xl shadow-md p-6 w-full max-w-md mx-auto space-y-6">
 
-    {{-- Encabezado --}}
-    <div class="text-center space-y-1">
-      <h2 class="text-2xl font-bold text-gray-900">{{ $clientName }}</h2>
-      <p class="text-sm text-gray-700"><span class="font-semibold">CURP:</span> {{ $curp }}</p>
+    {{-- 1. INFO DEL CRÉDITO --}}
+    <div class="grid grid-cols-2 gap-4 text-sm text-gray-800">
+      <div class="space-y-1">
+        <label class="block font-semibold">Supervisor</label>
+        <div class="border-b border-gray-300 h-6 leading-6">{{ $supervisora }}</div>
+      </div>
+      <div class="space-y-1">
+        <label class="block font-semibold">Semanas del crédito</label>
+        <div class="border-b border-gray-300 h-6 leading-6">{{ $totalWeeks }}</div>
+      </div>
+      <div class="space-y-1">
+        <label class="block font-semibold">Fecha de crédito</label>
+        <div class="border-b border-gray-300 h-6 leading-6">{{ $creditDate }}</div>
+      </div>
+      <div class="space-y-1">
+        <label class="block font-semibold">Semana actual</label>
+        <div class="border-b border-gray-300 h-6 leading-6">sem {{ $currentWeek }}</div>
+      </div>
     </div>
 
-    {{-- Info Cliente --}}
-    <div class="grid grid-cols-2 gap-x-4 text-sm text-gray-800">
-      <div>
-        <p><span class="font-semibold">Promotora:</span> {{ $promotora }}</p>
-        <p><span class="font-semibold">Supervisora:</span> {{ $supervisora }}</p>
+    {{-- 2. MONTO Y ZONA --}}
+    <div class="grid grid-cols-3 gap-4 text-sm text-gray-800">
+      <div class="col-span-2 space-y-1">
+        <label class="block font-semibold">Cantidad</label>
+        <div class="border-b border-gray-300 h-6 leading-6">
+          <span class="text-green-700 font-bold">{{ formatCurrency($totalLoan) }}</span>
+        </div>
       </div>
-      <div class="text-right">
-        <p><span class="font-semibold">Total prestado:</span><br> <span class="text-lg font-bold text-green-700">{{ formatCurrency($totalLoan) }}</span></p>
-        <p><span class="font-semibold">Fecha crédito:</span><br> {{ $creditDate }}</p>
-        <p><span class="font-semibold">Semanas crédito:</span><br> {{ $totalWeeks }}</p>
-        <p><span class="font-semibold">Semana actual:</span><br> sem {{ $currentWeek }}</p>
+      <div class="space-y-1">
+        <label class="block font-semibold">Zona</label>
+        <div class="border border-gray-300 rounded h-6 flex items-center justify-center">{{ $zone }}</div>
       </div>
     </div>
 
-    {{-- Tabla de semanas --}}
+    {{-- 3. CLIENTE --}}
+    <div class="space-y-1 text-sm text-gray-800">
+      <label class="block font-semibold">Cliente</label>
+      <div class="border-b border-gray-300 h-6 leading-6">{{ $clientName }}</div>
+    </div>
+
+    {{-- 4. TABLA DE SEMANAS --}}
     <div class="overflow-x-auto border rounded-lg shadow-sm">
       <table class="w-full text-sm table-auto border-collapse">
         <thead class="bg-gray-50">
@@ -59,7 +81,7 @@
                 $status = 'Pagar';
               }
             @endphp
-            <tr class="border-b hover:bg-gray-50">
+            <tr class="text-xs border-b hover:bg-gray-50">
               <td class="py-2 px-4">sem {{ $i }}</td>
               <td class="py-2 px-4 text-right">{{ formatCurrency($weeklyAmount) }}</td>
               <td class="py-2 px-4 text-center">
@@ -79,9 +101,9 @@
       </table>
     </div>
 
-    {{-- Botón Regresar --}}
+    {{-- 5. BOTÓN REGRESAR --}}
     <a href="{{ route('promotora.cartera') }}"
-        class="block w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-3 rounded-xl text-center shadow-md transition ring-1 ring-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-700">
+       class="block w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-3 rounded-xl text-center shadow-md transition ring-1 ring-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-700">
       REGRESAR
     </a>
 

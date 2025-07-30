@@ -69,7 +69,7 @@ Route::middleware(['auth','verified'])->group(function () {
     Route::resource('documentos', DocumentoClienteController::class);
 
     // Páginas Blade adicionales
-    Route::get('/nuevoCredito',        fn() => view('solicitud'))
+    Route::get('/nuevoCredito',        fn() => view('solicitud.solicitud'))
          ->name('solicitud');
     Route::get('/recreditoCliente',    fn() => view('recreditoClientes'))
          ->name('recreditoClientes');
