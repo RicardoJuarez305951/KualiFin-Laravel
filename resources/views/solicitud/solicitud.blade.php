@@ -5,8 +5,8 @@
   </x-slot>
 
   <main>
-    <!-- <livewire:solicitud-credito-wizard/> -->
-     @livewire(solicitud-credito-wizard)
+    <livewire:solicitud-credito-wizard/>
+     <!-- @livewire(solicitud-credito-wizard) -->
   </main>
 
   @livewireScripts
