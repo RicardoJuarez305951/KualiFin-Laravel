@@ -21,13 +21,13 @@
 
     {{-- Paso 0: Inicial --}}
     @if($step === 0)
-        <x-solicitud.inicial-form 
-            :promoters="$promoters" 
-            :clients-by-promoter="$clientsByPromoter" 
-            :docTypes="$docTypes" 
-            :clienteImages="$clienteImages" 
-            :avalImages="$avalImages" 
-        />
+    <x-solicitud.inicial-form
+        :promotores="$promotores"
+        :clientes-por-promotora="$clientesPorPromotora"
+        :tipos-docs="$tiposDocs"
+        :imagenes-cliente="$imagenesCliente"
+        :imagenes-aval="$imagenesAval"
+    />
     @endif
 
     {{-- Paso 1: Domicilio --}}

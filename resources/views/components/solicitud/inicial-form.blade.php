@@ -1,71 +1,90 @@
-@props(['promoters', 'clientsByPromoter', 'docTypes', 'clienteImages', 'avalImages'])
 
-<div class="space-y-6">
-    <!-- Promotora -->
-    <section class="bg-white rounded-xl shadow-md border p-6">
-        <div class="flex items-center gap-4 mb-4">
-            <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white text-xl">👩‍💼</div>
-            <h2 class="text-xl font-bold text-blue-600">Selección de Promotora</h2>
+<section class="bg-white rounded-xl shadow-md border p-6">
+    <div class="flex items-center gap-4 mb-6">
+        <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center text-white text-xl">💼</div>
+        <h2 class="text-2xl font-bold text-purple-600">Datos de Ocupación</h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Actividad -->
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Actividad que Realiza <span class="text-red-500">*</span></label>
+            <input type="text" wire:model="ocupacion.actividad" class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500" placeholder="Ej. Comerciante, Empleado" />
         </div>
-        <select wire:model="initialData.promotora"
-                class="w-full border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200">
-            <option value="">-- Seleccione una promotora --</option>
-            @foreach($promoters as $p)
-                <option value="{{ $p['id'] }}">{{ $p['name'] }}</option>
-            @endforeach
-        </select>
-    </section>
-
-    <!-- Cliente -->
-    @if($initialData['promotora'])
-    <section class="bg-white rounded-xl shadow-md border p-6">
-        <div class="flex items-center gap-4 mb-4">
-            <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center text-white text-xl">👤</div>
-            <h2 class="text-xl font-bold text-purple-600">Selección de Cliente</h2>
+        <!-- Empresa -->
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Nombre de la Empresa</label>
+            <input type="text" wire:model="ocupacion.empresa" class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500" placeholder="Nombre de la empresa" />
         </div>
-        <select wire:model="initialData.cliente"
-                class="w-full border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 transition duration-200">
-            <option value="">-- Seleccione un cliente --</option>
-            @foreach($clientsByPromoter[$initialData['promotora']] as $name)
-                <option value="{{ $name }}">{{ $name }}</option>
-            @endforeach
-        </select>
-    </section>
-    @endif
-
-    <!-- Documentos del Cliente -->
-    @if($initialData['cliente'])
-    <section class="bg-white rounded-xl shadow-md border p-6">
-        <h3 class="text-lg font-bold text-green-600 mb-4">Documentos de {{ $initialData['cliente'] }}</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            @foreach($docTypes as $key)
-            <div class="rounded-xl border p-4 text-center">
-                <img src="{{ $clienteImages[$key] }}" class="w-full h-32 object-cover rounded mb-3 cursor-pointer" />
-                <p class="font-medium">{{ strtoupper($key) }}</p>
-                <div class="flex justify-center gap-2 mt-2">
-                    <button wire:click="setClienteValidation('{{ $key }}','accepted')" class="px-3 py-1 bg-green-500 text-white rounded">✅</button>
-                    <button wire:click="setClienteValidation('{{ $key }}','rejected')" class="px-3 py-1 bg-red-500 text-white rounded">❌</button>
-                </div>
+        <!-- Domicilio Secundario Calle -->
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Domicilio Secundario - Calle <span class="text-red-500">*</span></label>
+            <input type="text" wire:model="ocupacion.domSecCalle" class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500" placeholder="Dirección del trabajo" />
+        </div>
+        <!-- Colonia -->
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Colonia <span class="text-red-500">*</span></label>
+            <input type="text" wire:model="ocupacion.domSecColonia" class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500" placeholder="Colonia del trabajo" />
+        </div>
+        <!-- Municipio -->
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Municipio <span class="text-red-500">*</span></label>
+            <input type="text" wire:model="ocupacion.domSecMunicipio" class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500" placeholder="Municipio del trabajo" />
+        </div>
+        <!-- Teléfono -->
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Teléfono <span class="text-red-500">*</span></label>
+            <input type="tel" wire:model="ocupacion.telefono" class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500" placeholder="123-456-7890" />
+        </div>
+        <!-- Antigüedad -->
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Antigüedad <span class="text-red-500">*</span></label>
+            <input type="text" wire:model="ocupacion.antiguedad" class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500" placeholder="Ej. 2 años" />
+        </div>
+        <!-- Monto y Periodo -->
+        <div class="flex gap-4">
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-slate-700 mb-2">Monto que Percibe <span class="text-red-500">*</span></label>
+                <input type="number" wire:model="ocupacion.monto" class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500" placeholder="0.00" />
             </div>
-            @endforeach
-        </div>
-    </section>
-
-    <!-- Documentos del Aval -->
-    <section class="bg-white rounded-xl shadow-md border p-6">
-        <h3 class="text-lg font-bold text-indigo-600 mb-4">Documentos del Aval</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            @foreach($docTypes as $key)
-            <div class="rounded-xl border p-4 text-center">
-                <img src="{{ $avalImages[$key] }}" class="w-full h-32 object-cover rounded mb-3 cursor-pointer" />
-                <p class="font-medium">{{ strtoupper($key) }}</p>
-                <div class="flex justify-center gap-2 mt-2">
-                    <button wire:click="setAvalValidation('{{ $key }}','accepted')" class="px-3 py-1 bg-green-500 text-white rounded">✅</button>
-                    <button wire:click="setAvalValidation('{{ $key }}','rejected')" class="px-3 py-1 bg-red-500 text-white rounded">❌</button>
-                </div>
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-slate-700 mb-2">Periodo <span class="text-red-500">*</span></label>
+                <select wire:model="ocupacion.periodo" class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500">
+                    <option value="">--Seleccione--</option>
+                    <option value="Semanal">Semanal</option>
+                    <option value="Quincenal">Quincenal</option>
+                    <option value="Mensual">Mensual</option>
+                </select>
             </div>
-            @endforeach
         </div>
-    </section>
-    @endif
-</div>
+        <!-- Ingresos Adicionales -->
+        <div class="md:col-span-2">
+            <div class="flex items-center p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <input type="checkbox" wire:model="ocupacion.ingresosAdicionales" class="w-4 h-4 text-purple-600" />
+                <span class="ml-2 font-medium text-purple-800">¿Tiene ingresos adicionales?</span>
+            </div>
+        </div>
+        <!-- Campos adicionales si hay ingresos -->
+        <template x-if="ocupacion.ingresosAdicionales">
+            <>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Concepto</label>
+                    <input type="text" wire:model="ocupacion.ingresoConcepto" class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500" placeholder="Ej. Ventas" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Monto</label>
+                    <input type="number" wire:model="ocupacion.ingresoMonto" class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500" placeholder="0.00" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Frecuencia</label>
+                    <select wire:model="ocupacion.ingresoFrecuencia" class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500">
+                        <option value="">--Seleccione--</option>
+                        <option value="Semanal">Semanal</option>
+                        <option value="Quincenal">Quincenal</option>
+                        <option value="Mensual">Mensual</option>
+                        <option value="Bimestral">Bimestral</option>
+                    </select>
+                </div>
+            </>
+        </template>
+    </div>
+</section>

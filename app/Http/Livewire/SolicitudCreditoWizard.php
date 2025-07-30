@@ -8,6 +8,41 @@ class SolicitudCreditoWizard extends Component
 {
     public $step = 0;
 
+    // Datos iniciales (Paso 0)
+    public $initialData = [
+        'promotora'          => '',
+        'cliente'            => '',
+        'clienteValidacion'  => [],
+        'avalValidacion'     => [],
+    ];
+
+    // Listas para la selección inicial
+    public $promotores = [
+        ['id'=>'prom1','nombre'=>'María Rodríguez'],
+        ['id'=>'prom2','nombre'=>'Carlos Sánchez'],
+        ['id'=>'prom3','nombre'=>'Ana Martínez'],
+    ];
+
+    public $clientesPorPromotora = [
+        'prom1' => ['Juan Pérez López','Ana García Martínez'],
+        'prom2' => ['Roberto Silva Torres','Lucía Hernández Ruiz'],
+        'prom3' => ['Carlos Gómez Sánchez','Laura Díaz Mendoza'],
+    ];
+
+    public $tiposDocs = ['ine','curp','comprobante'];
+
+    public $imagenesCliente = [
+        'ine'        => 'https://images.pexels.com/photos/6863183/pexels-photo-6863183.jpeg',
+        'curp'       => 'https://images.pexels.com/photos/6863332/pexels-photo-6863332.jpeg',
+        'comprobante'=> 'https://images.pexels.com/photos/6863365/pexels-photo-6863365.jpeg',
+    ];
+
+    public $imagenesAval = [
+        'ine'        => 'https://images.pexels.com/photos/6863400/pexels-photo-6863400.jpeg',
+        'curp'       => 'https://images.pexels.com/photos/6863450/pexels-photo-6863450.jpeg',
+        'comprobante'=> 'https://images.pexels.com/photos/6863500/pexels-photo-6863500.jpeg',
+    ];
+
     // Paso 1: Domicilio
     public $domicilio = [
         'calle'            => '',
@@ -64,6 +99,7 @@ class SolicitudCreditoWizard extends Component
 
     public function mount()
     {
+        // Inicializa 8 garantías vacías
         $this->garantias = array_fill(0, 8, [
             'electrodomestico'=>'',
             'marca'=>'',
@@ -76,6 +112,7 @@ class SolicitudCreditoWizard extends Component
 
     public function nextStep()
     {
+        // Validar desde el Paso 1 en adelante
         if ($this->step > 0) {
             $this->validateStep($this->step);
         }
@@ -84,13 +121,16 @@ class SolicitudCreditoWizard extends Component
 
     public function previousStep()
     {
-        if ($this->step > 1) $this->step--;
+        if ($this->step > 0) {
+            $this->step--;
+        }
     }
 
     protected function validateStep($step)
     {
-        $rules = match($step) {
+        return match($step) {
             0 => [],
+
             1 => [
                 'domicilio.calle'            => 'required',
                 'domicilio.numero'           => 'required',
@@ -102,6 +142,7 @@ class SolicitudCreditoWizard extends Component
                 'domicilio.montoMensual'     => 'required|numeric',
                 'domicilio.telCelular'       => 'required',
             ],
+
             2 => [
                 'ocupacion.actividad'       => 'required',
                 'ocupacion.domSecCalle'     => 'required',
@@ -112,10 +153,12 @@ class SolicitudCreditoWizard extends Component
                 'ocupacion.monto'           => 'required|numeric',
                 'ocupacion.periodo'         => 'required',
             ],
+
             3 => [
                 'infoFamiliar.personasEnDomicilio'    => 'required|numeric',
                 'infoFamiliar.dependientesEconomicos'  => 'required|numeric',
             ],
+
             4 => [
                 'avales.aval1.nombre'     => 'required',
                 'avales.aval1.direccion'  => 'required',
@@ -126,6 +169,7 @@ class SolicitudCreditoWizard extends Component
                 'avales.aval2.telefono'   => 'required',
                 'avales.aval2.parentesco' => 'required',
             ],
+
             5 => [
                 'garantias'                      => 'array|min:1',
                 'garantias.*.electrodomestico'   => 'required',
@@ -135,19 +179,19 @@ class SolicitudCreditoWizard extends Component
                 'garantias.*.antiguedad'         => 'required',
                 'garantias.*.montoGarantizado'   => 'required|numeric',
             ],
+
             default => [],
         };
-        $this->validate($rules);
     }
 
     public function submit()
     {
-        // validamos todo de nuevo
+        // Validaciones finales
         for ($i = 1; $i <= 5; $i++) {
             $this->validateStep($i);
         }
 
-        // aquí guardas tu solicitud con todos los datos
+        // Guardar y redirigir
         // Solicitud::create([...]);
 
         session()->flash('success', 'Solicitud enviada correctamente.');
