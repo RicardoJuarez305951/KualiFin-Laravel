@@ -4,8 +4,6 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
-use Livewire\Livewire;
-use App\Http\Livewire\SolicitudCreditoWizard;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,8 +13,6 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         //
-        Livewire::component('solicitud-credito-wizard', SolicitudCreditoWizard::class);
-
     }
 
     /**
