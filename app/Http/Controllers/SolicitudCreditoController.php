@@ -14,12 +14,8 @@ class SolicitudCreditoController extends Controller
      */
     public function create(Request $request)
     {
-        // Obtiene el paso actual de la sesión, si no existe, empieza en 1.
         $currentStep = $request->session()->get('current_step', 1);
-        // Obtiene los datos del formulario guardados en la sesión.
         $solicitud = $request->session()->get('solicitud', []);
-
-        // --- Datos estáticos para la selección ---
         $promotoras = $this->getPromotorasData();
         
         return view('credito.inicial', compact('currentStep', 'solicitud', 'promotoras'));
@@ -32,28 +28,36 @@ class SolicitudCreditoController extends Controller
     {
         $currentStep = $request->session()->get('current_step', 1);
         $solicitud = $request->session()->get('solicitud', []);
+        $validatedData = [];
 
         // Valida y guarda los datos según el paso actual
         if ($currentStep == 1) {
             $validatedData = $request->validate([
                 'promotora_id' => 'required|numeric',
                 'cliente_id' => 'required|numeric',
+                'ine_cliente_status' => 'required|in:aprobado',
+                'domicilio_cliente_status' => 'required|in:aprobado',
+                'ine_aval_status' => 'required|in:aprobado',
+                'domicilio_aval_status' => 'required|in:aprobado',
+            ], [
+                // Mensajes de error personalizados para guiar al usuario
+                'promotora_id.required' => 'Debes seleccionar una promotora.',
+                'cliente_id.required' => 'Debes seleccionar un cliente.',
+                'ine_cliente_status.in' => 'El INE del cliente debe estar aprobado para continuar.',
+                'domicilio_cliente_status.in' => 'El comprobante de domicilio del cliente debe estar aprobado.',
+                'ine_aval_status.in' => 'El INE del aval debe estar aprobado.',
+                'domicilio_aval_status.in' => 'El comprobante de domicilio del aval debe estar aprobado.',
+                '*.required' => 'Es necesario evaluar todos los documentos antes de continuar.',
             ]);
-            // Guarda la información seleccionada en la sesión
-            $solicitud = $this->getSelectionDetails($validatedData['promotora_id'], $validatedData['cliente_id']);
+            $selectionDetails = $this->getSelectionDetails($validatedData['promotora_id'], $validatedData['cliente_id']);
+            $solicitud = array_merge($selectionDetails, $validatedData);
 
         } elseif ($currentStep == 2) {
-            $validatedData = $request->validate([
-                'nombre_completo' => 'required|string|min:3',
-                'email' => 'required|email',
-            ]);
+            $validatedData = $request->validate(['nombre_completo' => 'required|string|min:3', 'email' => 'required|email']);
             $solicitud = array_merge($solicitud, $validatedData);
 
         } elseif ($currentStep == 3) {
-            $validatedData = $request->validate([
-                'empresa' => 'required|string',
-                'ingreso_mensual' => 'required|numeric|min:0',
-            ]);
+            $validatedData = $request->validate(['empresa' => 'required|string', 'ingreso_mensual' => 'required|numeric|min:0']);
             $solicitud = array_merge($solicitud, $validatedData);
         }
         
@@ -63,13 +67,8 @@ class SolicitudCreditoController extends Controller
         if ($currentStep < $this->totalSteps) {
             $request->session()->put('current_step', $currentStep + 1);
         } else {
-            // --- LÓGICA FINAL ---
-            // Aquí guardas los datos en la base de datos, por ejemplo:
-            // Solicitud::create($solicitud);
-
-            // Limpias la sesión para una nueva solicitud
+            // Lógica final para guardar en la base de datos
             $request->session()->forget(['solicitud', 'current_step']);
-            
             return redirect()->route('credito.create')->with('success', '¡Tu solicitud ha sido enviada con éxito!');
         }
 
@@ -81,12 +80,9 @@ class SolicitudCreditoController extends Controller
      */
     public function back(Request $request)
     {
-        $currentStep = $request->session()->get('current_step', 1);
-
-        if ($currentStep > 1) {
-            $request->session()->put('current_step', $currentStep - 1);
+        if ($request->session()->get('current_step', 1) > 1) {
+            $request->session()->decrement('current_step');
         }
-
         return redirect()->route('credito.create');
     }
 
@@ -98,14 +94,29 @@ class SolicitudCreditoController extends Controller
         return [
             [
                 'id' => 1, 'nombre' => 'Ana Sofía Rodríguez', 'clientes' => [
-                    ['id' => 101, 'nombre' => 'Javier Morales López'],
-                    ['id' => 102, 'nombre' => 'Laura Campos Solís'],
+                    [
+                        'id' => 101, 'nombre' => 'Javier Morales López', 'curp' => 'MOLJ850101HDFXXX01',
+                        'docs' => [
+                            'ine_cliente' => 'https://placehold.co/600x400/E2E8F0/4A5568?text=INE+Cliente',
+                            'domicilio_cliente' => 'https://placehold.co/600x400/E2E8F0/4A5568?text=Domicilio+Cliente',
+                            'ine_aval' => 'https://placehold.co/600x400/E2E8F0/4A5568?text=INE+Aval',
+                            'domicilio_aval' => 'https://placehold.co/600x400/E2E8F0/4A5568?text=Domicilio+Aval'
+                        ]
+                    ],
+                    [
+                        'id' => 102, 'nombre' => 'Laura Campos Solís', 'curp' => 'CASL920510MDFXXX02',
+                        'docs' => [
+                            'ine_cliente' => 'https://placehold.co/600x400/CBD5E0/2D3748?text=INE+Cliente',
+                            'domicilio_cliente' => 'https://placehold.co/600x400/CBD5E0/2D3748?text=Domicilio+Cliente',
+                            'ine_aval' => 'https://placehold.co/600x400/CBD5E0/2D3748?text=INE+Aval',
+                            'domicilio_aval' => 'https://placehold.co/600x400/CBD5E0/2D3748?text=Domicilio+Aval'
+                        ]
+                    ],
                 ]
             ],
             [
                 'id' => 2, 'nombre' => 'Miguel Ángel Torres', 'clientes' => [
-                    ['id' => 201, 'nombre' => 'Roberto Jiménez Silva'],
-                    ['id' => 202, 'nombre' => 'Fernanda Castillo Cruz'],
+                    ['id' => 201, 'nombre' => 'Roberto Jiménez Silva', 'curp' => 'JISR881120HDFXXX03', 'docs' => ['ine_cliente' => 'https://placehold.co/600x400/A0AEC0/1A202C?text=INE+Cliente', 'domicilio_cliente' => 'https://placehold.co/600x400/A0AEC0/1A202C?text=Domicilio+Cliente', 'ine_aval' => 'https://placehold.co/600x400/A0AEC0/1A202C?text=INE+Aval', 'domicilio_aval' => 'https://placehold.co/600x400/A0AEC0/1A202C?text=Domicilio+Aval']],
                 ]
             ],
         ];
@@ -121,14 +132,8 @@ class SolicitudCreditoController extends Controller
         $selectedCliente = collect($selectedPromotora['clientes'])->firstWhere('id', $clienteId);
 
         return [
-            'promotora_info' => [
-                'id' => $selectedPromotora['id'],
-                'nombre' => $selectedPromotora['nombre'],
-            ],
-            'cliente_info' => [
-                'id' => $selectedCliente['id'],
-                'nombre' => $selectedCliente['nombre'],
-            ],
+            'promotora_info' => ['id' => $selectedPromotora['id'], 'nombre' => $selectedPromotora['nombre']],
+            'cliente_info' => ['id' => $selectedCliente['id'], 'nombre' => $selectedCliente['nombre'], 'curp' => $selectedCliente['curp']],
         ];
     }
 }
