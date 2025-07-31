@@ -66,7 +66,7 @@
         <div class="h-full px-3 pb-4 overflow-y-auto bg-white">
             <ul class="space-y-2 font-medium">
                 <x-layouts.navlink route="dashboard" icon="🏠" text="Dashboard" />
-                <x-layouts.navlink route="solicitud" icon="📋" text="Nueva Solicitud" />
+                <x-layouts.navlink route="credito.create" icon="📋" text="Nueva Solicitud" />
                 <x-layouts.navlink route="nuevoCliente" icon="👥" text="Nuevo Cliente" />
                 <x-layouts.navlink route="panelRevision" icon="🔍" text="Panel de Revisión" />
                 <x-layouts.navlink route="preAprobacion" icon="📝" text="Pre Aprobación" />
