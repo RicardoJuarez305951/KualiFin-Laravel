@@ -54,6 +54,7 @@ class ClienteController extends Controller
             'edad'          => $validated['edad'],
             'sexo'          => $validated['sexo'],
             'estado_civil'  => $validated['estado_civil'],
+            'validez' => $validated['validez'],
             'activo'        => $validated['activo'],
         ]);
 
@@ -106,6 +107,7 @@ class ClienteController extends Controller
             'sexo'        => 'sometimes|required|string|max:10',
             'estado_civil'=> 'sometimes|required|string|max:20',
             'edad'        => 'sometimes|required|integer',
+            'validez'             => 'sometimes|string|max:100',
             'activo'      => 'sometimes|required|boolean',
         ]);
 

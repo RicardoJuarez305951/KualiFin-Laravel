@@ -13,10 +13,12 @@ class Aval extends Model
     protected $fillable = [
         'credito_id',
         'nombre',
+        'apellido_p',
+        'apellido_m',
+        'curp',
         'direccion',
         'telefono',
         'parentesco',
-        'curp',
         'creado_en',
     ];
     public function credito() { return $this->belongsTo(Credito::class); }
