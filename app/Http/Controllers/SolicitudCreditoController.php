@@ -18,7 +18,7 @@ class SolicitudCreditoController extends Controller
         $solicitud = $request->session()->get('solicitud', []);
         $promotoras = $this->getPromotorasData();
         
-        return view('credito.inicial', compact('currentStep', 'solicitud', 'promotoras'));
+        return view('credito.form', compact('currentStep', 'solicitud', 'promotoras'));
     }
 
     /**
@@ -116,7 +116,10 @@ class SolicitudCreditoController extends Controller
             ],
             [
                 'id' => 2, 'nombre' => 'Miguel Ángel Torres', 'clientes' => [
-                    ['id' => 201, 'nombre' => 'Roberto Jiménez Silva', 'curp' => 'JISR881120HDFXXX03', 'docs' => ['ine_cliente' => 'https://placehold.co/600x400/A0AEC0/1A202C?text=INE+Cliente', 'domicilio_cliente' => 'https://placehold.co/600x400/A0AEC0/1A202C?text=Domicilio+Cliente', 'ine_aval' => 'https://placehold.co/600x400/A0AEC0/1A202C?text=INE+Aval', 'domicilio_aval' => 'https://placehold.co/600x400/A0AEC0/1A202C?text=Domicilio+Aval']],
+                    ['id' => 201, 'nombre' => 'Roberto Jiménez Silva', 'curp' => 'JISR881120HDFXXX03', 
+                    'docs' => 
+                    ['ine_cliente' => 'https://placehold.co/600x400/A0AEC0/1A202C?text=INE+Cliente', 'domicilio_cliente' => 'https://placehold.co/600x400/A0AEC0/1A202C?text=Domicilio+Cliente', 
+                    'ine_aval' => 'https://placehold.co/600x400/A0AEC0/1A202C?text=INE+Aval', 'domicilio_aval' => 'https://placehold.co/600x400/A0AEC0/1A202C?text=Domicilio+Aval']],
                 ]
             ],
         ];
