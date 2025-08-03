@@ -1,44 +1,63 @@
 <?php
-
 namespace App\Http\Controllers;
 
+use App\Models\Credito;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 
 class CreditoController extends Controller
 {
-    public function panelRevision()
+    public function index()
     {
-        // Aquí obtendrías los créditos de la base de datos
-        // Por ahora retornamos la vista con datos de ejemplo
-        return Inertia::render('PanelRevision');
+        $creditos = Credito::all();
+        return view('creditos.index', compact('creditos'));
     }
 
-    public function procesar(Request $request)
+    public function create()
     {
-        $validated = $request->validate([
-            'credito_id' => 'required|string',
-            'accion' => 'required|in:aprobar,rechazar,preguntas,liberar',
-            'observaciones' => 'nullable|string',
-            'preguntas' => 'nullable|string',
+        return view('creditos.create');
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'cliente_id'   => 'required|exists:clientes,id',
+            'monto_total'  => 'required|numeric',
+            'estado'       => 'required|string',
+            'interes'      => 'required|numeric',
+            'periodo_pago' => 'required|string',
+            'fecha_inicio' => 'required|date',
+            'fecha_final'  => 'required|date',
         ]);
 
-        // Aquí procesarías la acción en la base de datos
-        // Por ejemplo:
-        // $credito = Credito::findOrFail($validated['credito_id']);
-        // $credito->update(['estado' => $this->mapearEstado($validated['accion'])]);
-        
-        return back()->with('success', 'Acción procesada correctamente');
+        Credito::create($data);
+        return redirect()->route('creditos.index');
     }
 
-    private function mapearEstado($accion)
+    public function show(Credito $credito)
     {
-        return match($accion) {
-            'aprobar' => 'aprobado_inicial',
-            'rechazar' => 'rechazado',
-            'preguntas' => 'pendiente_preguntas',
-            'liberar' => 'aprobado_final',
-            default => 'pendiente_revision'
-        };
+        return view('creditos.show', compact('credito'));
+    }
+
+    public function edit(Credito $credito)
+    {
+        return view('creditos.edit', compact('credito'));
+    }
+
+    public function update(Request $request, Credito $credito)
+    {
+        $data = $request->validate([
+            'estado'       => 'required|string',
+            'monto_total'  => 'required|numeric',
+            'interes'      => 'required|numeric',
+        ]);
+
+        $credito->update($data);
+        return redirect()->route('creditos.index');
+    }
+
+    public function destroy(Credito $credito)
+    {
+        $credito->delete();
+        return redirect()->route('creditos.index');
     }
 }

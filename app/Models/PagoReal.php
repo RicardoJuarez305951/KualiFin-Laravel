@@ -4,13 +4,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class DocumentoAval extends Model
+class PagoReal extends Model
 {
     use HasFactory;
     protected $guarded = [];
 
-    public function aval()
+    public function pagoProyectado()
     {
-        return $this->belongsTo(Aval::class);
+        return $this->belongsTo(PagoProyectado::class);
     }
 }

@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -8,19 +7,45 @@ use Illuminate\Database\Eloquent\Model;
 class Credito extends Model
 {
     use HasFactory;
+    protected $guarded = [];
 
-    protected $table = 'creditos';
-    protected $fillable = [
-        'cliente_id',
-        'users_id',
-        'monto_solic',
-        'plazo_meses',
-        'tasa_interes',
-        'estado',
-        'fecha_solicitud',
-        'fecha_desembolso',
-    ];
+    public function cliente()
+    {
+        return $this->belongsTo(Cliente::class);
+    }
 
-    public function cliente() { return $this->belongsTo(Cliente::class); }
-    public function user() { return $this->belongsTo(User::class, 'users_id'); }
+    public function pagosProyectados()
+    {
+        return $this->hasMany(PagoProyectado::class);
+    }
+
+    public function pagosReales()
+    {
+        return $this->hasMany(PagoReal::class);
+    }
+
+    public function ocupacion()
+    {
+        return $this->hasOne(Ocupacion::class);
+    }
+
+    public function informacionFamiliar()
+    {
+        return $this->hasOne(InformacionFamiliar::class);
+    }
+
+    public function avales()
+    {
+        return $this->hasMany(Aval::class);
+    }
+
+    public function garantias()
+    {
+        return $this->hasMany(Garantia::class);
+    }
+
+    public function contratos()
+    {
+        return $this->hasMany(Contrato::class);
+    }
 }

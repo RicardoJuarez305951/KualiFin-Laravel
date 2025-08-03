@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Garantia;
@@ -7,43 +6,61 @@ use Illuminate\Http\Request;
 
 class GarantiaController extends Controller
 {
-    public function index() { return response()->json(Garantia::all()); }
+    public function index()
+    {
+        $garantias = Garantia::all();
+        return view('garantias.index', compact('garantias'));
+    }
+
+    public function create()
+    {
+        return view('garantias.create');
+    }
+
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'credito_id' => 'required|exists:creditos,id',
-            'tipo' => 'required|string|max:100',
-            'marca' => 'required|string|max:100',
-            'modelo' => 'required|string|max:100',
-            'num_serie' => 'required|string|max:100',
-            'antiguedad' => 'required|string|max:20',
-            'foto_url' => 'nullable|string|max:255',
-            'creado_en' => 'nullable|date',
+        $data = $request->validate([
+            'credito_id'     => 'required|exists:creditos,id',
+            'propietario'    => 'required|string',
+            'tipo'           => 'required|string',
+            'marca'          => 'required|string',
+            'modelo'         => 'required|string',
+            'num_serie'      => 'required|string',
+            'antiguedad'     => 'required|string',
+            'monto_garantizado'=> 'required|numeric',
+            'foto_url'       => 'required|url',
         ]);
-        $garantia = Garantia::create($validated);
-        return response()->json($garantia, 201);
+
+        Garantia::create($data);
+        return redirect()->route('garantias.index');
     }
-    public function show($id) { return response()->json(Garantia::findOrFail($id)); }
-    public function update(Request $request, $id)
+
+    public function show(Garantia $garantia)
     {
-        $garantia = Garantia::findOrFail($id);
-        $validated = $request->validate([
-            'credito_id' => 'sometimes|exists:creditos,id',
-            'tipo' => 'sometimes|string|max:100',
-            'marca' => 'sometimes|string|max:100',
-            'modelo' => 'sometimes|string|max:100',
-            'num_serie' => 'sometimes|string|max:100',
-            'antiguedad' => 'sometimes|string|max:20',
-            'foto_url' => 'nullable|string|max:255',
-            'creado_en' => 'nullable|date',
+        return view('garantias.show', compact('garantia'));
+    }
+
+    public function edit(Garantia $garantia)
+    {
+        return view('garantias.edit', compact('garantia'));
+    }
+
+    public function update(Request $request, Garantia $garantia)
+    {
+        $data = $request->validate([
+            'tipo'           => 'required|string',
+            'marca'          => 'required|string',
+            'modelo'         => 'required|string',
+            'monto_garantizado'=> 'required|numeric',
         ]);
-        $garantia->update($validated);
-        return response()->json($garantia);
+
+        $garantia->update($data);
+        return redirect()->route('garantias.index');
     }
-    public function destroy($id)
+
+    public function destroy(Garantia $garantia)
     {
-        $garantia = Garantia::findOrFail($id);
         $garantia->delete();
-        return response()->json(null, 204);
+        return redirect()->route('garantias.index');
     }
 }

@@ -4,7 +4,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Aval extends Model
+class PagoProyectado extends Model
 {
     use HasFactory;
     protected $guarded = [];
@@ -14,8 +14,8 @@ class Aval extends Model
         return $this->belongsTo(Credito::class);
     }
 
-    public function documentos()
+    public function pagosReales()
     {
-        return $this->hasMany(DocumentoAval::class);
+        return $this->hasMany(PagoReal::class);
     }
 }

@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Aval;
@@ -7,45 +6,65 @@ use Illuminate\Http\Request;
 
 class AvalController extends Controller
 {
-    public function index() { return response()->json(Aval::all()); }
+    public function index()
+    {
+        $avales = Aval::all();
+        return view('avales.index', compact('avales'));
+    }
+
+    public function create()
+    {
+        return view('avales.create');
+    }
+
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'credito_id' => 'required|exists:creditos,id',
-            'nombre' => 'required|string|max:100',
-            'apellido_p' => 'required|string|max:100',
-            'apellido_m' => 'nullable|string|max:100',
-            'curp' => 'required|string|size:18|unique:clientes,curp',
-            'direccion' => 'required|string|max:255',
-            'telefono' => 'required|string|max:20',
-            'parentesco' => 'required|string|max:20',
-            'creado_en' => 'nullable|date',
+        $data = $request->validate([
+            'CURP'            => 'required|string|size:18',
+            'credito_id'      => 'required|exists:creditos,id',
+            'nombre'          => 'required|string',
+            'apellido_p'      => 'required|string',
+            'apellido_m'      => 'nullable|string',
+            'fecha_nacimiento'=> 'required|date',
+            'direccion'       => 'required|string',
+            'telefono'        => 'required|string',
+            'parentesco'      => 'required|string',
         ]);
-        $aval = Aval::create($validated);
-        return response()->json($aval, 201);
+
+        Aval::create($data);
+        return redirect()->route('avales.index');
     }
-    public function show($id) { return response()->json(Aval::findOrFail($id)); }
-    public function update(Request $request, $id)
+
+    public function show(Aval $aval)
     {
-        $aval = Aval::findOrFail($id);
-        $validated = $request->validate([
-            'credito_id' => 'sometimes|exists:creditos,id',
-            'nombre' => 'sometimes|string|max:100',
-            'apellido_p' => 'sometimes|string|max:100',
-            'apellido_m' => 'sometimes|string|max:100',
-            'curp' => 'sometimes|string|size:18|unique:clientes,curp',
-            'direccion' => 'sometimes|string|max:255',
-            'telefono' => 'sometimes|string|max:20',
-            'parentesco' => 'sometimes|string|max:20',
-            'creado_en' => 'nullable|date',
+        return view('avales.show', compact('aval'));
+    }
+
+    public function edit(Aval $aval)
+    {
+        return view('avales.edit', compact('aval'));
+    }
+
+    public function update(Request $request, Aval $aval)
+    {
+        $data = $request->validate([
+            'CURP'            => 'required|string|size:18',
+            'nombre'          => 'required|string',
+            'apellido_p'      => 'required|string',
+            'apellido_m'      => 'nullable|string',
+            'fecha_nacimiento'=> 'required|date',
+            'direccion'       => 'required|string',
+            'telefono'        => 'required|string',
+            'parentesco'      => 'required|string',
         ]);
-        $aval->update($validated);
-        return response()->json($aval);
+
+        $aval->update($data);
+        return redirect()->route('avales.index');
     }
-    public function destroy($id)
+
+    public function destroy(Aval $aval)
     {
-        $aval = Aval::findOrFail($id);
         $aval->delete();
-        return response()->json(null, 204);
+        return redirect()->route('avales.index');
     }
 }

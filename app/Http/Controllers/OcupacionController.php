@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Ocupacion;
@@ -7,51 +6,61 @@ use Illuminate\Http\Request;
 
 class OcupacionController extends Controller
 {
-    public function index() { return response()->json(Ocupacion::all()); }
+    public function index()
+    {
+        $ocupaciones = Ocupacion::all();
+        return view('ocupaciones.index', compact('ocupaciones'));
+    }
+
+    public function create()
+    {
+        return view('ocupaciones.create');
+    }
+
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'credito_id' => 'required|exists:creditos,id',
-            'actividad' => 'required|string|max:100',
-            'nombre_empresa' => 'nullable|string|max:100',
-            'calle' => 'nullable|string|max:100',
-            'numero' => 'nullable|string|max:10',
-            'colonia' => 'nullable|string|max:100',
-            'municipio' => 'nullable|string|max:100',
-            'telefono' => 'nullable|string|max:20',
-            'antiguedad' => 'nullable|string|max:20',
-            'monto_percibido' => 'nullable|numeric',
-            'periodo_pago' => 'nullable|string|max:20',
-            'creado_en' => 'nullable|date',
+        $data = $request->validate([
+            'credito_id'     => 'required|exists:creditos,id',
+            'actividad'      => 'required|string',
+            'nombre_empresa' => 'required|string',
+            'calle'          => 'required|string',
+            'numero'         => 'required|string',
+            'colonia'        => 'required|string',
+            'municipio'      => 'required|string',
+            'telefono'       => 'required|string',
+            'antiguedad'     => 'required|string',
+            'monto_percibido'=> 'required|numeric',
+            'periodo_pago'   => 'required|string',
         ]);
-        $ocupacion = Ocupacion::create($validated);
-        return response()->json($ocupacion, 201);
+
+        Ocupacion::create($data);
+        return redirect()->route('ocupaciones.index');
     }
-    public function show($id) { return response()->json(Ocupacion::findOrFail($id)); }
-    public function update(Request $request, $id)
+
+    public function show(Ocupacion $ocupacion)
     {
-        $ocupacion = Ocupacion::findOrFail($id);
-        $validated = $request->validate([
-            'credito_id' => 'sometimes|exists:creditos,id',
-            'actividad' => 'sometimes|string|max:100',
-            'nombre_empresa' => 'nullable|string|max:100',
-            'calle' => 'nullable|string|max:100',
-            'numero' => 'nullable|string|max:10',
-            'colonia' => 'nullable|string|max:100',
-            'municipio' => 'nullable|string|max:100',
-            'telefono' => 'nullable|string|max:20',
-            'antiguedad' => 'nullable|string|max:20',
-            'monto_percibido' => 'nullable|numeric',
-            'periodo_pago' => 'nullable|string|max:20',
-            'creado_en' => 'nullable|date',
+        return view('ocupaciones.show', compact('ocupacion'));
+    }
+
+    public function edit(Ocupacion $ocupacion)
+    {
+        return view('ocupaciones.edit', compact('ocupacion'));
+    }
+
+    public function update(Request $request, Ocupacion $ocupacion)
+    {
+        $data = $request->validate([
+            'antiguedad'     => 'required|string',
+            'monto_percibido'=> 'required|numeric',
         ]);
-        $ocupacion->update($validated);
-        return response()->json($ocupacion);
+
+        $ocupacion->update($data);
+        return redirect()->route('ocupaciones.index');
     }
-    public function destroy($id)
+
+    public function destroy(Ocupacion $ocupacion)
     {
-        $ocupacion = Ocupacion::findOrFail($id);
         $ocupacion->delete();
-        return response()->json(null, 204);
+        return redirect()->route('ocupaciones.index');
     }
 }

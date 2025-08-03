@@ -1,11 +1,14 @@
+// database/migrations/2025_08_02_000009_create_ocupaciones_table.php
 <?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
-    public function up(): void {
+class CreateOcupacionesTable extends Migration
+{
+    public function up()
+    {
         Schema::create('ocupaciones', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->unsignedBigInteger('credito_id');
@@ -19,13 +22,16 @@ return new class extends Migration {
             $table->string('antiguedad', 20);
             $table->decimal('monto_percibido', 10, 2);
             $table->string('periodo_pago', 20);
-            $table->timestamp('creado_en')->nullable();
+            $table->timestamp('creado_en')->useCurrent();
 
-            $table->foreign('credito_id')->references('id')->on('creditos')->onDelete('cascade');
+            $table->foreign('credito_id')
+                  ->references('id')->on('creditos')
+                  ->onDelete('cascade');
         });
     }
 
-    public function down(): void {
+    public function down()
+    {
         Schema::dropIfExists('ocupaciones');
     }
-};
+}

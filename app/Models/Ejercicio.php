@@ -4,18 +4,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Aval extends Model
+class Ejercicio extends Model
 {
     use HasFactory;
     protected $guarded = [];
 
-    public function credito()
+    public function supervisor()
     {
-        return $this->belongsTo(Credito::class);
+        return $this->belongsTo(Supervisor::class);
     }
 
-    public function documentos()
+    public function ejecutivo()
     {
-        return $this->hasMany(DocumentoAval::class);
+        return $this->belongsTo(Ejecutivo::class);
     }
 }

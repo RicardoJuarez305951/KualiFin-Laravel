@@ -4,7 +4,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Cliente extends Model
+class Inversion extends Model
 {
     use HasFactory;
     protected $guarded = [];
@@ -12,15 +12,5 @@ class Cliente extends Model
     public function promotora()
     {
         return $this->belongsTo(Promotora::class);
-    }
-
-    public function credito()
-    {
-        return $this->hasOne(Credito::class);
-    }
-
-    public function documentos()
-    {
-        return $this->hasMany(DocumentoCliente::class);
     }
 }

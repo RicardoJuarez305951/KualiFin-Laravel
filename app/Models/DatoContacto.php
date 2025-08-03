@@ -4,7 +4,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Aval extends Model
+class DatoContacto extends Model
 {
     use HasFactory;
     protected $guarded = [];
@@ -12,10 +12,5 @@ class Aval extends Model
     public function credito()
     {
         return $this->belongsTo(Credito::class);
-    }
-
-    public function documentos()
-    {
-        return $this->hasMany(DocumentoAval::class);
     }
 }

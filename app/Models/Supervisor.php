@@ -1,0 +1,31 @@
+<?php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Supervisor extends Model
+{
+    use HasFactory;
+    protected $guarded = [];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function ejecutivo()
+    {
+        return $this->belongsTo(Ejecutivo::class);
+    }
+
+    public function promotoras()
+    {
+        return $this->hasMany(Promotora::class);
+    }
+
+    public function ejercicios()
+    {
+        return $this->hasMany(Ejercicio::class);
+    }
+}

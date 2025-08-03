@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\DocumentoAval;
@@ -7,37 +6,55 @@ use Illuminate\Http\Request;
 
 class DocumentoAvalController extends Controller
 {
-    public function index() { return response()->json(DocumentoAval::all()); }
+    public function index()
+    {
+        $docs = DocumentoAval::all();
+        return view('documentos_avales.index', compact('docs'));
+    }
+
+    public function create()
+    {
+        return view('documentos_avales.create');
+    }
+
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'aval_id' => 'required|exists:avales,id',
-            'tipo_doc' => 'required|string|max:20',
-            'url_s3' => 'required|string|max:255',
-            'nombre_arch' => 'required|string|max:150',
-            'creado_en' => 'nullable|date',
+        $data = $request->validate([
+            'aval_id'   => 'required|exists:avales,id',
+            'tipo_doc'  => 'required|string',
+            'url_s3'    => 'required|url',
+            'nombre_arch'=> 'required|string',
         ]);
-        $doc = DocumentoAval::create($validated);
-        return response()->json($doc, 201);
+
+        DocumentoAval::create($data);
+        return redirect()->route('documentos_avales.index');
     }
-    public function show($id) { return response()->json(DocumentoAval::findOrFail($id)); }
-    public function update(Request $request, $id)
+
+    public function show(DocumentoAval $documentoAval)
     {
-        $doc = DocumentoAval::findOrFail($id);
-        $validated = $request->validate([
-            'aval_id' => 'sometimes|exists:avales,id',
-            'tipo_doc' => 'sometimes|string|max:20',
-            'url_s3' => 'sometimes|string|max:255',
-            'nombre_arch' => 'sometimes|string|max:150',
-            'creado_en' => 'nullable|date',
+        return view('documentos_avales.show', compact('documentoAval'));
+    }
+
+    public function edit(DocumentoAval $documentoAval)
+    {
+        return view('documentos_avales.edit', compact('documentoAval'));
+    }
+
+    public function update(Request $request, DocumentoAval $documentoAval)
+    {
+        $data = $request->validate([
+            'tipo_doc'   => 'required|string',
+            'url_s3'     => 'required|url',
+            'nombre_arch'=> 'required|string',
         ]);
-        $doc->update($validated);
-        return response()->json($doc);
+
+        $documentoAval->update($data);
+        return redirect()->route('documentos_avales.index');
     }
-    public function destroy($id)
+
+    public function destroy(DocumentoAval $documentoAval)
     {
-        $doc = DocumentoAval::findOrFail($id);
-        $doc->delete();
-        return response()->json(null, 204);
+        $documentoAval->delete();
+        return redirect()->route('documentos_avales.index');
     }
 }

@@ -4,13 +4,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class DocumentoAval extends Model
+class Comision extends Model
 {
     use HasFactory;
     protected $guarded = [];
 
-    public function aval()
+    public function comisionable()
     {
-        return $this->belongsTo(Aval::class);
+        return $this->morphTo();
     }
 }
