@@ -84,15 +84,18 @@
     function creditForm(promotorasData) {
       return {
         // datos
-        promotorasData,
-        step: {{ $currentStep ?? 1 }},
-        totalSteps: {{ $totalSteps ?? 7 }},
         activeGarantia: null,
+        promotorasData,
+        promotorasData,
+      step: {{ $currentStep ?? 1 }},
+      totalSteps: {{ $totalSteps ?? 7 }},
 
-        formData: {
+      formData: {
+        step_1: {
           promotora_id: null,
           cliente_id: null,
           clientes: [],
+
           documentos: {
             cliente: { ine: null, comprobante: null },
             aval:    { ine: null, comprobante: null },
@@ -101,7 +104,51 @@
             cliente: { ine: '', comprobante: '' },
             aval:    { ine: '', comprobante: '' },
           },
-          aval1: {
+        },
+        step_2 : {
+          calle: null,
+          numero_ext: null,
+          numero_int: null,
+          colonia: null,
+          cp: null,
+          municipio: null,
+          estado: null,
+          tiempo_residencia: null,
+          renta: null,
+          telefono_fijo: null,
+          telefono_celular: null,
+          tipo_vivienda: null,
+        }, // datos del paso 2
+        step_3 : {
+          actividad: null,
+          empresa: null,
+          empresa_domicilio: null,
+          empresa_colonia: null,
+          empresa_municipio: null,
+          empresa_estado: null,
+          empresa_telefono: null,
+          empresa_antiguedad: null,
+          sueldo: null,
+          periodo: null,
+          ingresos_adicionales: null,
+          ingresos_adicionales: null,
+          ingreso_concepto: null,
+          ingreso_monto: null,
+          ingreso_frecuencia: null,
+        }, // datos del paso 3  
+        step_4 : {
+          conyuge_nombre: null,
+          conyuge_celular: null,
+          num_hijos: null,
+          conyuge_actividad: null,
+          conyuge_ingresos: null,
+          conyuge_domicilio_trabajo: null,
+          personas_domicilio: null,
+          dependientes: null,
+          conyuge_vive: null,
+        }, // datos del paso 4
+        step_5 : {
+            aval1: {
             nombre: '', apaterno: '', amaterno: '', curp: '',
             direccion: '', telefono: '', parentesco: ''
           },
@@ -109,6 +156,8 @@
             nombre: '', apaterno: '', amaterno: '', curp: '',
             direccion: '', telefono: '', parentesco: ''
           },
+        }, // datos del paso 5
+        step_6: {
           garantias: Array.from({ length: 8 }, () => ({
             tipo: '',
             marca: '',
@@ -116,28 +165,33 @@
             modelo: '',
             antiguedad: '',
             monto: null,
+            foto: null,
           })),
-          cancelled: false,
-        },
+        }, // datos del paso 6
+
+       
+      },
 
         init() {
-          // listener para cuando cambie promotora
-          this.$watch('formData.promotora_id', id => {
-            const p = this.promotorasData.find(x => x.id == id)
-            this.formData.clientes = p ? p.clientes : []
-            this.formData.cliente_id = null
-            this.formData.cancelled = false
-          })
-          // listener para cuando cambie cliente
-          this.$watch('formData.cliente_id', id => {
-            const c = this.formData.clientes.find(x => x.id == id) || { docs: {} }
-            this.formData.documentosUrls.cliente.ine         = c.docs.ine_cliente || ''
-            this.formData.documentosUrls.cliente.comprobante = c.docs.domicilio_cliente || ''
-            this.formData.documentosUrls.aval.ine            = c.docs.ine_aval || ''
-            this.formData.documentosUrls.aval.comprobante    = c.docs.domicilio_aval || ''
-            this.formData.cancelled = false
-          })
-        },
+        // Cuando cambie promotora en step_1
+        this.$watch('formData.step_1.promotora_id', id => {
+          const p = this.promotorasData.find(x => x.id == id)
+          this.formData.step_1.clientes     = p ? p.clientes : []
+          this.formData.step_1.cliente_id   = null
+          this.formData.cancelled           = false
+        })
+
+        // Cuando cambie cliente en step_1
+        this.$watch('formData.step_1.cliente_id', id => {
+          const c = this.formData.step_1.clientes.find(x => x.id == id) || { docs: {} }
+          this.formData.step_1.documentosUrls.cliente.ine         = c.docs.ine_cliente || ''
+          this.formData.step_1.documentosUrls.cliente.comprobante = c.docs.domicilio_cliente || ''
+          this.formData.step_1.documentosUrls.aval.ine            = c.docs.ine_aval || ''
+          this.formData.step_1.documentosUrls.aval.comprobante    = c.docs.domicilio_aval || ''
+          this.formData.cancelled                                 = false
+        })
+      },
+
 
         nextStep() {
           if (this.step < this.totalSteps) this.step++

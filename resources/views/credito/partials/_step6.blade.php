@@ -1,18 +1,14 @@
-{{-- resources/views/credito/partials/_step6.blade.php --}}
+{{-- _step6.blade.php --}}
 <div>
-  {{-- Grid de garantías --}}
   <div class="space-y-6">
     <h2 class="text-xl font-semibold">Paso 6: Garantías</h2>
 
     <div class="grid grid-cols-4 gap-4">
-      <template
-        x-for="(gar, idx) in formData.garantias"
-        x-bind:key="idx"
-      >
+      <template x-for="(gar, idx) in formData.step_6.garantias" :key="idx">
         <div
           class="border rounded p-4 cursor-pointer transition-colors"
-          :class="activeGarantia === idx 
-            ? 'border-indigo-600 bg-indigo-50' 
+          :class="activeGarantia === idx
+            ? 'border-indigo-600 bg-indigo-50'
             : 'border-gray-300 hover:border-gray-500'"
           @click="activeGarantia = idx"
         >
@@ -22,18 +18,16 @@
     </div>
   </div>
 
-  {{-- Modal: dentro del mismo x-data --}}
   <div
     x-show="activeGarantia !== null"
     x-cloak
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
   >
     <div
-      x-show="activeGarantia !== null"
       x-transition
+      @click.stop
       class="bg-white rounded-lg p-6 max-w-lg w-full relative"
     >
-      {{-- Cerrar --}}
       <button
         @click="activeGarantia = null"
         class="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
@@ -44,95 +38,94 @@
       </h3>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {{-- 1. Tipo --}}
+        {{-- Tipo --}}
         <div>
           <label class="block text-sm font-medium text-gray-700">Tipo</label>
           <select
-            x-model="formData.garantias[activeGarantia].tipo"
-            x-bind:name="`garantias[${activeGarantia}][tipo]`"
+            x-model="formData.step_6.garantias[activeGarantia].tipo"
+            x-bind:name="`step_6[garantias][${activeGarantia}][tipo]`"
             class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
           >
             <option value="">— Seleccione tipo —</option>
-            <option value="Refrigerador">Refrigerador</option>
-            <option value="Lavadora">Lavadora</option>
-            <option value="Televisor">Televisor</option>
-            <option value="Equipo de sonido">Equipo de sonido</option>
+            <option>Refrigerador</option>
+            <option>Lavadora</option>
+            <option>Televisor</option>
+            <option>Equipo de sonido</option>
           </select>
         </div>
 
-        {{-- 2. Marca --}}
+        {{-- Marca --}}
         <div>
           <label class="block text-sm font-medium text-gray-700">Marca</label>
           <input
             type="text"
-            x-model="formData.garantias[activeGarantia].marca"
-            x-bind:name="`garantias[${activeGarantia}][marca]`"
+            x-model="formData.step_6.garantias[activeGarantia].marca"
+            x-bind:name="`step_6[garantias][${activeGarantia}][marca]`"
             class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
           />
         </div>
 
-        {{-- 3. Nº Serie --}}
+        {{-- Nº Serie --}}
         <div>
           <label class="block text-sm font-medium text-gray-700">Número de serie</label>
           <input
             type="text"
-            x-model="formData.garantias[activeGarantia].num_serie"
-            x-bind:name="`garantias[${activeGarantia}][num_serie]`"
+            x-model="formData.step_6.garantias[activeGarantia].num_serie"
+            x-bind:name="`step_6[garantias][${activeGarantia}][num_serie]`"
             class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
           />
         </div>
 
-        {{-- 4. Modelo --}}
+        {{-- Modelo --}}
         <div>
           <label class="block text-sm font-medium text-gray-700">Modelo</label>
           <input
             type="text"
-            x-model="formData.garantias[activeGarantia].modelo"
-            x-bind:name="`garantias[${activeGarantia}][modelo]`"
+            x-model="formData.step_6.garantias[activeGarantia].modelo"
+            x-bind:name="`step_6[garantias][${activeGarantia}][modelo]`"
             class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
           />
         </div>
 
-        {{-- 5. Antigüedad --}}
+        {{-- Antigüedad --}}
         <div>
           <label class="block text-sm font-medium text-gray-700">Antigüedad</label>
           <select
-            x-model="formData.garantias[activeGarantia].antiguedad"
-            x-bind:name="`garantias[${activeGarantia}][antiguedad]`"
+            x-model="formData.step_6.garantias[activeGarantia].antiguedad"
+            x-bind:name="`step_6[garantias][${activeGarantia}][antiguedad]`"
             class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
           >
             <option value="">— Seleccione antigüedad —</option>
-            <option value="Menos de 1 año">Menos de 1 año</option>
-            <option value="1–3 años">1–3 años</option>
-            <option value="Más de 3 años">Más de 3 años</option>
+            <option>Menos de 1 año</option>
+            <option>1–3 años</option>
+            <option>Más de 3 años</option>
           </select>
         </div>
 
-        {{-- 6. Monto garantizado --}}
+        {{-- Monto --}}
         <div>
           <label class="block text-sm font-medium text-gray-700">Monto garantizado</label>
           <input
             type="number"
             step="0.01"
-            x-model.number="formData.garantias[activeGarantia].monto"
-            x-bind:name="`garantias[${activeGarantia}][monto]`"
+            x-model.number="formData.step_6.garantias[activeGarantia].monto"
+            x-bind:name="`step_6[garantias][${activeGarantia}][monto]`"
             class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
           />
         </div>
 
-        {{-- 7. Fotografía --}}
+        {{-- Fotografía --}}
         <div class="md:col-span-2">
           <label class="block text-sm font-medium text-gray-700">Fotografía</label>
           <input
             type="file"
             accept="image/*"
-            x-bind:name="`garantias[${activeGarantia}][foto]`"
+            x-bind:name="`step_6[garantias][${activeGarantia}][foto]`"
             class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
           />
         </div>
       </div>
 
-      {{-- Botones modal --}}
       <div class="flex justify-end mt-6 space-x-2">
         <button
           type="button"

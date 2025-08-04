@@ -1,5 +1,5 @@
 <div class="space-y-6">
-  <h2 class="text-xl font-semibold">Paso 2: Datos del Solicitante</h2>
+  <h2 class="text-xl font-semibold">Paso 2: Datos de Contacto del Solicitante</h2>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     {{-- Calle --}}
@@ -8,7 +8,7 @@
       <input
         type="text"
         id="calle"
-        x-model="formData.calle"
+        x-model="formData.step_2.calle"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -19,7 +19,7 @@
       <input
         type="number"
         id="numero_ext"
-        x-model.number="formData.numero_ext"
+        x-model.number="formData.step_2.numero_ext"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -30,7 +30,7 @@
       <input
         type="text"
         id="numero_int"
-        x-model.number="formData.numero_int"
+        x-model.number="formData.step_2.numero_int"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -41,7 +41,7 @@
       <input
         type="text"
         id="colonia"
-        x-model="formData.colonia"
+        x-model="formData.step_2.colonia"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -52,7 +52,7 @@
       <input
         type="text"
         id="cp"
-        x-model="formData.cp"
+        x-model="formData.step_2.cp"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -63,7 +63,7 @@
       <input
         type="text"
         id="municipio"
-        x-model="formData.municipio"
+        x-model="formData.step_2.municipio"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -74,7 +74,7 @@
       <input
         type="text"
         id="estado"
-        x-model="formData.estado"
+        x-model="formData.step_2.estado"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -85,7 +85,7 @@
       <input
         type="text"
         id="tiempo_residencia"
-        x-model="formData.tiempo_residencia"
+        x-model="formData.step_2.tiempo_residencia"
         placeholder="Ej. 2 años"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
@@ -97,7 +97,7 @@
       <input
         type="number"
         id="renta"
-        x-model.number="formData.renta"
+        x-model.number="formData.step_2.renta"
         step="0.01"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
@@ -109,7 +109,7 @@
       <input
         type="text"
         id="telefono_fijo"
-        x-model="formData.telefono_fijo"
+        x-model="formData.step_2.telefono_fijo"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -120,7 +120,7 @@
       <input
         type="text"
         id="telefono_celular"
-        x-model="formData.telefono_celular"
+        x-model="formData.step_2.telefono_celular"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -130,7 +130,7 @@
       <label for="tipo_vivienda" class="block text-sm font-medium text-gray-700">Tipo de vivienda</label>
       <select
         id="tipo_vivienda"
-        x-model="formData.tipo_vivienda"
+        x-model="formData.step_2.tipo_vivienda"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       >
         <option value="">— Seleccione tipo —</option>

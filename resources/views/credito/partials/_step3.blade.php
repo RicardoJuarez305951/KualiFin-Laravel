@@ -8,7 +8,7 @@
       <input
         type="text"
         id="actividad"
-        x-model="formData.actividad"
+        x-model="formData.step_3.actividad"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -19,7 +19,7 @@
       <input
         type="text"
         id="empresa"
-        x-model="formData.empresa"
+        x-model="formData.step_3.empresa"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -30,7 +30,7 @@
       <input
         type="text"
         id="empresa_domicilio"
-        x-model="formData.empresa_domicilio"
+        x-model="formData.step_3.empresa_domicilio"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -41,7 +41,7 @@
       <input
         type="text"
         id="empresa_colonia"
-        x-model="formData.empresa_colonia"
+        x-model="formData.step_3.empresa_colonia"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -52,7 +52,7 @@
       <input
         type="text"
         id="empresa_municipio"
-        x-model="formData.empresa_municipio"
+        x-model="formData.step_3.empresa_municipio"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -63,7 +63,7 @@
       <input
         type="text"
         id="empresa_estado"
-        x-model="formData.empresa_estado"
+        x-model="formData.step_3.empresa_estado"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -74,7 +74,7 @@
       <input
         type="tel"
         id="empresa_telefono"
-        x-model="formData.empresa_telefono"
+        x-model="formData.step_3.empresa_telefono"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -85,7 +85,7 @@
       <input
         type="text"
         id="empresa_antiguedad"
-        x-model="formData.empresa_antiguedad"
+        x-model="formData.step_3.empresa_antiguedad"
         placeholder="Ej. 2 años"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
@@ -97,7 +97,7 @@
       <input
         type="number"
         id="sueldo"
-        x-model.number="formData.sueldo"
+        x-model.number="formData.step_3.sueldo"
         step="0.01"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
@@ -108,7 +108,7 @@
       <label for="periodo" class="block text-sm font-medium text-gray-700">Periodo</label>
       <select
         id="periodo"
-        x-model="formData.periodo"
+        x-model="formData.step_3.periodo"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       >
         <option value="">— Seleccione periodo —</option>
@@ -124,13 +124,13 @@
     <label class="inline-flex items-center">
       <input
         type="checkbox"
-        x-model="formData.ingresos_adicionales"
+        x-model="formData.step_3.ingresos_adicionales"
         class="form-checkbox text-indigo-600"
       />
       <span class="ml-2 text-gray-700">¿Tiene ingresos adicionales?</span>
     </label>
 
-    <template x-if="formData.ingresos_adicionales">
+    <template x-if="formData.step_3.ingresos_adicionales">
       <div class="mt-4 space-y-4 border-t pt-4">
         {{-- Concepto --}}
         <div>
@@ -138,7 +138,7 @@
           <input
             type="text"
             id="ingreso_concepto"
-            x-model="formData.ingreso_concepto"
+            x-model="formData.step_3.ingreso_concepto"
             class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
           />
         </div>
@@ -149,7 +149,7 @@
           <input
             type="number"
             id="ingreso_monto"
-            x-model.number="formData.ingreso_monto"
+            x-model.number="formData.step_3.ingreso_monto"
             step="0.01"
             class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
           />
@@ -160,7 +160,7 @@
           <label for="ingreso_frecuencia" class="block text-sm font-medium text-gray-700">Frecuencia</label>
           <select
             id="ingreso_frecuencia"
-            x-model="formData.ingreso_frecuencia"
+            x-model="formData.step_3.ingreso_frecuencia"
             class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
           >
             <option value="">— Seleccione frecuencia —</option>

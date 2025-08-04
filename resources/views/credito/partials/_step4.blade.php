@@ -8,7 +8,7 @@
       <input
         type="text"
         id="conyuge_nombre"
-        x-model="formData.conyuge_nombre"
+        x-model="formData.step_4.conyuge_nombre"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -19,7 +19,7 @@
       <input
         type="tel"
         id="conyuge_celular"
-        x-model="formData.conyuge_celular"
+        x-model="formData.step_4.conyuge_celular"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -30,7 +30,7 @@
       <input
         type="number"
         id="num_hijos"
-        x-model.number="formData.num_hijos"
+        x-model.number="formData.step_4.num_hijos"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -41,7 +41,7 @@
       <input
         type="text"
         id="conyuge_actividad"
-        x-model="formData.conyuge_actividad"
+        x-model="formData.step_4.conyuge_actividad"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -52,7 +52,7 @@
       <input
         type="text"
         id="conyuge_ingresos"
-        x-model="formData.conyuge_ingresos"
+        x-model="formData.step_4.conyuge_ingresos"
         placeholder="Ej. $2,000"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
@@ -64,7 +64,7 @@
       <input
         type="text"
         id="conyuge_domicilio_trabajo"
-        x-model="formData.conyuge_domicilio_trabajo"
+        x-model="formData.step_4.conyuge_domicilio_trabajo"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -75,7 +75,7 @@
       <input
         type="number"
         id="personas_domicilio"
-        x-model.number="formData.personas_domicilio"
+        x-model.number="formData.step_4.personas_domicilio"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -86,7 +86,7 @@
       <input
         type="number"
         id="dependientes"
-        x-model.number="formData.dependientes"
+        x-model.number="formData.step_4.dependientes"
         class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-indigo-200"
       />
     </div>
@@ -96,7 +96,7 @@
       <label class="inline-flex items-center mt-4">
         <input
           type="checkbox"
-          x-model="formData.conyuge_vive"
+          x-model="formData.step_4.conyuge_vive"
           class="form-checkbox text-indigo-600"
         />
         <span class="ml-2 text-gray-700">¿Cónyuge vive con usted?</span>

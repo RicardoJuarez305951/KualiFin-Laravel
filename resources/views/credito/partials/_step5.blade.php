@@ -11,7 +11,7 @@
         <input
           type="text"
           id="aval1_nombre"
-          x-model="formData.aval1.nombre"
+          x-model="formData.step_5.aval1.nombre"
           class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
         />
       </div>
@@ -22,7 +22,7 @@
         <input
           type="text"
           id="aval1_apaterno"
-          x-model="formData.aval1.apaterno"
+          x-model="formData.step_5.aval1.apaterno"
           class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
         />
       </div>
@@ -33,7 +33,7 @@
         <input
           type="text"
           id="aval1_amaterno"
-          x-model="formData.aval1.amaterno"
+          x-model="formData.step_5.aval1.amaterno"
           class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
         />
       </div>
@@ -44,7 +44,7 @@
         <input
           type="text"
           id="aval1_curp"
-          x-model="formData.aval1.curp"
+          x-model="formData.step_5.aval1.curp"
           class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
         />
       </div>
@@ -55,7 +55,7 @@
         <input
           type="text"
           id="aval1_direccion"
-          x-model="formData.aval1.direccion"
+          x-model="formData.step_5.aval1.direccion"
           class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
         />
       </div>
@@ -66,7 +66,7 @@
         <input
           type="tel"
           id="aval1_telefono"
-          x-model="formData.aval1.telefono"
+          x-model="formData.step_5.aval1.telefono"
           class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
         />
       </div>
@@ -76,7 +76,7 @@
         <label for="aval1_parentesco" class="block text-sm font-medium text-gray-700">Parentesco</label>
         <select
           id="aval1_parentesco"
-          x-model="formData.aval1.parentesco"
+          x-model="formData.step_5.aval1.parentesco"
           class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
         >
           <option value="">— Seleccione parentesco —</option>
@@ -99,7 +99,7 @@
         <input
           type="text"
           id="aval2_nombre"
-          x-model="formData.aval2.nombre"
+          x-model="formData.step_5.aval2.nombre"
           class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
         />
       </div>
@@ -110,7 +110,7 @@
         <input
           type="text"
           id="aval2_apaterno"
-          x-model="formData.aval2.apaterno"
+          x-model="formData.step_5.aval2.apaterno"
           class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
         />
       </div>
@@ -121,7 +121,7 @@
         <input
           type="text"
           id="aval2_amaterno"
-          x-model="formData.aval2.amaterno"
+          x-model="formData.step_5.aval2.amaterno"
           class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
         />
       </div>
@@ -132,7 +132,7 @@
         <input
           type="text"
           id="aval2_curp"
-          x-model="formData.aval2.curp"
+          x-model="formData.step_5.aval2.curp"
           class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
         />
       </div>
@@ -143,7 +143,7 @@
         <input
           type="text"
           id="aval2_direccion"
-          x-model="formData.aval2.direccion"
+          x-model="formData.step_5.aval2.direccion"
           class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
         />
       </div>
@@ -154,7 +154,7 @@
         <input
           type="tel"
           id="aval2_telefono"
-          x-model="formData.aval2.telefono"
+          x-model="formData.step_5.aval2.telefono"
           class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
         />
       </div>
@@ -164,7 +164,7 @@
         <label for="aval2_parentesco" class="block text-sm font-medium text-gray-700">Parentesco</label>
         <select
           id="aval2_parentesco"
-          x-model="formData.aval2.parentesco"
+          x-model="formData.step_5.aval2.parentesco"
           class="mt-1 block w-full border rounded px-3 py-2 focus:ring focus:ring-indigo-200"
         >
           <option value="">— Seleccione parentesco —</option>
