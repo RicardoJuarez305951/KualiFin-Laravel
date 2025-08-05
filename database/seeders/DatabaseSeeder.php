@@ -3,6 +3,9 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Models\Promotora;
+use App\Models\Supervisor;
+use App\Models\Ejecutivo;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 

@@ -95,7 +95,10 @@
           promotora_id: null,
           cliente_id: null,
           clientes: [],
-
+          monto_total: 3000,
+          periodo: '14 Semanas',
+          cliente_CURP: 'JUFR010619HSPRLCA6',
+          aval_CURP: 'ABCD010619HSPRLCA6',
           documentos: {
             cliente: { ine: null, comprobante: null },
             aval:    { ine: null, comprobante: null },
@@ -169,7 +172,6 @@
           })),
         }, // datos del paso 6
 
-       
       },
 
         init() {
