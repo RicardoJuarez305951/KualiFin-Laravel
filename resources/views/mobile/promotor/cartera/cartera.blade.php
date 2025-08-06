@@ -10,7 +10,7 @@
     ])->toArray();
 @endphp
 
-<x-layouts.promotora_mobile.mobile-layout title="Tu Cartera">
+<x-layouts.mobile.mobile-layout title="Tu Cartera">
   <div x-data="{
         showCalc: false,
         calcAmount: '',
@@ -71,7 +71,7 @@
             {{-- Historial --}}
             <div class="w-12 flex justify-center">
               <a
-                href="{{ route('movil.cliente_historial', ['client' => $c['id']]) }}"
+                href="{{ route('mobile.cliente_historial', ['client' => $c['id']]) }}"
                 class="w-10 h-10 border-2 border-yellow-500 text-yellow-500 hover:bg-yellow-100 rounded-full flex items-center justify-center"
                 title="Historial"
               >
@@ -96,7 +96,7 @@
           class="w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-3 rounded-lg shadow-md transition">
           Enviar Reporte
         </button>
-        <a href="{{ route('movil.index') }}"
+        <a href="{{ route('mobile.index') }}"
            class="block w-full text-center text-blue-800 hover:text-blue-900 font-medium py-3">
           Regresar
         </a>
@@ -130,4 +130,4 @@
       </div>
     </div>
   </div>
-</x-layouts.promotora_mobile.mobile-layout>
+</x-layouts.mobile.mobile-layout>

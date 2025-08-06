@@ -41,5 +41,21 @@ class DatabaseSeeder extends Seeder
             'rol' => 'promotor',
             'telefono' => '0987654321',
         ]);
+
+        User::factory()->create([
+            'name' => 'Supervisor User',
+            'email' => 'supervisor@example.com',
+            'password' => Hash::make('Password123'),
+            'rol' => 'supervisor',
+            'telefono' => '0987654321',
+        ]);
+
+        User::factory()->create([
+            'name' => 'Ejecutivo User',
+            'email' => 'ejecutivo@example.com',
+            'password' => Hash::make('Password123'),
+            'rol' => 'ejecutivo',
+            'telefono' => '0987654321',
+        ]);
     }
 }

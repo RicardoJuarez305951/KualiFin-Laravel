@@ -141,7 +141,7 @@
 
         <!-- Action Buttons -->
         <div class="space-y-3">
-            <a href="{{ route('promotora.ingresar_cliente') }}"
+            <a href="{{ route('mobile.ingresar_cliente') }}"
                 class="flex items-center justify-center gap-2 w-full bg-blue-800 hover:bg-blue-900 text-white 
                         font-semibold py-4 rounded-xl text-center transition ring-1 ring-blue-900/20 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-700">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5"
@@ -151,7 +151,7 @@
                 <span>Ingresar Cliente</span>
             </a>
 
-            <a href="{{ route('promotora.solicitar_venta') }}"
+            <a href="{{ route('mobile.solicitar_venta') }}"
                 class="flex items-center justify-center gap-2 w-full bg-blue-800 hover:bg-blue-900 text-white 
                         font-semibold py-4 rounded-xl text-center transition ring-1 ring-blue-900/20 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-700">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5"
@@ -162,7 +162,7 @@
                 <span>Ingresar Venta</span>
             </a>
 
-            <a href="{{ route('promotora.index') }}"
+            <a href="{{ route('mobile.index') }}"
                 class="flex items-center justify-center gap-2 w-full border-2 border-blue-800 text-blue-800 
                         font-medium py-4 rounded-xl text-center hover:bg-blue-50 transition ring-1 ring-blue-900/20 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-700">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5"

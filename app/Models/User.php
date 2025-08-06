@@ -47,4 +47,24 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Determina si el usuario tiene rol de promotora.
+     *
+     * @return bool
+     */
+    public function isPromotora(): bool
+    {
+        return $this->rol === 'promotora';
+    }
+
+    public function isSupervisor(): bool
+    {
+        return $this->rol === 'supervisor';
+    }
+
+    public function isEjecutivo(): bool
+    {
+        return $this->rol === 'ejecutivo';
+    }
 }

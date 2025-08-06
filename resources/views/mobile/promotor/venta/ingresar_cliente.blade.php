@@ -1,4 +1,4 @@
-<x-layouts.promotora_mobile.mobile-layout title="Ingresar Cliente">
+<x-layouts.mobile.mobile-layout title="Ingresar Cliente">
   <div x-data="{
         showCliente: false,
         showRecredito: false,
@@ -230,10 +230,10 @@
       <div @click.stop
            class="relative bg-white rounded-2xl shadow-lg w-full max-w-xs p-6 text-center z-50 space-y-4">
         <p class="text-lg font-semibold text-gray-900">Cliente procesado</p>
-        <button @click="showSuccess = false; window.location='{{ route('movil.venta') }}'"
+        <button @click="showSuccess = false; window.location='{{ route('mobile.venta') }}'"
                 class="w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-2 rounded-xl shadow-md transition ring-1 ring-blue-900/20 focus:outline-none focus:ring-2 focus:ring-blue-700">
           OK
         </button>
       </div>
     </div>
-</x-layouts.promotora_mobile.mobile-layout>
+</x-layouts.mobile.mobile-layout>

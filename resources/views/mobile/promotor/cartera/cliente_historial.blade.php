@@ -18,7 +18,7 @@
     }
 @endphp
 
-<x-layouts.promotora_mobile.mobile-layout title="Historial de {{ $clientName }}">
+<x-layouts.mobile.mobile-layout title="Historial de {{ $clientName }}">
   <div class="bg-white rounded-2xl shadow-md p-6 w-full max-w-md mx-auto space-y-6">
 
     {{-- 1. INFO DEL CRÉDITO --}}
@@ -102,10 +102,10 @@
     </div>
 
     {{-- 5. BOTÓN REGRESAR --}}
-    <a href="{{ route('movil.cartera') }}"
+    <a href="{{ route('mobile.cartera') }}"
        class="block w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-3 rounded-xl text-center shadow-md transition ring-1 ring-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-700">
       REGRESAR
     </a>
 
   </div>
-</x-layouts.promotora_mobile.mobile-layout>
+</x-layouts.mobile.mobile-layout>

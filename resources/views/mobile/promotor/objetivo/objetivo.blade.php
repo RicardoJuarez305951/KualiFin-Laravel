@@ -34,7 +34,7 @@
     }
 @endphp
 
-<x-layouts.promotora_mobile.mobile-layout title="Tu Objetivo">
+<x-layouts.mobile.mobile-layout title="Tu Objetivo">
   <div class="w-full max-w-md mx-auto space-y-6 p-4">
 
     {{-- Créditos y Clientes objetivo --}}
@@ -121,10 +121,10 @@
     </div>
 
     {{-- Botón regresar --}}
-    <a href="{{ route('movil.index') }}"
+    <a href="{{ route('mobile.index') }}"
        class="block text-center py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
       ← Regresar
     </a>
 
   </div>
-</x-layouts.promotora_mobile.mobile-layout>
+</x-layouts.mobile.mobile-layout>

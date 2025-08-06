@@ -102,7 +102,7 @@
     </div>
 
     {{-- 5. BOTÓN REGRESAR --}}
-    <a href="{{ route('promotora.cartera') }}"
+    <a href="{{ route('mobile.cartera') }}"
        class="block w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-3 rounded-xl text-center shadow-md transition ring-1 ring-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-700">
       REGRESAR
     </a>

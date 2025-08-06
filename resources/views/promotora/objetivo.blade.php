@@ -34,7 +34,7 @@
     }
 @endphp
 
-<x-layouts.promotora_mobile.mobile-layout title="Tu Objetivo">
+<x-layouts.mobile.mobile-layout title="Tu Objetivo">
   <div class="w-full max-w-md mx-auto space-y-6 p-4">
 
     {{-- Créditos y Clientes objetivo --}}
@@ -127,4 +127,4 @@
     </a>
 
   </div>
-</x-layouts.promotora_mobile.mobile-layout>
+</x-layouts.mobile.mobile-layout>
