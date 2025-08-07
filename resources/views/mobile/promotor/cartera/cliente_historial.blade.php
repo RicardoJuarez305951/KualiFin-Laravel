@@ -1,4 +1,4 @@
-{{-- resources/views/promotor/promotora_historial.blade.php --}}
+{{-- resources/views/promotor/promotor_historial.blade.php --}}
 @php
     use Faker\Factory as Faker;
     $faker         = Faker::create('es_MX');

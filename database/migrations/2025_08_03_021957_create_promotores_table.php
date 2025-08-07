@@ -1,11 +1,11 @@
-// database/migrations/2025_08_02_000004_create_promotoras_table.php
+// database/migrations/2025_08_02_000004_create_promotores_table.php
 <?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreatePromotorasTable extends Migration
+class CreatePromotoresTable extends Migration
 {
     public function up()
     {

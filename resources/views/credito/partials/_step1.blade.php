@@ -6,12 +6,12 @@
       <label for="promotor" class="block text-sm font-medium text-gray-700">Promotor</label>
       <select
         id="promotor"
-        x-model="formData.step_1.promotora_id"
-        x-bind:name="`step_1[promotora_id]`"
+        x-model="formData.step_1.promotor_id"
+        x-bind:name="`step_1[promotor_id]`"
         class="mt-1 block w-full border rounded px-3 py-2"
       >
         <option value="">— Seleccione promotor —</option>
-        <template x-for="p in promotorasData" :key="p.id">
+        <template x-for="p in promotoresData" :key="p.id">
           <option :value="p.id" x-text="p.nombre"></option>
         </template>
       </select>

@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-class PromotoraController extends Controller
+class PromotorController extends Controller
 {
     // GET /promotor
     public function index()
     {
-        return view('promotor.promotora_index');
+        return view('promotor.promotor_index');
     }
 
     // GET /promotor/venta

@@ -11,7 +11,7 @@ class CreateClientesTable extends Migration
     {
         Schema::create('clientes', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->unsignedBigInteger('promotora_id');
+            $table->unsignedBigInteger('promotor_id');
             $table->string('CURP', 18);
             $table->string('nombre', 100);
             $table->string('apellido_p', 100);
@@ -24,7 +24,7 @@ class CreateClientesTable extends Migration
             $table->timestamp('actualizado_en')->useCurrent()->useCurrentOnUpdate();
             $table->boolean('activo');
 
-            $table->foreign('promotora_id')
+            $table->foreign('promotor_id')
                   ->references('id')->on('promotores')
                   ->onDelete('cascade');
         });

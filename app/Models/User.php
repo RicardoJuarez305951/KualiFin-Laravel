@@ -53,7 +53,7 @@ class User extends Authenticatable
      *
      * @return bool
      */
-    public function isPromotora(): bool
+    public function isPromotor(): bool
     {
         return $this->rol === 'promotor';
     }

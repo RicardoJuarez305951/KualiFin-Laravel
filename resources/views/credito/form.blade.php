@@ -81,18 +81,18 @@
 
   @push('scripts')
   <script>
-    function creditForm(promotorasData) {
+    function creditForm(promotoresData) {
       return {
         // datos
         activeGarantia: null,
-        promotorasData,
-        promotorasData,
+        promotoresData,
+        promotoresData,
       step: {{ $currentStep ?? 1 }},
       totalSteps: {{ $totalSteps ?? 7 }},
 
       formData: {
         step_1: {
-          promotora_id: null,
+          promotor_id: null,
           cliente_id: null,
           clientes: [],
           monto_total: 3000,
@@ -176,8 +176,8 @@
 
         init() {
         // Cuando cambie promotor en step_1
-        this.$watch('formData.step_1.promotora_id', id => {
-          const p = this.promotorasData.find(x => x.id == id)
+        this.$watch('formData.step_1.promotor_id', id => {
+          const p = this.promotoresData.find(x => x.id == id)
           this.formData.step_1.clientes     = p ? p.clientes : []
           this.formData.step_1.cliente_id   = null
           this.formData.cancelled           = false

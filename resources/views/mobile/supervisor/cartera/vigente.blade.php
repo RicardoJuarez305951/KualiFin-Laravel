@@ -36,7 +36,7 @@
         <tbody class="divide-y divide-gray-100">
           @foreach($promotores as $p)
             <tr class="hover:bg-gray-50 cursor-pointer"
-                onclick="window.location='{{ route('mobile.historial_promotora', ['promotor' => $p['id']]) }}'">
+                onclick="window.location='{{ route('mobile.historial_promotor', ['promotor' => $p['id']]) }}'">
               <td class="py-2 px-4 text-gray-800 font-semibold">{{ $p['lastName'] }}</td>
               <td class="py-2 px-4 text-right text-gray-700">{{ formatCurrency($p['debe']) }}</td>
               <td class="py-2 px-4 text-right text-red-600">{{ formatCurrency($p['falla']) }}</td>

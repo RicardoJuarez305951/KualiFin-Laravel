@@ -6,9 +6,9 @@
     //
     // Datos de Promotores (para filtro y listado)
     //
-    $promotorasData = collect();
+    $promotoresData = collect();
     for ($i = 1; $i <= 5; $i++) {
-        $promotorasData->push((object)[
+        $promotoresData->push((object)[
             'id'     => $i,
             'nombre' => $faker->name(),
         ]);
@@ -55,7 +55,7 @@
     //
     // Listado por promotor
     //
-    $promotoraSummaries = $promotorasData->map(function($p) use ($faker, $exerciseMoneyTarget, $exerciseClientTarget) {
+    $promotorSummaries = $promotoresData->map(function($p) use ($faker, $exerciseMoneyTarget, $exerciseClientTarget) {
         return (object)[
             'id'       => $p->id,
             'nombre'   => $p->nombre,
@@ -74,11 +74,11 @@
 
     {{-- Filtro por promotor --}}
     <div>
-      <label for="promotora_filter" class="block text-sm font-medium text-gray-700">Filtrar por promotor</label>
-      <select id="promotora_filter"
+      <label for="promotor_filter" class="block text-sm font-medium text-gray-700">Filtrar por promotor</label>
+      <select id="promotor_filter"
               class="mt-1 block w-full border rounded px-3 py-2">
         <option value="">— Todas —</option>
-        @foreach($promotorasData as $p)
+        @foreach($promotoresData as $p)
           <option value="{{ $p->id }}">{{ $p->nombre }}</option>
         @endforeach
       </select>
@@ -185,7 +185,7 @@
           </tr>
         </thead>
         <tbody>
-          @foreach($promotoraSummaries as $s)
+          @foreach($promotorSummaries as $s)
             <tr class="hover:bg-gray-50">
               <td class="py-2 px-3">{{ $s->nombre }}</td>
               <td class="py-2 px-3 text-right">{{ formatCurrency($s->ventas) }}</td>

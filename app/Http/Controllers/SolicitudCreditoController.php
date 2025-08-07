@@ -16,7 +16,7 @@ class SolicitudCreditoController extends Controller
     {
         $currentStep = $request->session()->get('current_step', 1);
         $solicitud = $request->session()->get('solicitud', []);
-        $promotores = $this->getPromotorasData();
+        $promotores = $this->getPromotoresData();
         
         return view('credito.form', compact('currentStep', 'solicitud', 'promotores'));
     }
@@ -33,7 +33,7 @@ class SolicitudCreditoController extends Controller
         // Valida y guarda los datos según el paso actual
         if ($currentStep == 1) {
             $validatedData = $request->validate([
-                'promotora_id' => 'required|numeric',
+                'promotor_id' => 'required|numeric',
                 'cliente_id' => 'required|numeric',
                 'ine_cliente_status' => 'required|in:aprobado',
                 'domicilio_cliente_status' => 'required|in:aprobado',
@@ -41,7 +41,7 @@ class SolicitudCreditoController extends Controller
                 'domicilio_aval_status' => 'required|in:aprobado',
             ], [
                 // Mensajes de error personalizados para guiar al usuario
-                'promotora_id.required' => 'Debes seleccionar una promotor.',
+                'promotor_id.required' => 'Debes seleccionar una promotor.',
                 'cliente_id.required' => 'Debes seleccionar un cliente.',
                 'ine_cliente_status.in' => 'El INE del cliente debe estar aprobado para continuar.',
                 'domicilio_cliente_status.in' => 'El comprobante de domicilio del cliente debe estar aprobado.',
@@ -49,7 +49,7 @@ class SolicitudCreditoController extends Controller
                 'domicilio_aval_status.in' => 'El comprobante de domicilio del aval debe estar aprobado.',
                 '*.required' => 'Es necesario evaluar todos los documentos antes de continuar.',
             ]);
-            $selectionDetails = $this->getSelectionDetails($validatedData['promotora_id'], $validatedData['cliente_id']);
+            $selectionDetails = $this->getSelectionDetails($validatedData['promotor_id'], $validatedData['cliente_id']);
             $solicitud = array_merge($selectionDetails, $validatedData);
 
         } elseif ($currentStep == 2) {
@@ -89,7 +89,7 @@ class SolicitudCreditoController extends Controller
     /**
      * Devuelve datos estáticos de promotores y sus clientes.
      */
-    private function getPromotorasData()
+    private function getPromotoresData()
     {
         return [
             [
@@ -128,14 +128,14 @@ class SolicitudCreditoController extends Controller
     /**
      * Obtiene los detalles de la promotor y cliente seleccionados.
      */
-    private function getSelectionDetails($promotoraId, $clienteId)
+    private function getSelectionDetails($promotorId, $clienteId)
     {
-        $promotores = $this->getPromotorasData();
-        $selectedPromotora = collect($promotores)->firstWhere('id', $promotoraId);
-        $selectedCliente = collect($selectedPromotora['clientes'])->firstWhere('id', $clienteId);
+        $promotores = $this->getPromotoresData();
+        $selectedPromotor = collect($promotores)->firstWhere('id', $promotorId);
+        $selectedCliente = collect($selectedPromotor['clientes'])->firstWhere('id', $clienteId);
 
         return [
-            'promotora_info' => ['id' => $selectedPromotora['id'], 'nombre' => $selectedPromotora['nombre']],
+            'promotor_info' => ['id' => $selectedPromotor['id'], 'nombre' => $selectedPromotor['nombre']],
             'cliente_info' => ['id' => $selectedCliente['id'], 'nombre' => $selectedCliente['nombre'], 'curp' => $selectedCliente['curp']],
         ];
     }

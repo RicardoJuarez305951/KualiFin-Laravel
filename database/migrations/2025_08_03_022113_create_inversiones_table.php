@@ -11,13 +11,13 @@ class CreateInversionesTable extends Migration
     {
         Schema::create('inversiones', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->unsignedBigInteger('promotora_id');
+            $table->unsignedBigInteger('promotor_id');
             $table->decimal('monto_solicitado', 12, 2);
             $table->decimal('monto_aprobado', 12, 2);
             $table->date('fecha_solicitud');
             $table->date('fecha_aprobacion');
 
-            $table->foreign('promotora_id')
+            $table->foreign('promotor_id')
                   ->references('id')->on('promotores')
                   ->onDelete('cascade');
         });
