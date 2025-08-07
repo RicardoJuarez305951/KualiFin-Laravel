@@ -29,8 +29,16 @@
         $faker->randomFloat(2, 0, $weeklyMoneyTarget),
         $faker->randomFloat(2, 0, $weeklyMoneyTarget),
         $faker->randomFloat(2, 0, $weeklyMoneyTarget),
+        $faker->randomFloat(2, 0, $weeklyMoneyTarget),
+        $faker->randomFloat(2, 0, $weeklyMoneyTarget),
+        $faker->randomFloat(2, 0, $weeklyMoneyTarget),
+        $faker->randomFloat(2, 0, $weeklyMoneyTarget),
     ];
     $clientHistory   = [
+        $faker->numberBetween(0, $weeklyClientTarget),
+        $faker->numberBetween(0, $weeklyClientTarget),
+        $faker->numberBetween(0, $weeklyClientTarget),
+        $faker->numberBetween(0, $weeklyClientTarget),
         $faker->numberBetween(0, $weeklyClientTarget),
         $faker->numberBetween(0, $weeklyClientTarget),
         $faker->numberBetween(0, $weeklyClientTarget),
@@ -119,26 +127,26 @@
             </td>
             <td class="py-3 px-4">
               {{ $remainingClientsTotal }}<br>
-              <span class="text-xs text-gray-500">restantes ejercicio</span>
+              <span class="text-xs text-gray-500">recaudado ejercicio</span>
             </td>
           </tr>
           <tr class="hover:bg-gray-50">
             <td class="py-3 px-4 text-red-600">
               {{ formatCurrency($dueMoneyThisWeek) }}<br>
-              <span class="text-xs text-red-400">faltante semana</span>
+              <span class="text-xs text-red-400">falla semana</span>
             </td>
             <td class="py-3 px-4 text-red-600">
               {{ $dueClientsThisWeek }}<br>
-              <span class="text-xs text-red-400">faltantes semana</span>
+              <span class="text-xs text-red-400">fallas semana</span>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    {{-- Historial global (3 sem) --}}
+    {{-- Historial global (7 sem) --}}
     <div class="bg-white rounded-2xl shadow-md p-4">
-      <h3 class="text-sm font-semibold text-gray-800 mb-3">Historial (3 sem)</h3>
+      <h3 class="text-sm font-semibold text-gray-800 mb-3">Historial (7 sem)</h3>
       <table class="w-full text-sm divide-y">
         <thead>
           <tr class="bg-gray-50">
@@ -148,13 +156,19 @@
           </tr>
         </thead>
         <tbody>
-          @for ($i = 0; $i < 3; $i++)
+          @for ($i = 0; $i < 7; $i++)
             <tr class="hover:bg-gray-50">
               <td class="py-2 px-3">{{ $i + 1 }}</td>
               <td class="py-2 px-3 text-right">{{ formatCurrency($moneyHistory[$i]) }}</td>
               <td class="py-2 px-3 text-right">{{ $clientHistory[$i] }}</td>
+              
             </tr>
           @endfor
+            <tr class="hover:bg-gray-50">
+              <td class="py-2 px-3">Total</td> 
+              <td class="py-2 px-3 text-right">{{ formatCurrency(array_sum($moneyHistory)) }}</td>
+              <td class="py-2 px-3 text-right">{{ array_sum($clientHistory) }}</td>
+            </tr>
         </tbody>
       </table>
     </div>
