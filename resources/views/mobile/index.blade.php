@@ -1,4 +1,5 @@
 {{-- resources/views/promotor/promotor_index.blade.php --}}
+@php($role = auth()->user()->rol)
 <x-layouts.mobile.mobile-layout title="Panel Promotor">
     <div class="bg-white rounded-2xl shadow-md p-6 w-full max-w-md space-y-6">
       
@@ -11,7 +12,7 @@
       {{-- Botones principales --}}
       <div class="space-y-4">
         {{-- Mi Objetivo --}}
-          <a href="{{ route('mobile.objetivo') }}"
+          <a href="{{ route("mobile.$role.objetivo") }}"
            class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
           {{-- Icono: Target --}}
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
@@ -23,7 +24,7 @@
         </a>
 
         {{-- Mi Cartera --}}
-          <a href="{{ route('mobile.cartera') }}"
+          <a href="{{ route("mobile.$role.cartera") }}"
            class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
           {{-- Icono: Wallet --}}
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
@@ -37,7 +38,7 @@
         </a>
 
         {{-- Mi Venta --}}
-          <a href="{{ route('mobile.venta') }}"
+          <a href="{{ route("mobile.$role.venta") }}"
            class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
           {{-- Icono: Shopping cart --}}
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
