@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<<<<<<< HEAD
     <title>{{ $title ?? config('app.name', 'Kaulifin') }}</title>
+=======
+    <title>{{ $title ?? config('app.name', 'Kualifin') }}</title>
+>>>>>>> 8c4df4a168c5cca3be3943152747fec6603c3779
     @vite(['resources/css/app.css', 'resources/css/authenticated.css', 'resources/js/app.js'])
     
 </head>

@@ -40,12 +40,33 @@ class VistaMobileController extends Controller
     public function cartera()
     {
         return $this->viewByRole('cartera', 'cartera');
-    }
+    }    
 
     // GET /mobile/cliente-historial
     public function cliente_historial()
     {
         return $this->viewByRole('cartera', 'cliente_historial');
+    }
+
+    // SUPERVISOR
+    public function cartera_vigente()
+    {
+        return $this->viewByRole('cartera', 'vigente');
+    }
+
+    public function cartera_vencida()
+    {
+        return $this->viewByRole('cartera', 'vencida');
+    }
+
+    public function cartera_inactiva()
+    {
+        return $this->viewByRole('cartera', 'inactiva');
+    
+    }
+    public function cartera_historial_promotora()
+    {
+        return $this->viewByRole('cartera', 'historial_promotora');
     }
 
     /**

@@ -37,6 +37,11 @@ Route::middleware(['auth','verified'])->group(function () {
              Route::get('solicitar-venta',   'solicitar_venta')   ->name('solicitar_venta');
              Route::get('ingresar-cliente',  'ingresar_cliente')  ->name('ingresar_cliente');
              Route::get('cliente-historial', 'cliente_historial') ->name('cliente_historial');
+             //SUPERVISOR
+             Route::get('vigente',  'cartera_vigente') ->name('vigente');
+             Route::get('vencida',  'cartera_vencida') ->name('vencida');
+             Route::get('inactiva',  'cartera_inactiva') ->name('inactiva');
+             Route::get('historial_promotora',  'cartera_historial_promotora') ->name('historial_promotora');
          });
 
     // Dashboard
