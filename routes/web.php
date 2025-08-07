@@ -6,7 +6,9 @@ use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DocumentoClienteController;
 use App\Http\Controllers\SolicitudCreditoController;
-use App\Http\Controllers\VistaMobileController;  // <-- Solo este controlador
+use App\Http\Controllers\Mobile\PromotorController as MobilePromotorController;
+use App\Http\Controllers\Mobile\EjecutivoController as MobileEjecutivoController;
+use App\Http\Controllers\Mobile\SupervisorController as MobileSupervisorController;
 use Illuminate\Support\Facades\Auth;
 
 /*
@@ -25,23 +27,56 @@ Route::get('/', function () {
 
 Route::middleware(['auth','verified'])->group(function () {
 
-    // Rutas de la vista móvil (reemplaza a “promotor”)
     Route::prefix('mobile')
          ->name('mobile.')
-         ->controller(VistaMobileController::class)
          ->group(function () {
-             Route::get('/',                 'index')             ->name('index');
-             Route::get('venta',             'venta')             ->name('venta');
-             Route::get('cartera',           'cartera')           ->name('cartera');
-             Route::get('objetivo',          'objetivo')          ->name('objetivo');
-             Route::get('solicitar-venta',   'solicitar_venta')   ->name('solicitar_venta');
-             Route::get('ingresar-cliente',  'ingresar_cliente')  ->name('ingresar_cliente');
-             Route::get('cliente-historial', 'cliente_historial') ->name('cliente_historial');
-             //SUPERVISOR
-             Route::get('vigente',  'cartera_vigente') ->name('vigente');
-             Route::get('vencida',  'cartera_vencida') ->name('vencida');
-             Route::get('inactiva',  'cartera_inactiva') ->name('inactiva');
-             Route::get('historial_promotor',  'cartera_historial_promotor') ->name('historial_promotor');
+             Route::get('/', function () {
+                 $role = Auth::user()->rol;
+                 return redirect()->route("mobile.{$role}.index");
+             })->name('index');
+
+             Route::prefix('promotor')
+                  ->name('promotor.')
+                  ->controller(MobilePromotorController::class)
+                  ->group(function () {
+                      Route::get('/',                 'index')             ->name('index');
+                      Route::get('venta',             'venta')             ->name('venta');
+                      Route::get('cartera',           'cartera')           ->name('cartera');
+                      Route::get('objetivo',          'objetivo')          ->name('objetivo');
+                      Route::get('solicitar-venta',   'solicitar_venta')   ->name('solicitar_venta');
+                      Route::get('ingresar-cliente',  'ingresar_cliente')  ->name('ingresar_cliente');
+                      Route::get('cliente-historial', 'cliente_historial') ->name('cliente_historial');
+                  });
+
+             Route::prefix('ejecutivo')
+                  ->name('ejecutivo.')
+                  ->controller(MobileEjecutivoController::class)
+                  ->group(function () {
+                      Route::get('/',                 'index')             ->name('index');
+                      Route::get('venta',             'venta')             ->name('venta');
+                      Route::get('cartera',           'cartera')           ->name('cartera');
+                      Route::get('objetivo',          'objetivo')          ->name('objetivo');
+                      Route::get('solicitar-venta',   'solicitar_venta')   ->name('solicitar_venta');
+                      Route::get('ingresar-cliente',  'ingresar_cliente')  ->name('ingresar_cliente');
+                      Route::get('cliente-historial', 'cliente_historial') ->name('cliente_historial');
+                  });
+
+             Route::prefix('supervisor')
+                  ->name('supervisor.')
+                  ->controller(MobileSupervisorController::class)
+                  ->group(function () {
+                      Route::get('/',                 'index')             ->name('index');
+                      Route::get('venta',             'venta')             ->name('venta');
+                      Route::get('cartera',           'cartera')           ->name('cartera');
+                      Route::get('objetivo',          'objetivo')          ->name('objetivo');
+                      Route::get('solicitar-venta',   'solicitar_venta')   ->name('solicitar_venta');
+                      Route::get('ingresar-cliente',  'ingresar_cliente')  ->name('ingresar_cliente');
+                      Route::get('cliente-historial', 'cliente_historial') ->name('cliente_historial');
+                      Route::get('vigente',           'cartera_vigente')   ->name('vigente');
+                      Route::get('vencida',           'cartera_vencida')   ->name('vencida');
+                      Route::get('inactiva',          'cartera_inactiva')  ->name('inactiva');
+                      Route::get('historial_promotor','cartera_historial_promotor') ->name('historial_promotor');
+                  });
          });
 
     // Dashboard
