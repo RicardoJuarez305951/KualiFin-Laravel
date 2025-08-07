@@ -19,9 +19,9 @@ class Supervisor extends Model
         return $this->belongsTo(Ejecutivo::class);
     }
 
-    public function promotoras()
+    public function promotores()
     {
-        return $this->hasMany(Promotora::class);
+        return $this->hasMany(Promotor::class);
     }
 
     public function ejercicios()

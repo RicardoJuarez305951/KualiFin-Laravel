@@ -18,7 +18,7 @@ class CreateInversionesTable extends Migration
             $table->date('fecha_aprobacion');
 
             $table->foreign('promotora_id')
-                  ->references('id')->on('promotoras')
+                  ->references('id')->on('promotores')
                   ->onDelete('cascade');
         });
     }

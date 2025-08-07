@@ -20,7 +20,7 @@ class ClienteController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'promotora_id'      => 'required|exists:promotoras,id',
+            'promotora_id'      => 'required|exists:promotores,id',
             'CURP'              => 'required|string|size:18',
             'nombre'            => 'required|string',
             'apellido_p'        => 'required|string',

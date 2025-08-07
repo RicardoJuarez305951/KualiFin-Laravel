@@ -20,7 +20,7 @@ class InversionController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'promotora_id'  => 'required|exists:promotoras,id',
+            'promotora_id'  => 'required|exists:promotores,id',
             'monto_solicitado'=> 'required|numeric',
             'monto_aprobado'=> 'required|numeric',
             'fecha_solicitud'=> 'required|date',

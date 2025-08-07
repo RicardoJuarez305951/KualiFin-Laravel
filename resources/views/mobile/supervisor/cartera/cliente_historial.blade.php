@@ -1,10 +1,10 @@
-{{-- resources/views/promotora/promotora_historial.blade.php --}}
+{{-- resources/views/promotor/promotora_historial.blade.php --}}
 @php
     use Faker\Factory as Faker;
     $faker         = Faker::create('es_MX');
     $clientName    = $faker->name();
     $curp          = strtoupper($faker->regexify('[A-Z]{4}[0-9]{6}[A-Z]{6}[0-9]{2}'));
-    $promotora     = auth()->user()->name;
+    $promotor     = auth()->user()->name;
     $supervisora   = $faker->name();
     $totalLoan     = $faker->randomFloat(2, 20000, 100000);
     $creditDate    = now()->subWeeks(rand(1, 20))->locale('es')->isoFormat('D [de] MMMM [de] YYYY');

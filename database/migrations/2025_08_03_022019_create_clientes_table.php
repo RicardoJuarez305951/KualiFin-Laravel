@@ -25,7 +25,7 @@ class CreateClientesTable extends Migration
             $table->boolean('activo');
 
             $table->foreign('promotora_id')
-                  ->references('id')->on('promotoras')
+                  ->references('id')->on('promotores')
                   ->onDelete('cascade');
         });
     }

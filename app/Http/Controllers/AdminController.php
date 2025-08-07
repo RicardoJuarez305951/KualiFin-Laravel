@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 class AdminController extends Controller
 {
-    // GET /promotora
+    // GET /promotor
     public function index()
     {
         return view('admin.index');

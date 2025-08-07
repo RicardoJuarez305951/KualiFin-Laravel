@@ -9,7 +9,7 @@ class CreatePromotorasTable extends Migration
 {
     public function up()
     {
-        Schema::create('promotoras', function (Blueprint $table) {
+        Schema::create('promotores', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('supervisor_id');
@@ -34,6 +34,6 @@ class CreatePromotorasTable extends Migration
 
     public function down()
     {
-        Schema::dropIfExists('promotoras');
+        Schema::dropIfExists('promotores');
     }
 }

@@ -16,9 +16,9 @@ class SolicitudCreditoController extends Controller
     {
         $currentStep = $request->session()->get('current_step', 1);
         $solicitud = $request->session()->get('solicitud', []);
-        $promotoras = $this->getPromotorasData();
+        $promotores = $this->getPromotorasData();
         
-        return view('credito.form', compact('currentStep', 'solicitud', 'promotoras'));
+        return view('credito.form', compact('currentStep', 'solicitud', 'promotores'));
     }
 
     /**
@@ -41,7 +41,7 @@ class SolicitudCreditoController extends Controller
                 'domicilio_aval_status' => 'required|in:aprobado',
             ], [
                 // Mensajes de error personalizados para guiar al usuario
-                'promotora_id.required' => 'Debes seleccionar una promotora.',
+                'promotora_id.required' => 'Debes seleccionar una promotor.',
                 'cliente_id.required' => 'Debes seleccionar un cliente.',
                 'ine_cliente_status.in' => 'El INE del cliente debe estar aprobado para continuar.',
                 'domicilio_cliente_status.in' => 'El comprobante de domicilio del cliente debe estar aprobado.',
@@ -87,7 +87,7 @@ class SolicitudCreditoController extends Controller
     }
 
     /**
-     * Devuelve datos estáticos de promotoras y sus clientes.
+     * Devuelve datos estáticos de promotores y sus clientes.
      */
     private function getPromotorasData()
     {
@@ -126,12 +126,12 @@ class SolicitudCreditoController extends Controller
     }
 
     /**
-     * Obtiene los detalles de la promotora y cliente seleccionados.
+     * Obtiene los detalles de la promotor y cliente seleccionados.
      */
     private function getSelectionDetails($promotoraId, $clienteId)
     {
-        $promotoras = $this->getPromotorasData();
-        $selectedPromotora = collect($promotoras)->firstWhere('id', $promotoraId);
+        $promotores = $this->getPromotorasData();
+        $selectedPromotora = collect($promotores)->firstWhere('id', $promotoraId);
         $selectedCliente = collect($selectedPromotora['clientes'])->firstWhere('id', $clienteId);
 
         return [

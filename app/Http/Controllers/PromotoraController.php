@@ -4,42 +4,42 @@ namespace App\Http\Controllers;
 
 class PromotoraController extends Controller
 {
-    // GET /promotora
+    // GET /promotor
     public function index()
     {
-        return view('promotora.promotora_index');
+        return view('promotor.promotora_index');
     }
 
-    // GET /promotora/venta
+    // GET /promotor/venta
     public function venta()
     {
-        return view('promotora.venta');
+        return view('promotor.venta');
     }
 
-    // GET /promotora/cartera
+    // GET /promotor/cartera
     public function cartera()
     {
-        return view('promotora.cartera');
+        return view('promotor.cartera');
     }
 
-    // GET /promotora/objetivo
+    // GET /promotor/objetivo
     public function objetivo()
     {
-        return view('promotora.objetivo');
+        return view('promotor.objetivo');
     }
 
     public function solicitar_venta()
     {
-        return view('promotora.solicitar_venta');
+        return view('promotor.solicitar_venta');
     }
 
     public function ingresar_cliente()
     {
-        return view('promotora.ingresar_cliente');
+        return view('promotor.ingresar_cliente');
     }
 
     public function cliente_historial()
     {
-        return view('promotora.cliente_historial');
+        return view('promotor.cliente_historial');
     }
 }

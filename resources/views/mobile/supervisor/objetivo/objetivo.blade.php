@@ -4,7 +4,7 @@
     $faker = Faker::create('es_MX');
 
     //
-    // Datos de Promotoras (para filtro y listado)
+    // Datos de Promotores (para filtro y listado)
     //
     $promotorasData = collect();
     for ($i = 1; $i <= 5; $i++) {
@@ -53,7 +53,7 @@
     $remainingClientsTotal = max($exerciseClientTarget - array_sum($clientHistory), 0);
 
     //
-    // Listado por promotora
+    // Listado por promotor
     //
     $promotoraSummaries = $promotorasData->map(function($p) use ($faker, $exerciseMoneyTarget, $exerciseClientTarget) {
         return (object)[
@@ -72,9 +72,9 @@
 <x-layouts.mobile.mobile-layout title="Reporte Supervisora">
   <div class="w-full max-w-md mx-auto space-y-6 p-4">
 
-    {{-- Filtro por promotora --}}
+    {{-- Filtro por promotor --}}
     <div>
-      <label for="promotora_filter" class="block text-sm font-medium text-gray-700">Filtrar por promotora</label>
+      <label for="promotora_filter" class="block text-sm font-medium text-gray-700">Filtrar por promotor</label>
       <select id="promotora_filter"
               class="mt-1 block w-full border rounded px-3 py-2">
         <option value="">— Todas —</option>
@@ -173,13 +173,13 @@
       </table>
     </div>
 
-    {{-- Listado por promotora --}}
+    {{-- Listado por promotor --}}
     <div class="bg-white rounded-2xl shadow-md p-4">
-      <h3 class="text-sm font-semibold text-gray-800 mb-3">Por promotora (ejercicio)</h3>
+      <h3 class="text-sm font-semibold text-gray-800 mb-3">Por promotor (ejercicio)</h3>
       <table class="w-full text-sm divide-y">
         <thead>
           <tr class="bg-gray-50">
-            <th class="py-2 px-3">Promotora</th>
+            <th class="py-2 px-3">Promotor</th>
             <th class="py-2 px-3 text-right">Ventas</th>
             <th class="py-2 px-3 text-right">Clientes</th>
           </tr>

@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\Promotora;
+use App\Models\Promotor;
 use App\Models\Supervisor;
 use App\Models\Ejecutivo;
 use Illuminate\Database\Seeder;
@@ -35,8 +35,8 @@ class DatabaseSeeder extends Seeder
         ]);
 
         User::factory()->create([
-            'name' => 'Promotora User',
-            'email' => 'promotora@example.com',
+            'name' => 'Promotor User',
+            'email' => 'promotor@example.com',
             'password' => Hash::make('Password123'),
             'rol' => 'promotor',
             'telefono' => '0987654321',

@@ -1,16 +1,16 @@
 {{-- resources/views/credito/partials/_step1.blade.php --}}
 <div class="space-y-6">
-  {{-- div1: Selección de promotora + cliente --}}
+  {{-- div1: Selección de promotor + cliente --}}
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div>
-      <label for="promotora" class="block text-sm font-medium text-gray-700">Promotora</label>
+      <label for="promotor" class="block text-sm font-medium text-gray-700">Promotor</label>
       <select
-        id="promotora"
+        id="promotor"
         x-model="formData.step_1.promotora_id"
         x-bind:name="`step_1[promotora_id]`"
         class="mt-1 block w-full border rounded px-3 py-2"
       >
-        <option value="">— Seleccione promotora —</option>
+        <option value="">— Seleccione promotor —</option>
         <template x-for="p in promotorasData" :key="p.id">
           <option :value="p.id" x-text="p.nombre"></option>
         </template>

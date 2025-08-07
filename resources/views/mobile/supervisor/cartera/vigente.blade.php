@@ -3,8 +3,8 @@
     use Faker\Factory as Faker;
     $faker = Faker::create('es_MX');
 
-    // Mock de promotoras
-    $promotoras = collect(range(1, 8))->map(fn($i) => [
+    // Mock de promotores
+    $promotores = collect(range(1, 8))->map(fn($i) => [
         'id'               => $i,
         'lastName'         => $faker->lastName(),
         'debe'             => $faker->randomFloat(2, 2000, 10000),
@@ -20,13 +20,13 @@
 
 <x-layouts.mobile.mobile-layout title="Cartera Vigente">
   <div class="w-full max-w-xl mx-auto p-4 space-y-6">
-    <h2 class="text-xl font-bold text-gray-800 text-center">Cartera Vigente - Resumen Promotoras</h2>
+    <h2 class="text-xl font-bold text-gray-800 text-center">Cartera Vigente - Resumen Promotores</h2>
 
     <div class="bg-white rounded-2xl shadow-md overflow-x-auto">
       <table class="w-full text-sm divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
-            <th class="py-3 px-4 text-left font-medium">Apellido Promotora</th>
+            <th class="py-3 px-4 text-left font-medium">Apellido Promotor</th>
             <th class="py-3 px-4 text-right font-medium">Debe</th>
             <th class="py-3 px-4 text-right font-medium">Falla</th>
             <th class="py-3 px-4 text-right font-medium">Pagos Realizados</th>
@@ -34,9 +34,9 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
-          @foreach($promotoras as $p)
+          @foreach($promotores as $p)
             <tr class="hover:bg-gray-50 cursor-pointer"
-                onclick="window.location='{{ route('mobile.historial_promotora', ['promotora' => $p['id']]) }}'">
+                onclick="window.location='{{ route('mobile.historial_promotora', ['promotor' => $p['id']]) }}'">
               <td class="py-2 px-4 text-gray-800 font-semibold">{{ $p['lastName'] }}</td>
               <td class="py-2 px-4 text-right text-gray-700">{{ formatCurrency($p['debe']) }}</td>
               <td class="py-2 px-4 text-right text-red-600">{{ formatCurrency($p['falla']) }}</td>

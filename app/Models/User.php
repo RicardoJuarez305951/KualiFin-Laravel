@@ -49,13 +49,13 @@ class User extends Authenticatable
     }
 
     /**
-     * Determina si el usuario tiene rol de promotora.
+     * Determina si el usuario tiene rol de promotor.
      *
      * @return bool
      */
     public function isPromotora(): bool
     {
-        return $this->rol === 'promotora';
+        return $this->rol === 'promotor';
     }
 
     public function isSupervisor(): bool

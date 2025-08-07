@@ -9,9 +9,9 @@ class Cliente extends Model
     use HasFactory;
     protected $guarded = [];
 
-    public function promotora()
+    public function promotor()
     {
-        return $this->belongsTo(Promotora::class);
+        return $this->belongsTo(Promotor::class);
     }
 
     public function credito()

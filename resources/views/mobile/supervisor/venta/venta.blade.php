@@ -43,7 +43,7 @@
             </h2>
             <div class="space-y-3 text-sm">
                 <div class="flex justify-between items-center">
-                    <span class="text-gray-700">Promotora:</span>
+                    <span class="text-gray-700">Promotor:</span>
                     <span class="font-semibold text-gray-900">{{ auth()->user()->name }}</span>
                 </div>
                 <div class="flex justify-between items-center">

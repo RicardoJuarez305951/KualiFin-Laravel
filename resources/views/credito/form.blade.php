@@ -1,6 +1,6 @@
 <x-layouts.authenticated title="Nueva Solicitud de Crédito">
   <div
-    x-data="creditForm({{ json_encode($promotoras, JSON_UNESCAPED_SLASHES) }})"
+    x-data="creditForm({{ json_encode($promotores, JSON_UNESCAPED_SLASHES) }})"
     x-init="init()"
     class="space-y-6 relative"
   >
@@ -175,7 +175,7 @@
       },
 
         init() {
-        // Cuando cambie promotora en step_1
+        // Cuando cambie promotor en step_1
         this.$watch('formData.step_1.promotora_id', id => {
           const p = this.promotorasData.find(x => x.id == id)
           this.formData.step_1.clientes     = p ? p.clientes : []

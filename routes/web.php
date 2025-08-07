@@ -25,7 +25,7 @@ Route::get('/', function () {
 
 Route::middleware(['auth','verified'])->group(function () {
 
-    // Rutas de la vista móvil (reemplaza a “promotora”)
+    // Rutas de la vista móvil (reemplaza a “promotor”)
     Route::prefix('mobile')
          ->name('mobile.')
          ->controller(VistaMobileController::class)
