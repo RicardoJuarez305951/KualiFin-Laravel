@@ -44,7 +44,7 @@
         </ul>
       </div>
 
-      <a href="{{ route('mobile.venta') }}"
+      <a href="{{ route("mobile.$role.venta") }}"
           class="block w-full bg-red-700 hover:bg-red-800 text-white font-semibold
                 py-3 rounded-xl text-center shadow-md transition ring-1 ring-red-900/30 focus:outline-none focus:ring-2 focus:ring-red-600">
         Corregir elementos
@@ -63,7 +63,7 @@
         <p class="text-sm text-gray-700">Felicidades, toda tu venta es viable.</p>
       </div>
 
-      <a href="{{ route('mobile.venta') }}"
+      <a href="{{ route("mobile.$role.venta") }}"
           class="block w-full bg-green-600 hover:bg-green-700 text-white font-semibold
                 py-3 rounded-xl text-center shadow-md transition ring-1 ring-green-900/30 focus:outline-none focus:ring-2 focus:ring-green-500">
         FINALIZAR Y ENVIAR

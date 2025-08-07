@@ -151,8 +151,8 @@
                 <span>Ingresar Cliente</span>
             </a>
 
-            <a href="{{ route('mobile.solicitar_venta') }}"
-                class="flex items-center justify-center gap-2 w-full bg-blue-800 hover:bg-blue-900 text-white 
+            <a href="{{ route("mobile.$role.solicitar_venta") }}"
+                class="flex items-center justify-center gap-2 w-full bg-blue-800 hover:bg-blue-900 text-white
                         font-semibold py-4 rounded-xl text-center transition ring-1 ring-blue-900/20 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-700">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5"
                         stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true" role="img">
@@ -162,8 +162,8 @@
                 <span>Ingresar Venta</span>
             </a>
 
-            <a href="{{ route('mobile.index') }}"
-                class="flex items-center justify-center gap-2 w-full border-2 border-blue-800 text-blue-800 
+            <a href="{{ route("mobile.$role.index") }}"
+                class="flex items-center justify-center gap-2 w-full border-2 border-blue-800 text-blue-800
                         font-medium py-4 rounded-xl text-center hover:bg-blue-50 transition ring-1 ring-blue-900/20 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-700">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5"
                         stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true" role="img">
