@@ -6,9 +6,9 @@ use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DocumentoClienteController;
 use App\Http\Controllers\SolicitudCreditoController;
-use App\Http\Controllers\Mobile\PromotorController as MobilePromotorController;
-use App\Http\Controllers\Mobile\EjecutivoController as MobileEjecutivoController;
-use App\Http\Controllers\Mobile\SupervisorController as MobileSupervisorController;
+use App\Http\Controllers\Mobile\PromotorController;
+use App\Http\Controllers\Mobile\EjecutivoController;
+use App\Http\Controllers\Mobile\SupervisorController;
 use Illuminate\Support\Facades\Auth;
 
 /*
@@ -37,7 +37,7 @@ Route::middleware(['auth','verified'])->group(function () {
 
              Route::prefix('promotor')
                   ->name('promotor.')
-                  ->controller(MobilePromotorController::class)
+                  ->controller(PromotorController::class)
                   ->group(function () {
                       Route::get('/',                 'index')             ->name('index');
                       Route::get('venta',             'venta')             ->name('venta');
@@ -50,7 +50,7 @@ Route::middleware(['auth','verified'])->group(function () {
 
              Route::prefix('ejecutivo')
                   ->name('ejecutivo.')
-                  ->controller(MobileEjecutivoController::class)
+                  ->controller(EjecutivoController::class)
                   ->group(function () {
                       Route::get('/',                 'index')             ->name('index');
                       Route::get('venta',             'venta')             ->name('venta');
@@ -63,7 +63,7 @@ Route::middleware(['auth','verified'])->group(function () {
 
              Route::prefix('supervisor')
                   ->name('supervisor.')
-                  ->controller(MobileSupervisorController::class)
+                  ->controller(SupervisorController::class)
                   ->group(function () {
                       Route::get('/',                 'index')             ->name('index');
                       Route::get('venta',             'venta')             ->name('venta');
