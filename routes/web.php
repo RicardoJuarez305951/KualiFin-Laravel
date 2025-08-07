@@ -10,6 +10,7 @@ use App\Http\Controllers\Mobile\PromotorController;
 use App\Http\Controllers\Mobile\EjecutivoController;
 use App\Http\Controllers\Mobile\SupervisorController;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Middleware\ShareRole;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,6 +30,7 @@ Route::middleware(['auth','verified'])->group(function () {
 
     Route::prefix('mobile')
          ->name('mobile.')
+         ->middleware(ShareRole::class)
          ->group(function () {
              Route::get('/', function () {
                  $role = Auth::user()->rol;
