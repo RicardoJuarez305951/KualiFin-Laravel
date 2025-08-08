@@ -9,7 +9,7 @@ class ShareRole
 {
     public function handle(Request $request, Closure $next)
     {
-        view()->share('role', optional($request->user())->rol);
+        view()->share('role', optional($request->user())->getRoleNames()->first());
         return $next($request);
     }
 }

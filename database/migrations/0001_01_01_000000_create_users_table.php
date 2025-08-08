@@ -18,7 +18,6 @@ return new class extends Migration
             $table->string('telefono', 10);
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('rol')->default('promotor');
             $table->rememberToken();
             $table->timestamps();
         });

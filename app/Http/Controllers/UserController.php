@@ -24,11 +24,11 @@ class UserController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'rol' => $validated['rol'],
             'telefono' => $validated['telefono'],
         ]);
 
         event(new Registered($user));
+        $user->assignRole($validated['rol']);
 
         return redirect()
             ->route('admin.empleados.create')
