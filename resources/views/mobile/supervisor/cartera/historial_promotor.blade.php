@@ -38,8 +38,16 @@
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Historial de Promotora">
-<div x-data="{ showCalc: false, clientName: '', clientId: null, calcAmount: '' }" class="w-full max-w-2xl space-y-6">
-
+<div 
+    x-data="{ 
+        showCalc: false, 
+        clientName: '', 
+        clientId: null, 
+        calcAmount: '', 
+        filtro: 'todos' 
+    }" 
+    class="w-full max-w-2xl space-y-6"
+>
     {{-- Encabezado --}}
     <section class="bg-white rounded-2xl shadow p-6">
       <h1 class="text-xl font-bold text-gray-900">
@@ -49,6 +57,16 @@
         Colonia / Plaza: <span class="font-medium">{{ $promotora->colonia ?? '—' }}</span>
       </p>
     </section>
+
+    {{-- Filtro --}}
+    <div class="bg-white rounded-2xl shadow p-4 flex gap-3 items-center">
+        <label for="filtro" class="text-sm font-medium text-gray-700">Filtrar por:</label>
+        <select id="filtro" x-model="filtro" class="border rounded-lg px-8 py-1 text-sm focus:ring-2 focus:ring-blue-500">
+            <option value="todos">Todos</option>
+            <option value="falla">Falla</option>
+            <option value="sin_falla">Sin Falla</option>
+        </select>
+    </div>
 
     {{-- Lista de clientes activos --}}
     <section class="bg-white rounded-2xl shadow overflow-hidden">
@@ -66,7 +84,10 @@
             $progreso = ($cliente->semana_actual / $cliente->semanas_totales) * 100;
           @endphp
 
-          <div class="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div 
+              class="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+              x-show="filtro === 'todos' || (filtro === 'falla' && {{ $estatusFalla ? 'true' : 'false' }}) || (filtro === 'sin_falla' && {{ $estatusFalla ? 'false' : 'true' }})"
+          >
             <div class="space-y-1">
               <div class="text-sm text-gray-900">
                 <span class="font-semibold">Apellidos:</span> {{ $apellidos ?: '—' }}
@@ -114,7 +135,6 @@
 
             {{-- Botones --}}
             <div class="flex gap-2">
-              {{-- Botón que abre el modal estilo ejemplo --}}
               <button
                   type="button"
                   @click="showCalc = true; clientName = '{{ $apellidos }}'; clientId = '{{ $cliente->id }}'; calcAmount = '';"
@@ -122,7 +142,7 @@
                   Reportar pago
               </button>
 
-              <a href="{{ route("mobile.promotor.cliente_historial", ['cliente' => $cliente->id]) }}"
+              <a href="{{ route('mobile.promotor.cliente_historial', ['cliente' => $cliente->id]) }}"
                  class="px-3 py-2 rounded-lg bg-gray-100 text-gray-800 text-sm font-semibold hover:bg-gray-200 ring-1 ring-gray-200">
                 Historial
               </a>
@@ -135,39 +155,33 @@
         @endforelse
       </div>
 
-      {{-- Modal estilo ejemplo corregido --}}
-        <div x-show="showCalc" x-cloak class="fixed inset-0 w-full h-full z-50 flex items-center justify-center">
-        {{-- Overlay negro que ocupa toda la pantalla --}}
+      {{-- Modal --}}
+      <div x-show="showCalc" x-cloak class="fixed inset-0 w-full h-full z-50 flex items-center justify-center">
         <div class="absolute top-0 left-0 w-full h-full bg-black bg-opacity-50" @click="showCalc = false"></div>
-
-        {{-- Contenido modal --}}
-        <div @click.stop
-            class="relative bg-white rounded-xl shadow-lg w-11/12 max-w-sm p-6 animate-fade-in">
+        <div @click.stop class="relative bg-white rounded-xl shadow-lg w-11/12 max-w-sm p-6 animate-fade-in">
             <h3 class="text-center text-lg font-semibold mb-4 text-gray-800">
-            <span class="font-bold" x-text="clientName"></span> pagará:
+              <span class="font-bold" x-text="clientName"></span> pagará:
             </h3>
-
             <form method="POST" action="{{ route("mobile.$role.venta") }}">
                 @csrf
                 <input type="hidden" name="cliente_id" x-model="clientId">
                 <input type="number" step="0.01" name="monto" x-model="calcAmount"
-                    placeholder="Ingresa monto"
-                    class="w-full border border-gray-300 rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400" required>
-
+                       placeholder="Ingresa monto"
+                       class="w-full border border-gray-300 rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400" required>
                 <div class="flex space-x-3">
-                <button type="button"
-                        @click="showCalc = false"
-                        class="flex-1 py-2 border border-gray-300 rounded hover:bg-gray-100">
+                  <button type="button"
+                          @click="showCalc = false"
+                          class="flex-1 py-2 border border-gray-300 rounded hover:bg-gray-100">
                     Cancelar
-                </button>
-                <button type="submit"
-                        class="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white rounded">
+                  </button>
+                  <button type="submit"
+                          class="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white rounded">
                     Aceptar
-                </button>
+                  </button>
                 </div>
             </form>
         </div>
-    </div>
+      </div>
     </section>
 
     {{-- Regresar --}}

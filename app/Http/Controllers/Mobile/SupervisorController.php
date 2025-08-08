@@ -60,4 +60,9 @@ class SupervisorController extends Controller
     {
         return view('mobile.supervisor.cartera.historial_promotor');
     }
+
+    public function cartera_reacreditacion()
+    {
+        return view('mobile.supervisor.cartera.reacreditacion');
+    }
 }
