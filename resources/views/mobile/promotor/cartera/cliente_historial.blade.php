@@ -5,7 +5,7 @@
     $clientName    = $faker->name();
     $curp          = strtoupper($faker->regexify('[A-Z]{4}[0-9]{6}[A-Z]{6}[0-9]{2}'));
     $promotor     = auth()->user()->name;
-    $supervisora   = $faker->name();
+    $supervisor   = $faker->name();
     $totalLoan     = $faker->randomFloat(2, 20000, 100000);
     $creditDate    = now()->subWeeks(rand(1, 20))->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
     $totalWeeks    = rand(17, 17);
@@ -23,10 +23,20 @@
 
     {{-- 1. INFO DEL CRÉDITO --}}
     <div class="grid grid-cols-2 gap-4 text-sm text-gray-800">
+      @role('promotor')
       <div class="space-y-1">
         <label class="block font-semibold">Supervisor</label>
-        <div class="border-b border-gray-300 h-6 leading-6">{{ $supervisora }}</div>
+        <div class="border-b border-gray-300 h-6 leading-6">{{ $supervisor }}</div>
       </div>
+    @endrole
+
+    @role('supervisor')
+      <div class="space-y-1">
+        <label class="block font-semibold">Promotor</label>
+        <div class="border-b border-gray-300 h-6 leading-6">{{ $promotor }}</div>
+      </div>
+    @endrole
+
       <div class="space-y-1">
         <label class="block font-semibold">Semanas del crédito</label>
         <div class="border-b border-gray-300 h-6 leading-6">{{ $totalWeeks }}</div>
