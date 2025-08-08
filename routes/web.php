@@ -19,8 +19,8 @@ use App\Http\Middleware\ShareRole;
 */
 
 Route::get('/', function () {
-    // if (Auth::check() && Auth::user()->rol === 'promotor') {
-    if (Auth::check() && in_array(Auth::user()->rol, ['promotor', 'supervisor', 'ejecutivo'])) {
+    // if (Auth::check() && Auth::user()->hasRole('promotor')) {
+    if (Auth::check() && Auth::user()->hasAnyRole(['promotor', 'supervisor', 'ejecutivo'])) {
         return redirect()->route('mobile.index');
     }
     return redirect()->route('login');
@@ -33,7 +33,7 @@ Route::middleware(['auth','verified'])->group(function () {
          ->middleware(ShareRole::class)
          ->group(function () {
              Route::get('/', function () {
-                 $role = Auth::user()->rol;
+                 $role = Auth::user()->getRoleNames()->first();
                  return redirect()->route("mobile.{$role}.index");
              })->name('index');
 

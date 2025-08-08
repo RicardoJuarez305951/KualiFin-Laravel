@@ -6,11 +6,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -21,7 +22,6 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'rol', // Default role for the user
         'telefono', // User's phone number
     ];
 
@@ -48,23 +48,4 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * Determina si el usuario tiene rol de promotor.
-     *
-     * @return bool
-     */
-    public function isPromotor(): bool
-    {
-        return $this->rol === 'promotor';
-    }
-
-    public function isSupervisor(): bool
-    {
-        return $this->rol === 'supervisor';
-    }
-
-    public function isEjecutivo(): bool
-    {
-        return $this->rol === 'ejecutivo';
-    }
 }

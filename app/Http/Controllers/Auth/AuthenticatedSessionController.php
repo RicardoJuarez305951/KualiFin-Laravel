@@ -32,14 +32,11 @@ class AuthenticatedSessionController extends Controller
         if (Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
             $request->session()->regenerate();
 
-            $role = Auth::user()->rol;
-
-            switch ($role) {
-                case 'promotor':
-                    return redirect()->intended('/mobile');
-                default:
-                    return redirect()->intended('/dashboard');
+            if (Auth::user()->hasRole('promotor')) {
+                return redirect()->intended('/mobile');
             }
+
+            return redirect()->intended('/dashboard');
         }
 
         return back()->withErrors([
