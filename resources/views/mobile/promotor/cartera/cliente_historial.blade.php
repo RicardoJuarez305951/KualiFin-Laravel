@@ -4,7 +4,11 @@
     $faker         = Faker::create('es_MX');
     $clientName    = $faker->name();
     $curp          = strtoupper($faker->regexify('[A-Z]{4}[0-9]{6}[A-Z]{6}[0-9]{2}'));
-    $promotor     = auth()->user()->name;
+    if (auth()->check() && auth()->user()->hasRole('supervisor')) {
+        $promotor = $faker->name();
+    } else {
+        $promotor = auth()->user()->name;
+    }
     $supervisor   = $faker->name();
     $totalLoan     = $faker->randomFloat(2, 20000, 100000);
     $creditDate    = now()->subWeeks(rand(1, 20))->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
