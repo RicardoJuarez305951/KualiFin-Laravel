@@ -3,9 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\Promotor;
-use App\Models\Supervisor;
-use App\Models\Ejecutivo;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -16,31 +13,23 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $roles = ['promotor', 'administrador', 'supervisor', 'ejecutivo', 'superadmin'];
+        $this->call(RolePermissionSeeder::class);
 
-        foreach (range(1, 20) as $index) {
-            $user = User::factory()->create([
-                'password' => Hash::make('Password123'),
-            ]);
-            $user->assignRole($roles[array_rand($roles)]);
-        }
-
-        // Usuarios específicos
         $user = User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            'name' => 'Super Admin',
+            'email' => 'superadmin@example.com',
             'password' => Hash::make('Password123'),
             'telefono' => '1234567890',
         ]);
         $user->assignRole('superadmin');
 
         $user = User::factory()->create([
-            'name' => 'Promotor User',
-            'email' => 'promotor@example.com',
+            'name' => 'Admin User',
+            'email' => 'admin@example.com',
             'password' => Hash::make('Password123'),
-            'telefono' => '0987654321',
+            'telefono' => '1234567890',
         ]);
-        $user->assignRole('promotor');
+        $user->assignRole('administrador');
 
         $user = User::factory()->create([
             'name' => 'Supervisor User',
@@ -57,5 +46,14 @@ class DatabaseSeeder extends Seeder
             'telefono' => '0987654321',
         ]);
         $user->assignRole('ejecutivo');
+
+        $user = User::factory()->create([
+            'name' => 'Promotor User',
+            'email' => 'promotor@example.com',
+            'password' => Hash::make('Password123'),
+            'telefono' => '0987654321',
+        ]);
+        $user->assignRole('promotor');
     }
 }
+

@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -32,14 +31,6 @@ class UserFactory extends Factory
             'telefono' => fake()->numerify('##########'), // User's phone number,
             'remember_token' => Str::random(10),
         ];
-    }
-
-    public function configure(): static
-    {
-        return $this->afterCreating(function (User $user) {
-            $roles = ['promotor', 'administrador', 'supervisor', 'ejecutivo', 'superadmin'];
-            $user->assignRole($roles[array_rand($roles)]);
-        });
     }
 
     /**
