@@ -10,16 +10,34 @@
         'monto_semanal' => $faker->randomFloat(2, 100, 1000),
     ]);
 
-    $vencidos = collect(range(1, 3))->map(fn($i) => [
-        'nombre' => $faker->firstName(),
-        'apellido' => $faker->lastName(),
-        'deuda_total' => $faker->randomFloat(2, 100, 1000),
-    ]);
+    $vencidos = collect(range(1, 3))->map(function ($i) use ($faker) {
+        $monto = $faker->randomFloat(2, 100, 1000);
+
+        return [
+            'nombre' => $faker->firstName(),
+            'apellido' => $faker->lastName(),
+            'direccion' => $faker->address(),
+            'telefono' => $faker->phoneNumber(),
+            'aval_nombre' => $faker->name(),
+            'aval_direccion' => $faker->address(),
+            'aval_telefono' => $faker->phoneNumber(),
+            'promotora' => $faker->name(),
+            'supervisora' => $faker->name(),
+            'monto_deuda' => $monto,
+            'deuda_total' => $monto,
+            'fecha_prestamo' => $faker->date('Y-m-d'),
+        ];
+    });
 
     $inactivos = collect(range(1, 2))->map(fn($i) => [
         'nombre' => $faker->firstName(),
         'apellido' => $faker->lastName(),
+        'direccion' => $faker->address(),
         'telefono' => $faker->phoneNumber(),
+        'aval_nombre' => $faker->name(),
+        'aval_direccion' => $faker->address(),
+        'aval_telefono' => $faker->phoneNumber(),
+        'fecha_ultimo_credito' => $faker->date('Y-m-d'),
     ]);
 @endphp
 
