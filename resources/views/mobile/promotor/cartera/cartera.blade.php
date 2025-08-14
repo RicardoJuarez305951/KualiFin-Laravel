@@ -94,7 +94,7 @@
 
             openVencidaDetail(c) {
                 this.vencidaDetail = {
-                    nombre_cliente: `${c['apellido'] ?? c.apellido ?? ''} ${c['nombre'] ?? c.nombre ?? ''}`,
+                    nombre_cliente: `${c['apellido'] ?? c.apellido ?? ''} ${c['nombre'] ?? c.nombre ?? ''}`.trim(),
                     direccion_cliente: c['direccion'] ?? c.direccion ?? '',
                     telefono_cliente: c['telefono'] ?? c.telefono ?? '',
                     nombre_aval: c['aval_nombre'] ?? c.aval_nombre ?? '',
@@ -190,28 +190,82 @@
             </div>
         </div>
 
-        {{-- Modal: Detalle Cartera Vencida --}}
-        <template x-if="showVencidaDetail">
-            <div
-                x-cloak
-                @keydown.escape.window="showVencidaDetail=false"
-                class="fixed inset-0 z-10 flex items-center justify-center bg-black/50"
-            >
-                <div class="bg-white rounded-2xl p-6 w-80" @click.away="showVencidaDetail=false" x-transition>
-                    <h3 class="text-lg font-bold mb-4" x-text="vencidaDetail.nombre_cliente"></h3>
-                    <p class="mb-1"><span class="font-semibold">Dirección cliente:</span> <span x-text="vencidaDetail.direccion_cliente"></span></p>
-                    <p class="mb-1"><span class="font-semibold">Teléfono cliente:</span> <span x-text="vencidaDetail.telefono_cliente"></span></p>
-                    <p class="mb-1"><span class="font-semibold">Nombre aval:</span> <span x-text="vencidaDetail.nombre_aval"></span></p>
-                    <p class="mb-1"><span class="font-semibold">Dirección aval:</span> <span x-text="vencidaDetail.direccion_aval"></span></p>
-                    <p class="mb-1"><span class="font-semibold">Teléfono aval:</span> <span x-text="vencidaDetail.telefono_aval"></span></p>
-                    <p class="mb-1"><span class="font-semibold">Promotora:</span> <span x-text="vencidaDetail.promotora"></span></p>
-                    <p class="mb-1"><span class="font-semibold">Supervisora:</span> <span x-text="vencidaDetail.supervisora"></span></p>
-                    <p class="mb-1"><span class="font-semibold">Monto deuda:</span> <span x-text="vencidaDetail.monto_deuda"></span></p>
-                    <p class="mb-4"><span class="font-semibold">Fecha préstamo:</span> <span x-text="vencidaDetail.fecha_prestamo"></span></p>
-                    <button class="w-full py-2 bg-blue-600 text-white rounded" @click="showVencidaDetail=false">Cerrar</button>
+        {{-- Modal: Detalle Cartera Vencida (estructura 4 grids) --}}
+        <div
+            x-show="showVencidaDetail"
+            x-cloak
+            @keydown.escape.window="showVencidaDetail=false"
+            class="fixed inset-0 z-10 flex items-center justify-center bg-black/50"
+        >
+            <div class="bg-white rounded-2xl p-6 w-[22rem] sm:w-[26rem]" @click.away="showVencidaDetail=false" x-transition>
+                <h3 class="text-lg font-bold mb-4" x-text="vencidaDetail.nombre_cliente"></h3>
+
+                {{-- Grid fila 1: Cliente (11) | Aval (12) --}}
+                <div class="grid grid-cols-2 gap-4">
+                    {{-- 11: Datos de cliente --}}
+                    <div class="space-y-1">
+                        <p class="text-xs text-gray-500">Nombre cliente</p>
+                        <p class="font-medium" x-text="vencidaDetail.nombre_cliente"></p>
+
+                        <p class="text-xs text-gray-500 mt-2">Dirección</p>
+                        <p class="break-words" x-text="vencidaDetail.direccion_cliente"></p>
+
+                        <p class="text-xs text-gray-500 mt-2">Teléfono</p>
+                        <p x-text="vencidaDetail.telefono_cliente"></p>
+                    </div>
+
+                    {{-- 12: Datos de aval --}}
+                    <div class="space-y-1">
+                        <p class="text-xs text-gray-500">Nombre aval</p>
+                        <p class="font-medium" x-text="vencidaDetail.nombre_aval"></p>
+
+                        <p class="text-xs text-gray-500 mt-2">Dir. aval</p>
+                        <p class="break-words" x-text="vencidaDetail.direccion_aval"></p>
+
+                        <p class="text-xs text-gray-500 mt-2">Tel. aval</p>
+                        <p x-text="vencidaDetail.telefono_aval"></p>
+                    </div>
                 </div>
+
+                {{-- Divisor --}}
+                <div class="my-4 border-t border-gray-200"></div>
+
+                {{-- Grid fila 2: Promotora + Deuda (21) | Supervisora + Fecha (22) --}}
+                <div class="grid grid-cols-2 gap-4">
+                    {{-- 21: Promotora y deuda --}}
+                    <div class="space-y-2">
+                        <div>
+                            <p class="text-xs text-gray-500">Promotora</p>
+                            <p class="font-medium" x-text="vencidaDetail.promotora"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Monto deuda</p>
+                            <p class="font-semibold text-red-600"
+                            x-text="new Intl.NumberFormat('es-MX',{style:'currency', currency:'MXN'})
+                                        .format(Number(vencidaDetail.monto_deuda || 0))"></p>
+                        </div>
+                    </div>
+
+                    {{-- 22: Supervisora y fecha --}}
+                    <div class="space-y-2">
+                        <div>
+                            <p class="text-xs text-gray-500">Supervisora</p>
+                            <p class="font-medium" x-text="vencidaDetail.supervisora"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Fecha préstamo</p>
+                            <p class="font-medium" x-text="vencidaDetail.fecha_prestamo"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="w-full mt-5 py-2 bg-blue-600 text-white rounded-md"
+                        @click="showVencidaDetail=false">
+                    Cerrar
+                </button>
             </div>
-        </template>
+        </div>
+
 
         {{-- Modal: Detalle Cartera Inactiva --}}
         <div

@@ -1,9 +1,9 @@
 <ul class="divide-y divide-gray-200">
     @forelse($vencidos as $c)
-        <li class="flex items-center justify-between py-2" x-data="{ c: @js($c) }">
+        <li class="flex items-center justify-between py-2">
             <div class="flex-1">
                 <p class="text-base font-semibold text-gray-800">
-                    {{ $c['apellido'] ?? $c->apellido ?? '' }} {{ $c['nombre'] ?? $c->nombre ?? '' }}
+                    {{ ($c['apellido'] ?? $c->apellido ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '') }}
                 </p>
             </div>
 
@@ -20,10 +20,11 @@
                     @click="openCalc(@js(($c['apellido'] ?? $c->apellido ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '')))">
                     $
                 </button>
+
                 <button
                    class="w-8 h-8 border-2 border-blue-500 text-blue-500 rounded-full flex items-center justify-center"
                    title="Detalle"
-                   @click="openVencidaDetail(c)">
+                   @click="openVencidaDetail(@js($c))">
                     D
                 </button>
             </div>
