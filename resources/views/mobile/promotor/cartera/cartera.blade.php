@@ -51,13 +51,19 @@
             client: '',
 
             // Vencida detail
+            vencidaDetail: {
+                nombre_cliente: '',
+                direccion_cliente: '',
+                telefono_cliente: '',
+                nombre_aval: '',
+                direccion_aval: '',
+                telefono_aval: '',
+                promotora: '',
+                supervisora: '',
+                monto_deuda: '',
+                fecha_prestamo: '',
+            },
             showVencidaDetail: false,
-            detailClient: '',
-            detailAval: '',
-            detailPromotora: '',
-            detailSupervisora: '',
-            detailDeuda: '',
-            detailFecha: '',
 
             // Inactiva detail
             showInactivaDetail: null,
@@ -87,12 +93,18 @@
             },
 
             openVencidaDetail(c) {
-                this.detailClient = `${c['apellido'] ?? c.apellido ?? ''} ${c['nombre'] ?? c.nombre ?? ''}`;
-                this.detailAval = c['aval_nombre'] ?? c.aval_nombre ?? '';
-                this.detailPromotora = c['promotora'] ?? c.promotora ?? '';
-                this.detailSupervisora = c['supervisora'] ?? c.supervisora ?? '';
-                this.detailDeuda = c['deuda_total'] ?? c.deuda_total ?? '';
-                this.detailFecha = c['fecha_prestamo'] ?? c.fecha_prestamo ?? '';
+                this.vencidaDetail = {
+                    nombre_cliente: `${c['apellido'] ?? c.apellido ?? ''} ${c['nombre'] ?? c.nombre ?? ''}`,
+                    direccion_cliente: c['direccion'] ?? c.direccion ?? '',
+                    telefono_cliente: c['telefono'] ?? c.telefono ?? '',
+                    nombre_aval: c['aval_nombre'] ?? c.aval_nombre ?? '',
+                    direccion_aval: c['aval_direccion'] ?? c.aval_direccion ?? '',
+                    telefono_aval: c['aval_telefono'] ?? c.aval_telefono ?? '',
+                    promotora: c['promotora'] ?? c.promotora ?? '',
+                    supervisora: c['supervisora'] ?? c.supervisora ?? '',
+                    monto_deuda: c['monto_deuda'] ?? c.monto_deuda ?? '',
+                    fecha_prestamo: c['fecha_prestamo'] ?? c.fecha_prestamo ?? '',
+                };
                 this.showVencidaDetail = true;
             },
 
@@ -179,22 +191,27 @@
         </div>
 
         {{-- Modal: Detalle Cartera Vencida --}}
-        <div
-            x-show="showVencidaDetail"
-            x-cloak
-            @keydown.escape.window="showVencidaDetail=false"
-            class="fixed inset-0 z-10 flex items-center justify-center bg-black/50"
-        >
-            <div class="bg-white rounded-2xl p-6 w-80" @click.away="showVencidaDetail = false" x-transition>
-                <h3 class="text-lg font-bold mb-4" x-text="detailClient"></h3>
-                <p class="mb-1"><span class="font-semibold">Aval:</span> <span x-text="detailAval"></span></p>
-                <p class="mb-1"><span class="font-semibold">Promotora:</span> <span x-text="detailPromotora"></span></p>
-                <p class="mb-1"><span class="font-semibold">Supervisora:</span> <span x-text="detailSupervisora"></span></p>
-                <p class="mb-1"><span class="font-semibold">Deuda:</span> <span x-text="detailDeuda"></span></p>
-                <p class="mb-4"><span class="font-semibold">Fecha:</span> <span x-text="detailFecha"></span></p>
-                <button class="w-full py-2 bg-blue-600 text-white rounded" @click="showVencidaDetail = false">Cerrar</button>
+        <template x-if="showVencidaDetail">
+            <div
+                x-cloak
+                @keydown.escape.window="showVencidaDetail=false"
+                class="fixed inset-0 z-10 flex items-center justify-center bg-black/50"
+            >
+                <div class="bg-white rounded-2xl p-6 w-80" @click.away="showVencidaDetail=false" x-transition>
+                    <h3 class="text-lg font-bold mb-4" x-text="vencidaDetail.nombre_cliente"></h3>
+                    <p class="mb-1"><span class="font-semibold">Dirección cliente:</span> <span x-text="vencidaDetail.direccion_cliente"></span></p>
+                    <p class="mb-1"><span class="font-semibold">Teléfono cliente:</span> <span x-text="vencidaDetail.telefono_cliente"></span></p>
+                    <p class="mb-1"><span class="font-semibold">Nombre aval:</span> <span x-text="vencidaDetail.nombre_aval"></span></p>
+                    <p class="mb-1"><span class="font-semibold">Dirección aval:</span> <span x-text="vencidaDetail.direccion_aval"></span></p>
+                    <p class="mb-1"><span class="font-semibold">Teléfono aval:</span> <span x-text="vencidaDetail.telefono_aval"></span></p>
+                    <p class="mb-1"><span class="font-semibold">Promotora:</span> <span x-text="vencidaDetail.promotora"></span></p>
+                    <p class="mb-1"><span class="font-semibold">Supervisora:</span> <span x-text="vencidaDetail.supervisora"></span></p>
+                    <p class="mb-1"><span class="font-semibold">Monto deuda:</span> <span x-text="vencidaDetail.monto_deuda"></span></p>
+                    <p class="mb-4"><span class="font-semibold">Fecha préstamo:</span> <span x-text="vencidaDetail.fecha_prestamo"></span></p>
+                    <button class="w-full py-2 bg-blue-600 text-white rounded" @click="showVencidaDetail=false">Cerrar</button>
+                </div>
             </div>
-        </div>
+        </template>
 
         {{-- Modal: Detalle Cartera Inactiva --}}
         <div
