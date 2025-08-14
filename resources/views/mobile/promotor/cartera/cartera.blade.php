@@ -42,12 +42,26 @@
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Tu Cartera">
-    <div x-data="{
+    <div
+        x-data="{
+            // Calc
             showCalc: false,
             mode: null,
             amount: '',
             client: '',
+
+            // Vencida detail
+            showVencidaDetail: false,
+            detailClient: '',
+            detailAval: '',
+            detailPromotora: '',
+            detailSupervisora: '',
+            detailDeuda: '',
+            detailFecha: '',
+
+            // Inactiva detail
             showInactivaDetail: null,
+
             openInactivaDetail(c) {
                 this.showInactivaDetail = {
                     client: {
@@ -64,22 +78,30 @@
                     fecha_ultimo_credito: c.fecha_ultimo_credito,
                 };
             },
+
             openCalc(name) {
                 this.client = name;
                 this.amount = '';
                 this.mode = null;
                 this.showCalc = true;
             },
+
+            openVencidaDetail(c) {
+                this.detailClient = `${c['apellido'] ?? c.apellido ?? ''} ${c['nombre'] ?? c.nombre ?? ''}`;
+                this.detailAval = c['aval_nombre'] ?? c.aval_nombre ?? '';
+                this.detailPromotora = c['promotora'] ?? c.promotora ?? '';
+                this.detailSupervisora = c['supervisora'] ?? c.supervisora ?? '';
+                this.detailDeuda = c['deuda_total'] ?? c.deuda_total ?? '';
+                this.detailFecha = c['fecha_prestamo'] ?? c.fecha_prestamo ?? '';
+                this.showVencidaDetail = true;
+            },
+
             setMode(m) {
                 this.mode = m;
                 if (m === 'full') this.accept();
             },
-            addDigit(d) {
-                this.amount += d;
-            },
-            delDigit() {
-                this.amount = this.amount.slice(0, -1);
-            },
+            addDigit(d) { this.amount += d; },
+            delDigit() { this.amount = this.amount.slice(0, -1); },
             accept() {
                 if (this.mode === 'deferred') {
                     console.log('Anticipo de', this.amount, 'para', this.client);
@@ -90,7 +112,9 @@
                 this.mode = null;
                 this.amount = '';
             }
-        }" class="bg-white rounded-2xl shadow p-4 w-full max-w-lg mx-auto">
+        }"
+        class="bg-white rounded-2xl shadow p-4 w-full max-w-lg mx-auto"
+    >
         <h2 class="text-center text-2xl font-bold text-gray-800 mb-6">Tu Cartera</h2>
 
         <div class="space-y-6">
@@ -111,14 +135,24 @@
         </div>
 
         <div class="mt-8">
-            <a href="{{ route("mobile.$role.index") }}"
+            <a href="{{ route('mobile.' . ($role ?? 'promotor') . '.index') }}"
                class="block w-full text-center text-blue-800 hover:text-blue-900 font-medium py-3">
                 Regresar
             </a>
         </div>
 
-        <div x-show="showCalc" x-cloak class="fixed inset-0 z-10 flex items-center justify-center bg-black bg-opacity-50">
-            <div class="bg-white rounded-2xl p-6 w-72" @click.away="showCalc = false; mode = null; amount = ''">
+        {{-- Modal: Calculadora de Pago --}}
+        <div
+            x-show="showCalc"
+            x-cloak
+            @keydown.escape.window="showCalc=false; mode=null; amount='';"
+            class="fixed inset-0 z-10 flex items-center justify-center bg-black/50"
+        >
+            <div
+                class="bg-white rounded-2xl p-6 w-72"
+                @click.away="showCalc = false; mode = null; amount = ''"
+                x-transition
+            >
                 <h3 class="text-lg font-bold mb-4" x-text="client"></h3>
 
                 <template x-if="mode === null">
@@ -144,8 +178,32 @@
             </div>
         </div>
 
-        <div x-show="showInactivaDetail" x-cloak class="fixed inset-0 z-10 flex items-center justify-center bg-black bg-opacity-50">
-            <div class="bg-white rounded-2xl p-6 w-80" @click.away="showInactivaDetail = null">
+        {{-- Modal: Detalle Cartera Vencida --}}
+        <div
+            x-show="showVencidaDetail"
+            x-cloak
+            @keydown.escape.window="showVencidaDetail=false"
+            class="fixed inset-0 z-10 flex items-center justify-center bg-black/50"
+        >
+            <div class="bg-white rounded-2xl p-6 w-80" @click.away="showVencidaDetail = false" x-transition>
+                <h3 class="text-lg font-bold mb-4" x-text="detailClient"></h3>
+                <p class="mb-1"><span class="font-semibold">Aval:</span> <span x-text="detailAval"></span></p>
+                <p class="mb-1"><span class="font-semibold">Promotora:</span> <span x-text="detailPromotora"></span></p>
+                <p class="mb-1"><span class="font-semibold">Supervisora:</span> <span x-text="detailSupervisora"></span></p>
+                <p class="mb-1"><span class="font-semibold">Deuda:</span> <span x-text="detailDeuda"></span></p>
+                <p class="mb-4"><span class="font-semibold">Fecha:</span> <span x-text="detailFecha"></span></p>
+                <button class="w-full py-2 bg-blue-600 text-white rounded" @click="showVencidaDetail = false">Cerrar</button>
+            </div>
+        </div>
+
+        {{-- Modal: Detalle Cartera Inactiva --}}
+        <div
+            x-show="showInactivaDetail"
+            x-cloak
+            @keydown.escape.window="showInactivaDetail=null"
+            class="fixed inset-0 z-10 flex items-center justify-center bg-black/50"
+        >
+            <div class="bg-white rounded-2xl p-6 w-80" @click.away="showInactivaDetail = null" x-transition>
                 <div class="mb-4">
                     <h3 class="text-lg font-bold">Cliente</h3>
                     <p class="font-semibold" x-text="showInactivaDetail.client.apellido + ' ' + showInactivaDetail.client.nombre"></p>
