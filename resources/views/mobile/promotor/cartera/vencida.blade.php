@@ -1,6 +1,6 @@
 <ul class="divide-y divide-gray-200">
     @forelse($vencidos as $c)
-        <li class="flex items-center justify-between py-2">
+        <li class="flex items-center justify-between py-2" x-data="{ c: @js($c) }">
             <div class="flex-1">
                 <p class="text-base font-semibold text-gray-800">
                     {{ $c['apellido'] ?? $c->apellido ?? '' }} {{ $c['nombre'] ?? $c->nombre ?? '' }}
