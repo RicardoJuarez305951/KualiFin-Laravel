@@ -8,11 +8,12 @@
             </div>
 
             <div class="flex items-center space-x-2 ml-2">
-                <a href="#"
-                   class="w-8 h-8 border-2 border-blue-500 text-blue-500 rounded-full flex items-center justify-center"
-                   title="Detalle">
+                <button
+                    class="w-8 h-8 border-2 border-blue-500 text-blue-500 rounded-full flex items-center justify-center"
+                    title="Detalle"
+                    @click="openInactivaDetail(@js($c))">
                     D
-                </a>
+                </button>
                 <a href="tel:{{ $c['telefono'] ?? $c->telefono ?? '' }}"
                    class="w-8 h-8 border-2 border-green-500 text-green-500 rounded-full flex items-center justify-center"
                    title="Llamar">
