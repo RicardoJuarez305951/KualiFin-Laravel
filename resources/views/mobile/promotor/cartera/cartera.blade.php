@@ -60,17 +60,17 @@
 
         <div class="space-y-6">
             <section>
-                <h3 class="text-lg font-semibold text-gray-700 mb-2">Cartera Activa</h3>
+                <h3 class="text-2xl font-bold text-gray-700 mb-2">Cartera Activa</h3>
                 @include('mobile.promotor.cartera.activa')
             </section>
 
             <section>
-                <h3 class="text-lg font-semibold text-gray-700 mb-2">Cartera Vencida</h3>
+                <h3 class="text-2xl font-bold text-gray-700 mb-2">Cartera Vencida</h3>
                 @include('mobile.promotor.cartera.vencida')
             </section>
 
             <section>
-                <h3 class="text-lg font-semibold text-gray-700 mb-2">Cartera Inactiva</h3>
+                <h3 class="text-2xl font-bold text-gray-700 mb-2">Cartera Inactiva</h3>
                 @include('mobile.promotor.cartera.inactiva')
             </section>
         </div>

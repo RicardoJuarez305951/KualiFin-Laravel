@@ -2,7 +2,7 @@
     @forelse($inactivos as $c)
         <li class="flex items-center justify-between py-2">
             <div class="flex-1">
-                <p class="text-sm font-semibold text-gray-800">
+                <p class="text-base font-semibold text-gray-800">
                     {{ $c['apellido'] ?? $c->apellido ?? '' }} {{ $c['nombre'] ?? $c->nombre ?? '' }}
                 </p>
             </div>
@@ -23,6 +23,6 @@
             </div>
         </li>
     @empty
-        <li class="py-2 text-center text-sm text-gray-500">Sin clientes inactivos</li>
+        <li class="py-2 text-center text-base text-gray-500">Sin clientes inactivos</li>
     @endforelse
 </ul>

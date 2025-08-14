@@ -2,13 +2,13 @@
     @forelse($vencidos as $c)
         <li class="flex items-center justify-between py-2">
             <div class="flex-1">
-                <p class="text-sm font-semibold text-gray-800">
+                <p class="text-base font-semibold text-gray-800">
                     {{ $c['apellido'] ?? $c->apellido ?? '' }} {{ $c['nombre'] ?? $c->nombre ?? '' }}
                 </p>
             </div>
 
             <div class="w-24 text-right">
-                <span class="text-sm font-semibold text-red-600">
+                <span class="text-base font-semibold text-red-600">
                     ${{ number_format($c['deuda_total'] ?? $c->deuda_total ?? 0, 2) }}
                 </span>
             </div>
@@ -28,6 +28,6 @@
             </div>
         </li>
     @empty
-        <li class="py-2 text-center text-sm text-gray-500">Sin clientes vencidos</li>
+        <li class="py-2 text-center text-base text-gray-500">Sin clientes vencidos</li>
     @endforelse
 </ul>
