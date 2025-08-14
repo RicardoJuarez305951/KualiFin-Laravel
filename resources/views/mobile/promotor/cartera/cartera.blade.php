@@ -47,11 +47,27 @@
             mode: null,
             amount: '',
             client: '',
+            showVencidaDetail: false,
+            detailClient: '',
+            detailAval: '',
+            detailPromotora: '',
+            detailSupervisora: '',
+            detailDeuda: '',
+            detailFecha: '',
             openCalc(name) {
                 this.client = name;
                 this.amount = '';
                 this.mode = null;
                 this.showCalc = true;
+            },
+            openVencidaDetail(c) {
+                this.detailClient = `${c['apellido'] ?? c.apellido ?? ''} ${c['nombre'] ?? c.nombre ?? ''}`;
+                this.detailAval = c['aval_nombre'] ?? c.aval_nombre ?? '';
+                this.detailPromotora = c['promotora'] ?? c.promotora ?? '';
+                this.detailSupervisora = c['supervisora'] ?? c.supervisora ?? '';
+                this.detailDeuda = c['deuda_total'] ?? c.deuda_total ?? '';
+                this.detailFecha = c['fecha_prestamo'] ?? c.fecha_prestamo ?? '';
+                this.showVencidaDetail = true;
             },
             setMode(m) {
                 this.mode = m;
@@ -124,6 +140,18 @@
                         </div>
                     </div>
                 </template>
+            </div>
+        </div>
+
+        <div x-show="showVencidaDetail" x-cloak class="fixed inset-0 z-10 flex items-center justify-center bg-black bg-opacity-50">
+            <div class="bg-white rounded-2xl p-6 w-72" @click.away="showVencidaDetail = false">
+                <h3 class="text-lg font-bold mb-4" x-text="detailClient"></h3>
+                <p class="mb-1"><span class="font-semibold">Aval:</span> <span x-text="detailAval"></span></p>
+                <p class="mb-1"><span class="font-semibold">Promotora:</span> <span x-text="detailPromotora"></span></p>
+                <p class="mb-1"><span class="font-semibold">Supervisora:</span> <span x-text="detailSupervisora"></span></p>
+                <p class="mb-1"><span class="font-semibold">Deuda:</span> <span x-text="detailDeuda"></span></p>
+                <p class="mb-4"><span class="font-semibold">Fecha:</span> <span x-text="detailFecha"></span></p>
+                <button class="w-full py-2 bg-blue-600 text-white rounded" @click="showVencidaDetail = false">Cerrar</button>
             </div>
         </div>
     </div>

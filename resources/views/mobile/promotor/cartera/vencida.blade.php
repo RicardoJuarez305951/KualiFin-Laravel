@@ -20,11 +20,12 @@
                     @click="openCalc(@js(($c['apellido'] ?? $c->apellido ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '')))">
                     $
                 </button>
-                <a href="#"
+                <button
                    class="w-8 h-8 border-2 border-blue-500 text-blue-500 rounded-full flex items-center justify-center"
-                   title="Detalle">
+                   title="Detalle"
+                   @click="openVencidaDetail(c)">
                     D
-                </a>
+                </button>
             </div>
         </li>
     @empty
