@@ -47,6 +47,23 @@
             mode: null,
             amount: '',
             client: '',
+            showInactivaDetail: null,
+            openInactivaDetail(c) {
+                this.showInactivaDetail = {
+                    client: {
+                        nombre: c.nombre,
+                        apellido: c.apellido,
+                        direccion: c.direccion,
+                        telefono: c.telefono,
+                    },
+                    aval: {
+                        nombre: c.aval_nombre,
+                        direccion: c.aval_direccion,
+                        telefono: c.aval_telefono,
+                    },
+                    fecha_ultimo_credito: c.fecha_ultimo_credito,
+                };
+            },
             openCalc(name) {
                 this.client = name;
                 this.amount = '';
@@ -124,6 +141,25 @@
                         </div>
                     </div>
                 </template>
+            </div>
+        </div>
+
+        <div x-show="showInactivaDetail" x-cloak class="fixed inset-0 z-10 flex items-center justify-center bg-black bg-opacity-50">
+            <div class="bg-white rounded-2xl p-6 w-80" @click.away="showInactivaDetail = null">
+                <div class="mb-4">
+                    <h3 class="text-lg font-bold">Cliente</h3>
+                    <p class="font-semibold" x-text="showInactivaDetail.client.apellido + ' ' + showInactivaDetail.client.nombre"></p>
+                    <p x-text="showInactivaDetail.client.direccion"></p>
+                    <p x-text="showInactivaDetail.client.telefono"></p>
+                </div>
+                <div class="mb-4">
+                    <h3 class="text-lg font-bold">Aval</h3>
+                    <p class="font-semibold" x-text="showInactivaDetail.aval.nombre"></p>
+                    <p x-text="showInactivaDetail.aval.direccion"></p>
+                    <p x-text="showInactivaDetail.aval.telefono"></p>
+                </div>
+                <p class="mb-4"><span class="font-semibold">Fecha último crédito:</span> <span x-text="showInactivaDetail.fecha_ultimo_credito"></span></p>
+                <button @click="showInactivaDetail = null" class="w-full py-2 bg-blue-600 text-white rounded">Cerrar</button>
             </div>
         </div>
     </div>
