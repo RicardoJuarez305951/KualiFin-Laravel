@@ -11,14 +11,14 @@
         {{-- div1: Cliente --}}
         <div class="space-y-3 border rounded-xl p-4 mb-4">
           <p class="font-semibold mt-2">CURP:</p>
-          <input type="text" placeholder="CURP" value="{{ strtoupper($faker->bothify('????######??????##')) }}" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+          <input type="text" placeholder="CURP" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
           
           
           <p class="font-semibold">Nombre del cliente:</p>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <span class="border rounded-lg px-3 py-5 focus:ring-blue-400">{{ $faker->firstName }}</span>
-            <span class="border rounded-lg px-3 py-5 focus:ring-blue-400">{{ $faker->lastName }}</span>
-            <span class="border rounded-lg px-3 py-5 focus:ring-blue-400">{{ $faker->lastName }}</span>
+            <span class="border rounded-lg px-3 py-5 focus:ring-blue-400"></span>
+            <span class="border rounded-lg px-3 py-5 focus:ring-blue-400"></span>
+            <span class="border rounded-lg px-3 py-5 focus:ring-blue-400"></span>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
@@ -74,13 +74,13 @@
             class="space-y-3 border rounded-xl p-4 mb-6">
           <p class="font-semibold">Nombre del aval:</p>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <input type="text" placeholder="Nombre" value="{{ $faker->firstName }}" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
-            <input type="text" placeholder="Apellido Paterno" value="{{ $faker->lastName }}" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
-            <input type="text" placeholder="Apellido Materno" value="{{ $faker->lastName }}" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+            <input type="text" placeholder="Nombre"  class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+            <input type="text" placeholder="Apellido Paterno"  class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+            <input type="text" placeholder="Apellido Materno"  class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
           </div>
 
           <p class="font-semibold mt-2">CURP:</p>
-          <input type="text" placeholder="CURP" value="{{ strtoupper($faker->bothify('????######??????##')) }}" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+          <input type="text" placeholder="CURP" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
             {{-- INE Aval --}}
