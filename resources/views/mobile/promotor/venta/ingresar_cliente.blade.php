@@ -2,7 +2,9 @@
   <div x-data="{
         showCliente: false,
         showRecredito: false,
-        showSuccess: false,
+        showViabilidad: false,
+        viable: false,
+        errores: [],
         clientCurpUploaded: false,
         clientDomUploaded: false,
         clientIneUploaded: false,
@@ -45,6 +47,21 @@
           this.r_avalDomUploaded = false;
           this.r_avalIneUploaded = false;
           this.r_avalCompUploaded = false;
+        },
+        checkViabilidad() {
+          const posiblesErrores = [
+            'Cliente o Aval con deuda',
+            'Límite de firmas del Aval',
+            'Cliente en otra plaza'
+          ];
+          this.viable = Math.random() > 0.5;
+          this.errores = this.viable
+            ? []
+            : posiblesErrores.filter(() => Math.random() > 0.5);
+          if (!this.viable && this.errores.length === 0) {
+            this.errores = [posiblesErrores[0]];
+          }
+          this.showViabilidad = true;
         }
       }">
 
@@ -80,16 +97,5 @@
 
     @include('mobile.promotor.venta.modal_recredito')
 
-    {{-- Modal Éxito --}}
-    <div x-show="showSuccess" x-cloak class="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div class="absolute inset-0 bg-black/50" @click="showSuccess = false"></div>
-
-      <div @click.stop class="relative bg-white rounded-2xl shadow-lg w-full max-w-xs p-6 text-center z-50 space-y-4">
-        <p class="text-lg font-semibold text-gray-900">Cliente procesado</p>
-        <button @click="showSuccess = false; window.location='{{ route("mobile.$role.venta") }}'"
-                class="w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-2 rounded-xl shadow-md transition ring-1 ring-blue-900/20 focus:outline-none focus:ring-2 focus:ring-blue-700">
-          OK
-        </button>
-      </div>
-    </div>
+    @include('mobile.promotor.venta.modal_viabilidad')
 </x-layouts.mobile.mobile-layout>
