@@ -50,6 +50,7 @@
           <span>Mi Venta</span>
         </a>
 
+        @unlessrole('promotor')
       {{-- Apertura --}}
           <a href="{{ route("mobile.$role.venta") }}"
            class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
@@ -61,6 +62,7 @@
             </svg>
           <span>Apertura</span>
         </a>
+        @endrole
       </div>
 
       {{-- Divider --}}

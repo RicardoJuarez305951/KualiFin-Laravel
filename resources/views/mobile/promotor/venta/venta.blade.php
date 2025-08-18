@@ -1,177 +1,110 @@
+{{-- resources/views/mobile/promotor/venta/venta.blade.php --}}
 @php
-    $faker = \Faker\Factory::create('es_MX');
-    $fecha = now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
-    $supervisora   = $faker->name();
-    $ejecutivo     = $faker->name();
-    $montoSemanal  = $faker->randomFloat(2, 10000, 50000);
-    $ventas        = collect(range(1, 6))->map(fn() => [
-        'name'   => $faker->name(),
-        'amount' => $faker->randomFloat(2, 1000, 10000),
-    ])->toArray();
-    $total = array_sum(array_column($ventas, 'amount'));
+    use Faker\Factory as Faker;
 
-    function formatCurrency($value) {
-        return '$' . number_format($value, 2, '.', ',');
+    /** @var string $role */
+    $role = isset($role) && $role ? $role : 'promotor';
+
+    $faker = Faker::create('es_MX');
+
+    // Datos generales
+    $fecha      = now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
+    $supervisor = $faker->name();
+    $ejecutivo  = $faker->name();
+
+    // Lista de clientes con montos
+    $clientes = collect(range(1, 6))->map(fn() => [
+        'nombre' => $faker->name(),
+        'monto'   => $faker->randomFloat(2, 500, 8000),
+    ]);
+
+    $total = $clientes->sum('monto');
+
+    function money_mx($v) {
+        return '$' . number_format($v, 2, '.', ',');
     }
 @endphp
 
-<x-layouts.mobile.mobile-layout title="Mi Venta">
-    <div class="max-w-md mx-auto space-y-6">
-
-        <!-- Header Card -->
-        <div class="bg-white rounded-2xl shadow-md p-6">
-            <div class="text-center space-y-2">
-                <h1 class="text-xl font-bold text-gray-900 uppercase">
-                    Tu venta para el día
-                </h1>
-                <p class="text-lg font-semibold text-blue-700">
-                    {{ $fecha }}
-                </p>
-            </div>
-        </div>
-
-        <!-- Team Info Card -->
-        <div class="bg-white rounded-2xl shadow-md p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <!-- Reemplazo emoji por icono SVG (equipo) -->
-                <svg class="w-6 h-6 text-blue-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M17 20h5v-2a4 4 0 00-5-3.874M9 20H4v-2a4 4 0 015-3.874M12 12a4 4 0 100-8 4 4 0 000 8z"/>
-                </svg>
-                Equipo de Trabajo
-            </h2>
-            <div class="space-y-3 text-sm">
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-700">Promotor:</span>
-                    <span class="font-semibold text-gray-900">{{ auth()->user()->name }}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-700">Supervisora:</span>
-                    <span class="font-semibold text-gray-900">{{ $supervisora }}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-700">Ejecutivo:</span>
-                    <span class="font-semibold text-gray-900">{{ $ejecutivo }}</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Weekly Amount Card -->
-        <div class="bg-gradient-to-r from-blue-700 to-blue-800 rounded-2xl shadow-md p-6 text-white">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-blue-200 text-sm uppercase tracking-wide">Debe semanal</p>
-                    <p class="text-2xl font-bold">{{ formatCurrency($montoSemanal) }}</p>
-                </div>
-                <div class="text-4xl opacity-90" aria-hidden="true">
-                    <!-- Icono gráfico (bar chart) -->
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 12h3v6H3v-6zm6-6h3v12h-3V6zm6 3h3v9h-3V9z"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sales List Card -->
-        <div class="bg-white rounded-2xl shadow-md p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <!-- Icono documento -->
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-blue-700" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 12h6m-6 4h6m2 4H7a2 2 0 01-2-2V6a2 2 0 012-2h5l5 5v9a2 2 0 01-2 2z"/>
-                </svg>
-                Lista de Ventas
-            </h2>
-            <div class="divide-y divide-gray-200">
-                @foreach ($ventas as $venta)
-                    <div class="flex justify-between items-center py-3">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-blue-700 rounded-full flex items-center justify-center text-white font-semibold text-sm select-none">
-                                {{ strtoupper(substr($venta['name'], 0, 2)) }}
-                            </div>
-                            <span class="text-sm font-medium text-gray-900">{{ $venta['name'] }}</span>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <span class="text-sm font-bold text-gray-900">{{ formatCurrency($venta['amount']) }}</span>
-
-                            <!-- Botón eliminar -->
-                            <button type="button"
-                                class="focus:outline-none"
-                                aria-label="Eliminar venta">
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                    class="w-6 h-6 text-red-500 hover:text-red-700"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    stroke-width="1.5"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7" />
-                                    <path d="M10 11v6M14 11v6" />
-                                    <path d="M4 7h16" />
-                                    <path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2" />
+<x-layouts.mobile.mobile-layout title="Venta">
+    <div class="mx-auto w-[22rem] sm:w-[26rem] p-4 sm:p-6">
+        <section class="bg-white/95 backdrop-blur rounded-2xl shadow-lg ring-1 ring-gray-900/5 overflow-hidden">
+            {{-- Header --}}
+            <div class="p-6">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-900">Venta registrada</h1>
+                        <p class="mt-1 text-sm text-gray-600 flex items-center gap-2">
+                            <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 text-blue-700 px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ring-blue-200">
+                                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                                          d="M8 2v3M16 2v3M3 10h18M4 7h16a1 1 0 011 1v11a2 2 0 01-2 2H5a2 2 0 01-2-2V8a1 1 0 011-1z" />
                                 </svg>
-                            </button>
-                        </div>
+                                {{ $fecha }}
+                            </span>
+                        </p>
                     </div>
-                @endforeach
-            </div>
-        </div>
-
-
-        <!-- Total Card -->
-        <div class="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl shadow-md p-6 text-white">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-green-200 text-sm uppercase tracking-wide">Cantidad total del préstamo</p>
-                    <p class="text-2xl font-bold">{{ formatCurrency($total) }}</p>
+                    
                 </div>
-                <div class="text-4xl opacity-90" aria-hidden="true">
-                    <!-- Icono dinero -->
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 8c-2.21 0-4 1.343-4 3s1.79 3 4 3 4-1.343 4-3-1.79-3-4-3z"/>
-                        <path d="M12 3v2m0 14v2m8-8h-2M6 12H4"/>
+
+                {{-- Supervisor/Ejecutivo --}}
+                <div class="mt-5 grid grid-cols-1 gap-3">
+                    <div class="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
+                        <span class="text-xs font-medium text-gray-600">Supervisor</span>
+                        <span class="text-sm font-semibold text-gray-900">{{ $supervisor }}</span>
+                    </div>
+                    <div class="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
+                        <span class="text-xs font-medium text-gray-600">Ejecutivo</span>
+                        <span class="text-sm font-semibold text-gray-900">{{ $ejecutivo }}</span>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Clientes --}}
+            <div class="px-4">
+                <div class="hidden sm:grid grid-cols-7 gap-2 text-xs font-semibold text-gray-600 px-2 pb-2">
+                    <div class="col-span-4">Cliente</div>
+                    <div class="col-span-3 text-right">Monto</div>
+                </div>
+                <div class="space-y-2">
+                    @foreach ($clientes as $cliente)
+                        <div class="grid grid-cols-7 items-center gap-2 bg-white rounded-xl border border-gray-100 px-3 py-2.5 shadow-sm">
+                            <div class="col-span-4 flex items-center gap-2">
+                                <span class="inline-flex shrink-0 w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 items-center justify-center text-[11px] font-bold">
+                                    {{ $loop->iteration }}
+                                </span>
+                                <p class="text-sm font-medium text-gray-900 truncate">{{ $cliente['nombre'] }}</p>
+                            </div>
+                            <div class="col-span-3 text-right">
+                                <p class="text-sm font-semibold text-gray-900">{{ money_mx($cliente['monto']) }}</p>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            {{-- Total --}}
+            <div class="mt-4 bg-gray-50 border-t border-gray-100 px-6 py-4 flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-600">Total</span>
+                <span class="text-xl font-extrabold text-gray-900">{{ money_mx($total) }}</span>
+            </div>
+
+            {{-- Botones --}}
+            <div class="p-6 pt-4 flex flex-col sm:flex-row gap-3">
+                <a href="{{ route("mobile.$role.ingresar_cliente") }}"
+                   class="w-full inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-semibold px-4 py-3 shadow-lg hover:from-blue-700 hover:to-blue-600">
+                    <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14" />
                     </svg>
-                </div>
+                    Agregar cliente
+                </a>
+                <a href="{{ route("mobile.$role.index") }}"
+                   class="w-full inline-flex items-center justify-center rounded-2xl border border-gray-300 text-gray-800 text-sm font-semibold px-4 py-3 hover:bg-gray-50">
+                    <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Regresar
+                </a>
             </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="space-y-3">
-            <a href="{{ route("mobile.$role.ingresar_cliente") }}"
-                class="flex items-center justify-center gap-2 w-full bg-blue-800 hover:bg-blue-900 text-white 
-                        font-semibold py-4 rounded-xl text-center transition ring-1 ring-blue-900/20 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5"
-                        stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true" role="img">
-                    <path d="M12 4a4 4 0 100 8 4 4 0 000-8zm0 10c-4 0-8 2-8 6v2h16v-2c0-4-4-6-8-6z"/>
-                </svg>
-                <span>Ingresar Cliente</span>
-            </a>
-
-            <a href="{{ route("mobile.$role.solicitar_venta") }}"
-                class="flex items-center justify-center gap-2 w-full bg-blue-800 hover:bg-blue-900 text-white
-                        font-semibold py-4 rounded-xl text-center transition ring-1 ring-blue-900/20 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5"
-                        stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true" role="img">
-                    <path d="M3 7h18M6 7v6a6 6 0 0012 0V7"/>
-                    <path d="M9 10h6"/>
-                </svg>
-                <span>Ingresar Venta</span>
-            </a>
-
-            <a href="{{ route("mobile.$role.index") }}"
-                class="flex items-center justify-center gap-2 w-full border-2 border-blue-800 text-blue-800
-                        font-medium py-4 rounded-xl text-center hover:bg-blue-50 transition ring-1 ring-blue-900/20 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5"
-                        stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true" role="img">
-                    <path d="M3 12l6 6 12-12"/>
-                </svg>
-                <span>Regresar</span>
-            </a>
-        </div>
-
+        </section>
     </div>
 </x-layouts.mobile.mobile-layout>

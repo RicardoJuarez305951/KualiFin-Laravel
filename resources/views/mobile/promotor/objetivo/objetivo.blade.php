@@ -20,32 +20,32 @@
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Mi Objetivo">
-    <div class="w-full max-w-md mx-auto space-y-6 p-4">
-        <section>
+    <div class="bg-white text-center rounded-2xl p-6 w-[22rem] sm:w-[26rem]">
+        <section class="p-2">
             <h2 class="text-sm font-semibold text-gray-800 mb-1">Mi objetivo semanal</h2>
             <p class="text-lg font-bold">{{ formatCurrency($objetivoSemanal) }}</p>
         </section>
 
-        <section>
+        <section class="p-2">
             <h2 class="text-sm font-semibold text-gray-800 mb-1">Venta Registrada</h2>
             <p class="text-lg font-bold">{{ formatCurrency($ventaActual) }}</p>
         </section>
 
-        <section>
+        <section class="p-2">
             <h2 class="text-sm font-semibold text-gray-800 mb-1">Mi Objetivo P/ejecutivo</h2>
             <p class="text-lg font-bold">{{ formatCurrency($objetivoEjecutivo) }}</p>
         </section>
 
-        <section>
+        <section class="p-2">
             <h2 class="text-sm font-semibold text-gray-800 mb-1">Ventas registradas</h2>
-            <ul class="space-y-1">
+            <ul class="space-y-2">
                 @foreach ($ventasPorSemana as $semana => $monto)
                     <li>Sem {{ $semana }} - {{ formatCurrency($monto) }}</li>
                 @endforeach
             </ul>
         </section>
 
-        <section>
+        <section class="p-2">
             <p class="text-center text-sm italic text-gray-600">{{ $frase }}</p>
         </section>
 
