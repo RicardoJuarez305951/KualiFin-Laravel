@@ -35,6 +35,11 @@ class SupervisorController extends Controller
     {
         return view('mobile.supervisor.cartera.cartera');
     }
+    
+    public function reporte()
+    {
+        return view('mobile.supervisor.cartera.reporte');
+    }
 
     public function cliente_historial()
     {

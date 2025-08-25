@@ -71,14 +71,15 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('venta',             'venta')             ->name('venta');
                       Route::get('cartera',           'cartera')           ->name('cartera');
                       Route::get('objetivo',          'objetivo')          ->name('objetivo');
+                      Route::get('reporte',           'reporte')           ->name('reporte');
                       Route::get('solicitar-venta',   'solicitar_venta')   ->name('solicitar_venta');
                       Route::get('ingresar-cliente',  'ingresar_cliente')  ->name('ingresar_cliente');
                       Route::get('cliente-historial', 'cliente_historial') ->name('cliente_historial');
-                      Route::get('vigente',           'cartera_vigente')   ->name('vigente');
-                      Route::get('vencida',           'cartera_vencida')   ->name('vencida');
-                      Route::get('inactiva',          'cartera_inactiva')  ->name('inactiva');
-                      Route::get('historial_promotor','cartera_historial_promotor') ->name('historial_promotor');
-                      Route::get('reacreditacion','cartera_reacreditacion') ->name('reacreditacion');
+                      Route::get('cartera-activa',    'cartera_activa')    ->name('cartera_activa');
+                      Route::get('cartera-vencida',   'cartera_vencida')   ->name('cartera_vencida');
+                      Route::get('cartera-inactiva',  'cartera_inactiva')  ->name('cartera_inactiva');
+                      Route::get('historial-promotor','historial_promotor')->name('historial_promotor');
+                      Route::get('reacreditacion',    'reacreditacion')    ->name('reacreditacion');
                   });
          });
 

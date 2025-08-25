@@ -50,8 +50,19 @@
           <span>Mi Venta</span>
         </a>
 
-        @unlessrole('promotor')
-      {{-- Apertura --}}
+        @role('supervisor')
+          {{-- Busquedas --}}
+          <a href="{{ route("mobile.$role.venta") }}"
+            class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
+            {{-- Icono Lupa --}}
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
+                viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0z" />
+            </svg>
+            <span>Busquedas</span>
+          </a>
+          {{-- Apertura --}}
           <a href="{{ route("mobile.$role.venta") }}"
            class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
           {{-- Icono: Candado abierto --}}
