@@ -78,6 +78,7 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('cartera-activa',    'cartera_activa')    ->name('cartera_activa');
                       Route::get('cartera-vencida',   'cartera_vencida')   ->name('cartera_vencida');
                       Route::get('cartera-inactiva',  'cartera_inactiva')  ->name('cartera_inactiva');
+                      Route::get('cartera-falla',     'cartera_falla')  ->name('cartera_falla');
                       Route::get('historial-promotor','historial_promotor')->name('historial_promotor');
                       Route::get('reacreditacion',    'reacreditacion')    ->name('reacreditacion');
                   });
