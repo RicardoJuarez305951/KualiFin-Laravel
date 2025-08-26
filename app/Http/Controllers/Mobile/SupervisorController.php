@@ -46,19 +46,24 @@ class SupervisorController extends Controller
         return view('mobile.supervisor.cartera.cliente_historial');
     }
 
-    public function cartera_vigente()
+    public function cartera_activa()
     {
-        return view('mobile.supervisor.cartera.vigente');
+        return view('mobile.supervisor.cartera.cartera_activa');
     }
 
     public function cartera_vencida()
     {
-        return view('mobile.supervisor.cartera.vencida');
+        return view('mobile.supervisor.cartera.cartera_vencida');
     }
 
     public function cartera_inactiva()
     {
-        return view('mobile.supervisor.cartera.inactiva');
+        return view('mobile.supervisor.cartera.cartera_inactiva');
+    }
+
+    public function cartera_falla()
+    {
+        return view('mobile.supervisor.cartera.cartera_falla');
     }
 
     public function cartera_historial_promotor()
