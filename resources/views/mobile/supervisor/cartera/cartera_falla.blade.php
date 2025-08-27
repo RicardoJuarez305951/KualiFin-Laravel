@@ -92,10 +92,10 @@
         @endforeach
 
         {{-- Modal Calculadora (ejemplo) --}}
-
-        <div 
+        <div x-show="showCalc" x-cloak
              class="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
             <div class="bg-white rounded-2xl p-6 w-11/12 max-w-md shadow-xl">
+                @include('mobile.modals.calculadora')
                 <button @click="showCalc = false"
                         class="mt-4 w-full py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
                     Cerrar
