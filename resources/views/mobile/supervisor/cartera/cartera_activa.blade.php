@@ -130,8 +130,8 @@
             </div>
         @endforeach
         <a href="{{ url()->previous() }}"
-         class="flex items-center justify-center rounded-xl border border-gray-300 text-white text-sm font-semibold px-3 py-2 bg-blue-600 hover:bg-blue-700 shadow-sm">
-        Regresar
+        class="flex items-center justify-center rounded-xl border border-gray-300 text-white text-sm font-semibold px-3 py-2 bg-blue-600 hover:bg-blue-700 shadow-sm">
+            Regresar
         </a>
     </div>
 </x-layouts.mobile.mobile-layout>

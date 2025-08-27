@@ -38,14 +38,10 @@
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Historial de Promotora">
-<div 
-    x-data="{ 
-        showCalc: false, 
-        clientName: '', 
-        clientId: null, 
-        calcAmount: '', 
-        filtro: 'todos' 
-    }" 
+<div
+    x-data="{
+        filtro: 'todos'
+    }"
     class="w-full max-w-2xl space-y-6"
 >
     {{-- Encabezado --}}
@@ -137,7 +133,7 @@
             <div class="flex gap-2">
               <button
                   type="button"
-                  @click="showCalc = true; clientName = '{{ $apellidos }}'; clientId = '{{ $cliente->id }}'; calcAmount = '';"
+                  @click="$store.calc.open(@js($apellidos))"
                   class="px-3 py-2 rounded-lg bg-blue-800 text-white text-sm font-semibold hover:bg-blue-900 shadow-sm">
                   Reportar pago
               </button>
@@ -155,33 +151,7 @@
         @endforelse
       </div>
 
-      {{-- Modal --}}
-      <div x-show="showCalc" x-cloak class="fixed inset-0 w-full h-full z-50 flex items-center justify-center">
-        <div class="absolute top-0 left-0 w-full h-full bg-black bg-opacity-50" @click="showCalc = false"></div>
-        <div @click.stop class="relative bg-white rounded-xl shadow-lg w-11/12 max-w-sm p-6 animate-fade-in">
-            <h3 class="text-center text-lg font-semibold mb-4 text-gray-800">
-              <span class="font-bold" x-text="clientName"></span> pagará:
-            </h3>
-            <form method="POST" action="{{ route("mobile.$role.venta") }}">
-                @csrf
-                <input type="hidden" name="cliente_id" x-model="clientId">
-                <input type="number" step="0.01" name="monto" x-model="calcAmount"
-                       placeholder="Ingresa monto"
-                       class="w-full border border-gray-300 rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400" required>
-                <div class="flex space-x-3">
-                  <button type="button"
-                          @click="showCalc = false"
-                          class="flex-1 py-2 border border-gray-300 rounded hover:bg-gray-100">
-                    Cancelar
-                  </button>
-                  <button type="submit"
-                          class="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white rounded">
-                    Aceptar
-                  </button>
-                </div>
-            </form>
-        </div>
-      </div>
+      @include('mobile.modals.calculadora')
     </section>
 
     {{-- Regresar --}}
