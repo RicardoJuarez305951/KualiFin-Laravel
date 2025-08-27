@@ -38,6 +38,7 @@
     <div x-data class="p-4 space-y-5">
         {{-- Incluimos el modal calculadora --}}
         @include('mobile.modals.calculadora')
+        @include('mobile.modals.detalle')
 
         <h1 class="text-xl font-bold text-gray-900">Cartera Vencida</h1>
 
@@ -84,7 +85,7 @@
                                 </button>
 
                                 {{-- Botón Historial --}}
-                                <a href="{{ route('mobile.promotor.cliente_historial') }}"
+                                <a href='{{ route("mobile.$role.cliente_historial") }}'
                                    class="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500 text-white font-bold hover:bg-amber-600 shadow-sm"
                                    title="Historial">
                                     H

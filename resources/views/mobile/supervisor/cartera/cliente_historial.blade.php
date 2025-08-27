@@ -138,7 +138,7 @@
                   Reportar pago
               </button>
 
-              <a href="{{ route('mobile.promotor.cliente_historial', ['cliente' => $cliente->id]) }}"
+              <a href='{{ route("mobile.$role.cliente_historial") }}'
                  class="px-3 py-2 rounded-lg bg-gray-100 text-gray-800 text-sm font-semibold hover:bg-gray-200 ring-1 ring-gray-200">
                 Historial
               </a>
@@ -152,6 +152,7 @@
       </div>
 
       @include('mobile.modals.calculadora')
+      @include('mobile.modals.detalle')
     </section>
 
     {{-- Regresar --}}
