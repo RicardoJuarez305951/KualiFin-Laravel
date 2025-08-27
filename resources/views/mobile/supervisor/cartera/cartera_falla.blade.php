@@ -38,6 +38,7 @@
     
     <div x-data class="p-4 space-y-5">
         @include('mobile.modals.calculadora')
+        @include('mobile.modals.detalle')
         <h1 class="text-xl font-bold text-gray-900">Cartera Falla</h1>
         @foreach($promotores as $promotor)
             <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
