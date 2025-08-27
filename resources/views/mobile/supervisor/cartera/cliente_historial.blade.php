@@ -1,166 +1,236 @@
-{{-- resources/views/mobile/supervisor/cartera/historial_promotor.blade.php --}}
-
+{{-- resources/views/supervisor/historial_cliente.blade.php --}}
 @php
-    use Faker\Factory;
+    use Faker\Factory as Faker;
+    $faker = Faker::create('es_MX');
 
-    $faker = Factory::create('es_MX');
+    $clientName = $faker->name();
+    $avalName   = $faker->name();
 
-    // Datos de la promotora
-    $promotora = (object) [
-        'nombre'     => $faker->firstName(),
-        'apellido_p' => $faker->lastName(),
-        'apellido_m' => $faker->lastName(),
-        'colonia'    => $faker->city(),
+    $supervisor = auth()->check() ? auth()->user()->name : $faker->name();
+    $promotor   = $faker->name();
+
+    $totalLoan   = $faker->randomFloat(2, 20000, 100000);
+    $creditDate  = now()->subWeeks(rand(1, 20))->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
+    $totalWeeks  = 17;
+    $currentWeek = rand(1, $totalWeeks);
+
+    $weeklyAmount = $totalLoan / $totalWeeks;
+
+    $cliente = [
+        'direccion' => $faker->streetAddress.', '.$faker->city,
+        'telefono'  => $faker->numerify('55########'),
+        'garantias' => ['Teléfono','Pantalla','Consola de videojuegos'],
+    ];
+    $aval = [
+        'direccion' => $faker->streetAddress.', '.$faker->city,
+        'telefono'  => $faker->numerify('55########'),
+        'garantias' => ['Laptop','Motocicleta'],
     ];
 
-    // Clientes activos
-    $clientes = collect(range(1, 5))->map(function () use ($faker) {
-        $semanasTotales = $faker->numberBetween(9, 21);
-        $semanaActual   = $faker->numberBetween(1, $semanasTotales);
-
-        return (object) [
-            'id'              => $faker->unique()->randomNumber(),
-            'apellido_p'      => $faker->lastName(),
-            'apellido_m'      => $faker->lastName(),
-            'curp'            => strtoupper($faker->bothify('????######??????##')),
-            'avales'          => [
-                (object) ['nombre' => $faker->firstName().' '.$faker->lastName()],
-                (object) ['nombre' => $faker->firstName().' '.$faker->lastName()],
-            ],
-            'falla'           => $faker->boolean(30), // 30% de probabilidad de falla
-            'credito'         => number_format($faker->randomFloat(2, 1000, 10000), 2, '.', ','),
-            'semana_actual'   => $semanaActual,
-            'semanas_totales' => $semanasTotales,
-            'fecha_inicio'    => $faker->date('Y-m-d', '-2 months'),
-            'fecha_final'     => $faker->date('Y-m-d', '+2 months'),
-        ];
-    });
+    function formatCurrency($value) {
+        return '$' . number_format($value, 2, '.', ',');
+    }
 @endphp
 
-<x-layouts.mobile.mobile-layout title="Historial de Promotora">
-<div
-    x-data="{
-        filtro: 'todos'
-    }"
-    class="w-full max-w-2xl space-y-6"
->
-    {{-- Encabezado --}}
-    <section class="bg-white rounded-2xl shadow p-6">
-      <h1 class="text-xl font-bold text-gray-900">
-        {{ trim(($promotora->nombre ?? '').' '.($promotora->apellido_p ?? '').' '.($promotora->apellido_m ?? '')) }}
-      </h1>
-      <p class="text-gray-600 text-sm">
-        Colonia / Plaza: <span class="font-medium">{{ $promotora->colonia ?? '—' }}</span>
-      </p>
-    </section>
+<x-layouts.mobile.mobile-layout title="Historial de {{ $clientName }}">
+  <div class="bg-white rounded-2xl shadow-md p-6 w-full max-w-md mx-auto space-y-6">
 
-    {{-- Filtro --}}
-    <div class="bg-white rounded-2xl shadow p-4 flex gap-3 items-center">
-        <label for="filtro" class="text-sm font-medium text-gray-700">Filtrar por:</label>
-        <select id="filtro" x-model="filtro" class="border rounded-lg px-8 py-1 text-sm focus:ring-2 focus:ring-blue-500">
-            <option value="todos">Todos</option>
-            <option value="falla">Falla</option>
-            <option value="sin_falla">Sin Falla</option>
-        </select>
+    {{-- 1. INFO DEL CRÉDITO --}}
+    <div class="bg-white rounded-2xl shadow-md p-4 space-y-3">
+      <div class="grid grid-cols-2 gap-4 text-sm text-gray-800">
+        <div>
+          <p class="font-semibold">Supervisor</p>
+          <p>{{ $supervisor }}</p>
+        </div>
+        <div>
+          <p class="font-semibold">Promotor</p>
+          <p>{{ $promotor }}</p>
+        </div>
+        <div>
+          <p class="font-semibold">Semanas del crédito</p>
+          <p>{{ $totalWeeks }}</p>
+        </div>
+        <div>
+          <p class="font-semibold">Semana actual</p>
+          <p>sem {{ $currentWeek }}</p>
+        </div>
+        <div>
+          <p class="font-semibold">Fecha de crédito</p>
+          <p>{{ $creditDate }}</p>
+        </div>
+        <div>
+          <p class="font-semibold">Monto</p>
+          <p class="font-bold text-green-600">{{ formatCurrency($totalLoan) }}</p>
+        </div>
+      </div>
     </div>
 
-    {{-- Lista de clientes activos --}}
-    <section class="bg-white rounded-2xl shadow overflow-hidden">
-      <div class="px-6 py-4 border-b">
-        <h2 class="text-base font-semibold text-gray-800">Clientes activos</h2>
+    {{-- 2. CLIENTE --}}
+    <div class="bg-white rounded-2xl shadow-md p-4 space-y-4">
+      <h2 class="text-lg font-bold text-gray-900">👤 Cliente</h2>
+      <p class="text-sm font-semibold">{{ $clientName }}</p>
+
+      {{-- Dirección --}}
+      <div class="grid grid-cols-[90%_10%] gap-2 items-center">
+        <div class="text-sm text-gray-800">
+          {{ $cliente['direccion'] }}
+        </div>
+        <div>
+          <a href="https://maps.google.com/?q={{ urlencode($cliente['direccion']) }}"
+            target="_blank"
+            class="w-full flex justify-center items-center px-3 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition">
+            📍
+          </a>
+        </div>
       </div>
 
-      <div class="divide-y">
-        @forelse ($clientes as $cliente)
-          @php
-            $apellidos = trim(($cliente->apellido_p ?? '').' '.($cliente->apellido_m ?? ''));
-            $aval1 = $cliente->avales[0]->nombre ?? null;
-            $aval2 = $cliente->avales[1]->nombre ?? null;
-            $estatusFalla = (bool) $cliente->falla;
-            $progreso = ($cliente->semana_actual / $cliente->semanas_totales) * 100;
-          @endphp
+      {{-- Teléfono --}}
+      <div class="grid grid-cols-[90%_10%] gap-2 items-center mt-2">
+        <div class="text-sm text-gray-800">
+          {{ $cliente['telefono'] }}
+        </div>
+        <div>
+          <a href="tel:{{ $cliente['telefono'] }}"
+            class="w-full flex justify-center items-center px-3 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition">
+            📞
+          </a>
+        </div>
+      </div>
 
-          <div 
-              class="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
-              x-show="filtro === 'todos' || (filtro === 'falla' && {{ $estatusFalla ? 'true' : 'false' }}) || (filtro === 'sin_falla' && {{ $estatusFalla ? 'false' : 'true' }})"
-          >
-            <div class="space-y-1">
-              <div class="text-sm text-gray-900">
-                <span class="font-semibold">Apellidos:</span> {{ $apellidos ?: '—' }}
-              </div>
-              <div class="text-sm text-gray-700">
-                <span class="font-semibold">CURP:</span> {{ $cliente->curp }}
-              </div>
-              <div class="text-sm text-gray-700">
-                <span class="font-semibold">Crédito:</span> <span class="font-bold">${{ $cliente->credito }}</span>
-              </div>
-              <div class="text-sm text-gray-700">
-                <span class="font-semibold">Avales:</span>
-                {{ $aval1 ?? '—' }}{{ $aval1 && $aval2 ? ' y ' : '' }}{{ $aval2 ?? '' }}
-              </div>
-              <div class="text-sm">
-                <span class="font-semibold">Estatus:</span>
-                @if($estatusFalla)
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                    ● Falla
-                  </span>
+      {{-- Garantías Cliente --}}
+      <div class="bg-gray-50 rounded-xl p-3 shadow-inner space-y-2">
+        <p class="font-semibold text-gray-700">Garantías</p>
+        <ul class="space-y-2">
+          @foreach($cliente['garantias'] as $g)
+            <li class="flex justify-between items-center bg-white px-3 py-2 rounded-lg shadow-sm border">
+              <span class="text-sm text-gray-800">{{ $g }}</span>
+              <button class="text-purple-600 text-lg">📷</button>
+            </li>
+          @endforeach
+        </ul>
+        <button class="mt-3 w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 rounded-lg shadow">
+          Archivo Fotografías 📷
+        </button>
+      </div>
+    </div>
+
+    {{-- 3. AVAL --}}
+    <div class="bg-white rounded-2xl shadow-md p-4 space-y-4">
+      <h2 class="text-lg font-bold text-gray-900">🧑‍🤝‍🧑 Aval</h2>
+      <p class="text-sm font-semibold">{{ $avalName }}</p>
+
+      <div class="grid grid-cols-[90%_10%] gap-2 items-center">
+        <div class="text-sm text-gray-800">
+          {{ $aval['direccion'] }}
+        </div>
+        <div>
+          <a href="https://maps.google.com/?q={{ urlencode($aval['direccion']) }}"
+            target="_blank"
+            class="w-full flex justify-center items-center px-3 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition">
+            📍
+          </a>
+        </div>
+      </div>
+
+      {{-- Teléfono --}}
+      <div class="grid grid-cols-[90%_10%] gap-2 items-center mt-2">
+        <div class="text-sm text-gray-800">
+          {{ $aval['telefono'] }}
+        </div>
+        <div>
+          <a href="tel:{{ $aval['telefono'] }}"
+            class="w-full flex justify-center items-center px-3 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition">
+            📞
+          </a>
+        </div>
+      </div><div class="grid grid-cols-[90%_10%] gap-2 items-center">
+        <div class="text-sm text-gray-800">
+          {{ $cliente['direccion'] }}
+        </div>
+        <div>
+          <a href="https://maps.google.com/?q={{ urlencode($cliente['direccion']) }}"
+            target="_blank"
+            class="w-full flex justify-center items-center px-3 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition">
+            📍
+          </a>
+        </div>
+      </div>
+
+      {{-- Teléfono --}}
+      <div class="grid grid-cols-[90%_10%] gap-2 items-center mt-2">
+        <div class="text-sm text-gray-800">
+          {{ $cliente['telefono'] }}
+        </div>
+        <div>
+          <a href="tel:{{ $cliente['telefono'] }}"
+            class="w-full flex justify-center items-center px-3 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition">
+            📞
+          </a>
+        </div>
+      </div>
+
+      {{-- Garantías Aval --}}
+      <div class="bg-gray-50 rounded-xl p-3 shadow-inner space-y-2">
+        <p class="font-semibold text-gray-700">Garantías</p>
+        <ul class="space-y-2">
+          @foreach($aval['garantias'] as $g)
+            <li class="flex justify-between items-center bg-white px-3 py-2 rounded-lg shadow-sm border">
+              <span class="text-sm text-gray-800">{{ $g }}</span>
+              <button class="text-purple-600 text-lg">📷</button>
+            </li>
+          @endforeach
+        </ul>
+        <button class="mt-3 w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 rounded-lg shadow">
+          Archivo Fotografías 📷
+        </button>
+      </div>
+    </div>
+
+    {{-- 4. TABLA DE SEMANAS --}}
+    <div class="overflow-x-auto rounded-lg shadow-sm border border-gray-300 bg-white">
+      <table class="w-full text-sm table-fixed border-collapse">
+        <thead class="bg-gray-100 text-gray-700">
+          <tr class="divide-x divide-gray-300">
+            <th class="py-2 px-3 border-b border-gray-300 text-left">Semana</th>
+            <th class="py-2 px-3 border-b border-gray-300 text-right">Monto</th>
+            <th class="py-2 px-3 border-b border-gray-300 text-center">Estado</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          @for($i = 1; $i <= $totalWeeks; $i++)
+            @php
+              if($i < $currentWeek) {
+                $statusList = ['Pagado','Anticipo','Atrasado'];
+                $status = $statusList[array_rand($statusList)];
+              } else {
+                $status = 'Pagar';
+              }
+            @endphp
+            <tr class="divide-x divide-gray-200">
+              <td class="py-2 px-3 text-left">sem {{ $i }}</td>
+              <td class="py-2 px-3 text-right">{{ formatCurrency($weeklyAmount) }}</td>
+              <td class="py-2 px-3 text-center">
+                @if($status === 'Pagado')
+                  <span class="inline-block bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold">Pagado</span>
+                @elseif($status === 'Anticipo')
+                  <span class="inline-block bg-yellow-400 text-black px-3 py-1 rounded-full text-xs font-semibold">Anticipo</span>
+                @elseif($status === 'Atrasado')
+                  <span class="inline-block bg-red-600 text-white px-3 py-1 rounded-full text-xs font-semibold">Atrasado</span>
                 @else
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    ● Sin falla
-                  </span>
+                  <span class="inline-block bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-xs font-semibold">Pagar</span>
                 @endif
-              </div>
-
-              {{-- Barra de progreso --}}
-              <div class="mt-2">
-                <div class="flex justify-between text-xs text-gray-600 mb-1">
-                  <span>Semana {{ $cliente->semana_actual }} de {{ $cliente->semanas_totales }}</span>
-                  <span>{{ number_format($progreso, 0) }}%</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                  <div class="h-2 bg-blue-600" style="width: {{ $progreso }}%"></div>
-                </div>
-              </div>
-
-              {{-- Fechas --}}
-              <div class="text-xs text-gray-500 mt-1">
-                Inicio: {{ \Carbon\Carbon::parse($cliente->fecha_inicio)->format('d/m/Y') }} | 
-                Fin: {{ \Carbon\Carbon::parse($cliente->fecha_final)->format('d/m/Y') }}
-              </div>
-            </div>
-
-            {{-- Botones --}}
-            <div class="flex gap-2">
-              <button
-                  type="button"
-                  @click="$store.calc.open(@js($apellidos))"
-                  class="px-3 py-2 rounded-lg bg-blue-800 text-white text-sm font-semibold hover:bg-blue-900 shadow-sm">
-                  Reportar pago
-              </button>
-
-              <a href='{{ route("mobile.$role.cliente_historial") }}'
-                 class="px-3 py-2 rounded-lg bg-gray-100 text-gray-800 text-sm font-semibold hover:bg-gray-200 ring-1 ring-gray-200">
-                Historial
-              </a>
-            </div>
-          </div>
-        @empty
-          <div class="p-6 text-center text-gray-500 text-sm">
-            No hay clientes activos para esta promotora.
-          </div>
-        @endforelse
-      </div>
-
-      @include('mobile.modals.calculadora')
-      @include('mobile.modals.detalle')
-    </section>
-
-    {{-- Regresar --}}
-    <div class="text-center">
-      <a href="{{ route("mobile.$role.cartera") }}"
-         class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold bg-white shadow hover:shadow-md ring-1 ring-gray-200">
-        ← Regresar a Cartera
-      </a>
+              </td>
+            </tr>
+          @endfor
+        </tbody>
+      </table>
     </div>
-</div>
+
+    {{-- 5. BOTÓN REGRESAR --}}
+    <a href="{{ route('mobile.supervisor.cartera') }}"
+       class="block w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-3 rounded-xl text-center shadow-md transition">
+      REGRESAR
+    </a>
+
+  </div>
 </x-layouts.mobile.mobile-layout>
