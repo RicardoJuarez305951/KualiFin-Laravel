@@ -35,9 +35,10 @@
 @endphp
 
 <x-layouts.mobile.mobile-layout>
+    
     <div x-data class="p-4 space-y-5">
+        @include('mobile.modals.calculadora')
         <h1 class="text-xl font-bold text-gray-900">Cartera Falla</h1>
-
         @foreach($promotores as $promotor)
             <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
                 {{-- Header Promotor --}}
@@ -91,7 +92,6 @@
             </div>
         @endforeach
 
-        @include('mobile.modals.calculadora')
         <a href="{{ url()->previous() }}"
           class="flex items-center justify-center rounded-xl border border-gray-300 text-white text-sm font-semibold px-3 py-2 bg-blue-600 hover:bg-blue-700 shadow-sm">
           Regresar
