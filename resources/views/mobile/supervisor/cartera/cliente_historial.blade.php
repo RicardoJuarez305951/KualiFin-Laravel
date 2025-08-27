@@ -152,6 +152,7 @@
       </div>
 
       @include('mobile.modals.calculadora')
+      @include('mobile.modals.detalle')
     </section>
 
     {{-- Regresar --}}

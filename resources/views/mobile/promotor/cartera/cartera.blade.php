@@ -122,7 +122,8 @@
             </a>
         </div>
 
-        @include('mobile.modals.calculadora')
+         @include('mobile.modals.calculadora')
+         @include('mobile.modals.detalle')
 
         {{-- Modal: Detalle Cartera Vencida (estructura 4 grids) --}}
         <div

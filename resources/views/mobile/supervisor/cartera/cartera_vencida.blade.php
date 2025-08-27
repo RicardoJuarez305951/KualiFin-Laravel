@@ -38,6 +38,7 @@
     <div x-data class="p-4 space-y-5">
         {{-- Incluimos el modal calculadora --}}
         @include('mobile.modals.calculadora')
+        @include('mobile.modals.detalle')
 
         <h1 class="text-xl font-bold text-gray-900">Cartera Vencida</h1>
 
