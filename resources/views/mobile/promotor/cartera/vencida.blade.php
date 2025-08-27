@@ -24,7 +24,7 @@
                 <button
                    class="w-8 h-8 border-2 border-blue-500 text-blue-500 rounded-full flex items-center justify-center"
                    title="Detalle"
-                   @click="openVencidaDetail(@js($c))">
+                   @click="$store.details.open(@js($c))">
                     D
                 </button>
             </div>

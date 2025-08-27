@@ -26,7 +26,7 @@
 @endphp
 
 <x-layouts.mobile.mobile-layout>
-    <div x-data="{ showDetalle: null }" class="p-4 space-y-5">
+    <div x-data class="p-4 space-y-5">
         <h1 class="text-xl font-bold text-gray-900">Cartera Inactiva</h1>
 
         @foreach($promotores as $promotor)
@@ -57,15 +57,15 @@
                             {{-- Botones --}}
                             <div class="flex gap-2">
                                 {{-- Botón Detalles --}}
-                                
-                                <button @click="showDetalle === {{ $loop->parent->iteration . $idx }} ? showDetalle = null : showDetalle = {{ $loop->parent->iteration . $idx }}"
+
+                                <button @click="$store.details.open(@js($cliente))"
                                     class="w-8 h-8 border-2 border-blue-500 text-blue-500 rounded-full flex items-center justify-center"
                                     title="Detalle">
                                     D
                                 </button>
 
                                 {{-- Botón Llamar --}}
-                                <a href="tel:{{ $c['telefono'] ?? $c->telefono ?? '' }}"
+                                <a href="tel:{{ $cliente['telefono'] ?? $cliente->telefono ?? '' }}"
                                   class="w-8 h-8 border-2 border-green-500 text-green-500 rounded-full flex items-center justify-center"
                                   title="Llamar">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -75,16 +75,6 @@
                             </div>
                         </div>
 
-                        {{-- Card Detalles --}}
-                        <div x-show="showDetalle === {{ $loop->parent->iteration . $idx }}" x-transition
-                             class="mt-2 mb-3 mx-2 rounded-xl border border-gray-200 bg-gray-50 p-3 text-[13px] text-gray-700 shadow-sm">
-                            <p><span class="font-semibold">Nombre:</span> {{ $cliente['nombre'] }}</p>
-                            <p><span class="font-semibold">CURP:</span> {{ $cliente['curp'] }}</p>
-                            <p><span class="font-semibold">Fecha Nacimiento:</span> {{ $cliente['fecha_nac'] }}</p>
-                            <p><span class="font-semibold">Dirección:</span> {{ $cliente['direccion'] }}</p>
-                            <p><span class="font-semibold">Último Crédito:</span> {{ $cliente['ultimo_credito'] }} — 
-                               ${{ number_format($cliente['monto_credito'], 2) }}</p>
-                        </div>
                     @endforeach
                 </div>
             </div>
@@ -95,5 +85,6 @@
           class="flex items-center justify-center rounded-xl border border-gray-300 text-white text-sm font-semibold px-3 py-2 bg-blue-600 hover:bg-blue-700 shadow-sm">
           Regresar
         </a>
+        @include('mobile.modals.detalle')
     </div>
 </x-layouts.mobile.mobile-layout>

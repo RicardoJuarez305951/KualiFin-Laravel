@@ -11,7 +11,7 @@
                 <button
                     class="w-8 h-8 border-2 border-blue-500 text-blue-500 rounded-full flex items-center justify-center"
                     title="Detalle"
-                    @click="openInactivaDetail(@js($c))">
+                    @click="$store.details.open(@js($c))">
                     D
                 </button>
                 <a href="tel:{{ $c['telefono'] ?? $c->telefono ?? '' }}"
