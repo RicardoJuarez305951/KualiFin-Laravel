@@ -143,30 +143,6 @@
             📞
           </a>
         </div>
-      </div><div class="grid grid-cols-[90%_10%] gap-2 items-center">
-        <div class="text-sm text-gray-800">
-          {{ $cliente['direccion'] }}
-        </div>
-        <div>
-          <a href="https://maps.google.com/?q={{ urlencode($cliente['direccion']) }}"
-            target="_blank"
-            class="w-full flex justify-center items-center px-3 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition">
-            📍
-          </a>
-        </div>
-      </div>
-
-      {{-- Teléfono --}}
-      <div class="grid grid-cols-[90%_10%] gap-2 items-center mt-2">
-        <div class="text-sm text-gray-800">
-          {{ $cliente['telefono'] }}
-        </div>
-        <div>
-          <a href="tel:{{ $cliente['telefono'] }}"
-            class="w-full flex justify-center items-center px-3 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition">
-            📞
-          </a>
-        </div>
       </div>
 
       {{-- Garantías Aval --}}
