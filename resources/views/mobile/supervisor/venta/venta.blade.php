@@ -8,6 +8,12 @@
     $clientesPorSupervisar = $faker->numberBetween(1, 10);
     $montoVenta = $faker->randomFloat(2, 50000, 200000);
     $inversionRequerida = $faker->randomFloat(2, 20000, 80000);
+    
+    // Objetivos
+    $moneyWeeklyNow = $faker->randomFloat(2, 2000, 10000);
+    $fechaLimite = $faker->dateTimeBetween('now', '+1 week')->format('d/m/Y');
+    $moneyWeeklyTarget = 10000.00;
+    $moneyProgress = min(100, ($moneyWeeklyNow / $moneyWeeklyTarget) * 100);
 
     // Prospectados generales
     $prospectosGenerales = collect(range(1, 6))->map(fn() => [
@@ -40,6 +46,41 @@
 
 <x-layouts.mobile.mobile-layout title="Venta - Supervisor">
   <div class="max-w-md mx-auto space-y-6">
+    
+    {{-- Objetivos del supervisor --}}
+    <div class="bg-white rounded-2xl shadow-md p-6 grid grid-cols-2 gap-4 text-center">
+        <div>
+            <p class="text-gray-500 text-sm">
+                Dinero Actual
+            </p>
+            <p class="font-bold text-blue-600">
+                {{ formatCurrency($moneyWeeklyNow) }}
+            </p>
+            <p class="text-gray-500 text-sm">
+                Dinero Objetivo
+            </p>
+            <p class="font-bold text-red-600">
+                {{ formatCurrency($moneyWeeklyTarget) }}
+            </p>
+        </div>
+        <div>
+            <p class="text-gray-500 text-sm">
+                Fecha Limite
+            </p>
+            <p class="font-semibold text-yellow-600">
+                {{ $fechaLimite }}
+            </p>
+            <div class="w-full bg-gray-200 rounded-full h-3 mt-4">
+                <div
+                    class="bg-green-500 h-3 rounded-full"
+                    style="width: {{ $moneyProgress }}%;">
+                </div>
+            </div>
+            <p class="text-xs mt-1 font-semibold">
+                {{ number_format($moneyProgress, 0) }}% completado
+            </p>
+        </div>
+    </div>
 
     {{-- Datos generales --}}
     <div class="bg-white rounded-2xl shadow-md p-6 grid grid-cols-2 gap-4 text-center">
