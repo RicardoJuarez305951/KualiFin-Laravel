@@ -1,5 +1,5 @@
 {{-- resources/views/promotor/promotor_index.blade.php --}}
-<x-layouts.mobile.mobile-layout title="Panel Promotor">
+<x-layouts.mobile.mobile-layout title="Panel Mobile">
     <div class="bg-white rounded-2xl shadow-md p-6 w-full max-w-md space-y-6">
       
       {{-- Saludo dinámico --}}
