@@ -81,7 +81,7 @@
                                 </button>
 
                                 {{-- Botón Historial --}}
-                                <a href="{{ route("mobile.promotor.cliente_historial") }}"
+                                <a href='{{ route("mobile.$role.cliente_historial") }}'
                                    class="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500 text-white font-bold hover:bg-amber-600 shadow-sm">
                                     H
                                 </a>
