@@ -35,7 +35,7 @@
 @endphp
 
 <x-layouts.mobile.mobile-layout>
-    <div class="p-4 space-y-5">
+    <div x-data class="p-4 space-y-5">
         <h1 class="text-xl font-bold text-gray-900">Cartera Falla</h1>
 
         @foreach($promotores as $promotor)
