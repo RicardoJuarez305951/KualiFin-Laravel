@@ -26,7 +26,7 @@
 @endphp
 
 <x-layouts.mobile.mobile-layout>
-    <div x-data="{ showDetalle: null }" class="p-4 space-y-5">
+    <div class="p-4 space-y-5">
         <h1 class="text-xl font-bold text-gray-900">Cartera Inactiva</h1>
 
         @foreach($promotores as $promotor)
@@ -57,8 +57,8 @@
                             {{-- Botones --}}
                             <div class="flex gap-2">
                                 {{-- Botón Detalles --}}
-                                
-                                <button @click="showDetalle === {{ $loop->parent->iteration . $idx }} ? showDetalle = null : showDetalle = {{ $loop->parent->iteration . $idx }}"
+
+                                <button @click="$store.details.open(@js($cliente))"
                                     class="w-8 h-8 border-2 border-blue-500 text-blue-500 rounded-full flex items-center justify-center"
                                     title="Detalle">
                                     D
@@ -74,17 +74,6 @@
                                 </a>
                             </div>
                         </div>
-
-                        {{-- Card Detalles --}}
-                        <div x-show="showDetalle === {{ $loop->parent->iteration . $idx }}" x-transition
-                             class="mt-2 mb-3 mx-2 rounded-xl border border-gray-200 bg-gray-50 p-3 text-[13px] text-gray-700 shadow-sm">
-                            <p><span class="font-semibold">Nombre:</span> {{ $cliente['nombre'] }}</p>
-                            <p><span class="font-semibold">CURP:</span> {{ $cliente['curp'] }}</p>
-                            <p><span class="font-semibold">Fecha Nacimiento:</span> {{ $cliente['fecha_nac'] }}</p>
-                            <p><span class="font-semibold">Dirección:</span> {{ $cliente['direccion'] }}</p>
-                            <p><span class="font-semibold">Último Crédito:</span> {{ $cliente['ultimo_credito'] }} — 
-                               ${{ number_format($cliente['monto_credito'], 2) }}</p>
-                        </div>
                     @endforeach
                 </div>
             </div>
@@ -96,4 +85,5 @@
           Regresar
         </a>
     </div>
+    @include('mobile.modals.detalle')
 </x-layouts.mobile.mobile-layout>
