@@ -20,7 +20,7 @@
                 <button
                     class="w-8 h-8 border-2 border-green-500 text-green-500 rounded-full flex items-center justify-center"
                     title="Registrar pago"
-                    @click="openCalc(@js(($c['apellido'] ?? $c->apellido ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '')))">
+                 @click="$store.calc.open(@js(($c['apellido'] ?? $c->apellido ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '')))">
                     $
                 </button>
                 <a href="{{route("mobile.$role.cliente_historial")}}"

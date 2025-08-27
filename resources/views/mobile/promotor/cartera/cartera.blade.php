@@ -44,12 +44,6 @@
 <x-layouts.mobile.mobile-layout title="Tu Cartera">
     <div
         x-data="{
-            // Calc
-            showCalc: false,
-            mode: null,
-            amount: '',
-            client: '',
-
             // Vencida detail
             vencidaDetail: {
                 nombre_cliente: '',
@@ -85,13 +79,6 @@
                 };
             },
 
-            openCalc(name) {
-                this.client = name;
-                this.amount = '';
-                this.mode = null;
-                this.showCalc = true;
-            },
-
             openVencidaDetail(c) {
                 this.vencidaDetail = {
                     nombre_cliente: `${c['apellido'] ?? c.apellido ?? ''} ${c['nombre'] ?? c.nombre ?? ''}`.trim(),
@@ -106,23 +93,6 @@
                     fecha_prestamo: c['fecha_prestamo'] ?? c.fecha_prestamo ?? '',
                 };
                 this.showVencidaDetail = true;
-            },
-
-            setMode(m) {
-                this.mode = m;
-                if (m === 'full') this.accept();
-            },
-            addDigit(d) { this.amount += d; },
-            delDigit() { this.amount = this.amount.slice(0, -1); },
-            accept() {
-                if (this.mode === 'deferred') {
-                    console.log('Anticipo de', this.amount, 'para', this.client);
-                } else {
-                    console.log('Pago completo para', this.client);
-                }
-                this.showCalc = false;
-                this.mode = null;
-                this.amount = '';
             }
         }"
         class="bg-white rounded-2xl shadow p-4 w-full max-w-lg mx-auto"

@@ -35,7 +35,7 @@
 @endphp
 
 <x-layouts.mobile.mobile-layout>
-    <div class="p-4 space-y-5" x-data="{ showCalc: false }">
+    <div class="p-4 space-y-5">
         <h1 class="text-xl font-bold text-gray-900">Cartera Falla</h1>
 
         @foreach($promotores as $promotor)
@@ -74,7 +74,7 @@
                             {{-- Botones --}}
                             <div class="flex gap-2">
                                 {{-- Botón Cobrar --}}
-                                <button @click="showCalc = true"
+                                <button @click="$store.calc.open(@js($cliente['nombre']))"
                                     class="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 shadow-sm">
                                     $
                                 </button>
@@ -91,17 +91,7 @@
             </div>
         @endforeach
 
-        {{-- Modal Calculadora (ejemplo) --}}
-        <div x-show="showCalc" x-cloak
-             class="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-            <div class="bg-white rounded-2xl p-6 w-11/12 max-w-md shadow-xl">
-                @include('mobile.modals.calculadora')
-                <button @click="showCalc = false"
-                        class="mt-4 w-full py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
-                    Cerrar
-                </button>
-            </div>
-        </div>
+        @include('mobile.modals.calculadora')
         <a href="{{ url()->previous() }}"
           class="flex items-center justify-center rounded-xl border border-gray-300 text-white text-sm font-semibold px-3 py-2 bg-blue-600 hover:bg-blue-700 shadow-sm">
           Regresar
