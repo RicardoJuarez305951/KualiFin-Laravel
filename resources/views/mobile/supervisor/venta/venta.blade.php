@@ -105,7 +105,7 @@
                     <p class="text-gray-500 text-sm">Prospectados</p>
                     <p class="text-xl font-bold">{{ $clientesProspectados }}</p>
                 </div>
-                <a href="#" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
+                <a href="{{ route("mobile.$role.clientes_prospectados") }}" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
             </li>
             <li class="flex items-center justify-between py-2">
                 <div>

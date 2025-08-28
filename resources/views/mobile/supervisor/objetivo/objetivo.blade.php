@@ -138,7 +138,7 @@
 
     {{-- DIV4: Botones --}}
     <div class="grid grid-cols-3 gap-3">
-      <a href="{{ route("mobile.$role.cartera") }}"
+      <a href="{{ route("mobile.index") }}"
          class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-800 text-white font-semibold shadow-sm transition">Regresar</a>
       <a href="{{ url()->current() }}"
          class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm transition">Actualizar</a>
