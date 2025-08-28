@@ -163,8 +163,13 @@
           {{-- Fotografía INE --}}
           <div class="space-y-2">
             <p class="text-center text-sm font-semibold">Fotografía INE</p>
-            <div class="w-full rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
-              <img :src="selected.ine_url" alt="INE" class="w-full h-auto object-contain">
+            <div class="w-full rounded-xl overflow-hidden border border-gray-200 bg-gray-50 flex justify-center">
+              <img 
+                :src="selected.ine_url" 
+                alt="INE" 
+                class="object-contain cursor-pointer max-h-[200px] max-w-[400px]" 
+                @click="zoomImg = selected.ine_url" 
+              >
             </div>
           </div>
 
@@ -174,10 +179,16 @@
           {{-- Fotografía Comprobante Domicilio --}}
           <div class="space-y-2">
             <p class="text-center text-sm font-semibold">Fotografía Comprobante Domicilio</p>
-            <div class="w-full rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
-              <img :src="selected.comp_url" alt="Comprobante de domicilio" class="w-full h-auto object-contain">
+            <div class="w-full rounded-xl overflow-hidden border border-gray-200 bg-gray-50 flex justify-center">
+              <img 
+                :src="selected.comp_url" 
+                alt="Comprobante de domicilio" 
+                class="object-contain cursor-pointer max-h-[200px] max-w-[400px]" 
+                @click="zoomImg = selected.comp_url" 
+              >
             </div>
           </div>
+
 
           {{-- Botones acciones --}}
           <div class="mt-6 grid grid-cols-2 gap-3">
@@ -199,6 +210,13 @@
       </div>
     </template>
 
+    {{-- Modal Zoom Imagen --}}
+    <template x-if="zoomImg">
+      <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80" @click="zoomImg = null">
+        <img :src="zoomImg" alt="zoom" class="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl">
+      </div>
+    </template>
+
   </div>
 
   {{-- === Alpine.js === --}}
@@ -206,6 +224,7 @@
     function prospectado() {
       return {
         showModal: false,
+        zoomImg: null,
         selected: { id:null, nombre:'', curp:'', ine_url:'', comp_url:'' },
 
         openModal(data) {
