@@ -31,6 +31,17 @@ class SupervisorController extends Controller
         return view('mobile.supervisor.venta.ingresar_cliente');
     }
 
+    
+    public function clientes_prospectados()
+    {
+        return view('mobile.supervisor.venta.clientes_prospectados');
+    }
+
+    public function clientes_supervisados()
+    {
+        return view('mobile.supervisor.venta.clientes_supervisados');
+    }
+
     public function cartera()
     {
         return view('mobile.supervisor.cartera.cartera');
@@ -75,4 +86,5 @@ class SupervisorController extends Controller
     {
         return view('mobile.supervisor.cartera.reacreditacion');
     }
+
 }
