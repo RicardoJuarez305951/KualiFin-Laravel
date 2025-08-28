@@ -105,14 +105,14 @@
                     <p class="text-gray-500 text-sm">Prospectados</p>
                     <p class="text-xl font-bold">{{ $clientesProspectados }}</p>
                 </div>
-                <a href="#" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
+                <a href="#" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">Ver</a>
             </li>
             <li class="flex items-center justify-between py-2">
                 <div>
                     <p class="text-gray-500 text-sm">Por Supervisar</p>
                     <p class="text-xl font-bold">{{ $clientesPorSupervisar }}</p>
                 </div>
-                <a href="#" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
+                <a href="#" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">Ver</a>
             </li>
         </ul>
     </div>
@@ -130,15 +130,8 @@
                 <div class="w-full bg-gray-200 rounded-full h-2">
                     <div class="bg-red-500 h-2 rounded-full" style="width: {{ min(100, $p['porcentajeFalla']) }}%"></div>
                 </div>
-                <div class="flex">
-                    <div class="w-80">
-                        <p class="text-xs font-semibold">{{ number_format($p['porcentajeFalla'], 0) }}% Falla</p>
-                        <p class="text-sm">Venta Registrada: <span class="font-bold">{{ formatCurrency($p['ventaRegistrada']) }}</span></p>
-                    </div>
-                    <div>
-                        <a href="#" class="px-3 py-1 text-right text-sm font-semibold text-white bg-blue-600 rounded">D</a>
-                    </div>
-                </div>
+                <p class="text-xs font-semibold">{{ number_format($p['porcentajeFalla'], 0) }}% Falla</p>
+                <p class="text-sm">Venta Registrada: <span class="font-bold">{{ formatCurrency($p['ventaRegistrada']) }}</span></p>
                 <div class="grid grid-cols-2 gap-4 text-xs">
                     <div>
                         <p class="font-semibold mb-1">Prospectados</p>
@@ -159,6 +152,73 @@
                 </div>
             </div>
         @endforeach
+    </div>
+
+    {{-- Promotores Bajo Supervision --}}
+    <div class="bg-white rounded-2xl shadow-md p-6">
+        <h2 class="text-lg font-semibold mb-3">Promotores Supervisados</h2>
+        <ul class="divide-y divide-gray-200">
+            <li class="flex items-center justify-between py-2">
+                <div>
+                    <p class="text-gray-500 text-sm">Lista de Promotores</p>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    {{-- Prospectados por promotora --}}
+    <div class="bg-white rounded-2xl shadow-md p-6 space-y-4">
+        <h2 class="text-lg font-semibold">Prospectados por Promotora</h2>
+        @foreach($prospectosPorPromotora as $grupo)
+            <div>
+                <p class="font-semibold text-blue-800">{{ $grupo['promotora'] }}</p>
+                <ul class="ml-4 mt-2 space-y-1">
+                    @foreach($grupo['prospectos'] as $pros)
+                        <li class="flex justify-between">
+                            <span>{{ $pros['nombre'] }}</span>
+                            @if($pros['alerta'])
+                                <span class="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded">⚠</span>
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endforeach
+    </div>
+
+    {{-- Para supervisión --}}
+    <div class="bg-white rounded-2xl shadow-md p-6 space-y-3">
+        <h2 class="text-lg font-semibold">Para Supervisión (Semana Actual)</h2>
+        @foreach($paraSupervision as $c)
+            <div class="border rounded-lg p-3">
+                <a href="{{ route("mobile.$role.index") }}"
+                    <p class="font-medium">{{ $c['nombre'] }}</p>
+                    <p class="text-sm text-gray-500">{{ $c['direccion'] }}</p>
+                    <p class="text-xs text-gray-400">Fecha: {{ $c['fecha'] }}</p>
+                    @if($c['alerta'])
+                        <span class="inline-block mt-1 px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded">⚠ Supervisar urgente</span>
+                    @endif
+                </a>
+            </div>
+        @endforeach
+    </div>
+    
+    {{-- Prospectados generales --}}
+    <div class="bg-white rounded-2xl shadow-md p-6">
+        <h2 class="text-lg font-semibold mb-3">Prospectados - General</h2>
+        <ul class="divide-y divide-gray-200">
+            @foreach($prospectosGenerales as $p)
+                <li class="flex justify-between py-2">
+                    <div>
+                        <p class="font-medium">{{ $p['nombre'] }}</p>
+                        <p class="text-sm text-gray-500">{{ $p['plaza'] }}</p>
+                    </div>
+                    @if($p['alerta'])
+                        <span class="px-2 py-1 text-xs font-semibold bg-red-100 text-red-700 rounded">⚠ Alerta</span>
+                    @endif
+                </li>
+            @endforeach
+        </ul>
     </div>
 
     {{-- Botón regresar --}}
