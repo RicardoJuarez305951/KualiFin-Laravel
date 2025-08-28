@@ -112,7 +112,7 @@
                     <p class="text-gray-500 text-sm">Por Supervisar</p>
                     <p class="text-xl font-bold">{{ $clientesPorSupervisar }}</p>
                 </div>
-                <a href="#" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
+                <a href="{{ route("mobile.$role.clientes_supervisados") }}" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
             </li>
         </ul>
     </div>
