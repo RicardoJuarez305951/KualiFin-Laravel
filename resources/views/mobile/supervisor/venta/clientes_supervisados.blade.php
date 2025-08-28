@@ -152,6 +152,19 @@
       </div>
     @endforeach
 
+    {{-- BOTONES INFERIORES --}}
+    <div class="grid grid-cols-3 gap-3">
+      {{-- <a href="#" --}}
+      <a href="{{ route("mobile.index") }}"
+         class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-800 text-white font-semibold shadow-sm transition">Regresar</a>
+      {{-- <a href="#" --}}
+      <a href="{{ url()->current() }}"
+         class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm transition">Actualizar</a>
+      {{-- <a href="#" --}}
+      <a href="{{ route("mobile.$role.reporte") }}"
+         class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-sm transition">Reporte</a>
+    </div>
+
     {{-- ===== MODAL SUPERVISIÓN ===== --}}
     <template x-if="showModal">
       <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
