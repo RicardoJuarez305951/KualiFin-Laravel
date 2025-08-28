@@ -23,26 +23,29 @@ class AuthenticatedSessionController extends Controller
      * Handle an incoming authentication request.
      */
     public function store(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
-        ]);
+{
+    $request->validate([
+        'email' => ['required', 'string', 'email'],
+        'password' => ['required', 'string'],
+    ]);
 
-        if (Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
-            $request->session()->regenerate();
+    if (Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
+        $request->session()->regenerate();
 
-            if (Auth::user()->hasRole('promotor')) {
-                return redirect()->intended('/mobile');
-            }
-
-            return redirect()->intended('/dashboard');
+        // Redirigir todos los roles permitidos a mobile
+        if (Auth::user()->hasAnyRole(['promotor', 'supervisor', 'ejecutivo'])) {
+            return redirect()->intended(route('mobile.index'));
         }
 
-        return back()->withErrors([
-            'email' => 'Las credenciales no coinciden.',
-        ]);
+        // fallback (ej. admin u otros roles)
+        return redirect()->intended('/dashboard');
     }
+
+    return back()->withErrors([
+        'email' => 'Las credenciales no coinciden.',
+    ]);
+}
+
 
 
     /**
