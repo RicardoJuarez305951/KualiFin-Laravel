@@ -35,7 +35,6 @@
                             <p><span class="font-semibold">Crédito:</span> {{ formatCurrency($c['monto']) }}</p>
                             <p><span class="font-semibold">Creado:</span> {{ $c['fecha'] }}</p>
                         </div>
-                    </div>
                 </div>
             @endforeach
         </div>
