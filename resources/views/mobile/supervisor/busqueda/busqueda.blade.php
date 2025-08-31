@@ -1,90 +1,28 @@
 <x-layouts.mobile.mobile-layout title="Búsqueda">
     @php
+        use Faker\Factory as Faker;
+        $faker = Faker::create('es_MX');
         $fake = [
-            'clientes' => [
-                [
-                    'nombre'         => 'Juan Pérez',
-                    'email'          => 'juan@example.com',
-                    'domicilio'      => 'Av. Reforma 123, CDMX',
-                    'promotor'       => 'Luis Hernández',
-                    'tipo_credito'   => 'activo',
-                    'monto_credito'  => 5000,
-                    'fecha_creacion' => '2024-05-10',
-                    'status'         => 'activo_con_deuda',
-                    'deuda'          => 1200,
-                    'fotos'          => [
-                        'https://via.placeholder.com/150?text=Cliente+1',
-                        'https://via.placeholder.com/150?text=Cliente+1',
+            'clientes' => collect(range(1, 5))->map(function ($i) use ($faker) {
+                return [
+                    'nombre'         => $faker->name(),
+                    'email'          => $faker->safeEmail(),
+                    'domicilio'      => $faker->streetAddress() . ', ' . $faker->city(),
+                    'promotor'       => $faker->name(),
+                    'tipo_credito'   => $faker->randomElement(['activo', 'en falla']),
+                    'monto_credito'  => $faker->numberBetween(3000, 20000),
+                    'fecha_creacion' => $faker->date('Y-m-d'),
+                    'status'         => $faker->randomElement(['activo_con_deuda','activo_sin_deuda','liquidado','deudor']),
+                    'deuda'          => $faker->randomFloat(2, 100, 5000),
+                    'deuda_interes'  => $faker->randomFloat(2, 100, 5000),
+                    'fotos'    => [$faker->imageUrl(), $faker->imageUrl()],
+                    'garantia' => $faker->imageUrl(),
+                    'aval'     => [
+                        'nombre'   => $faker->name(),
+                        'telefono' => $faker->phoneNumber(),
                     ],
-                    'garantia'       => 'https://via.placeholder.com/150?text=Garantia+1',
-                    'aval'           => [
-                        'nombre'   => 'Carlos López',
-                        'telefono' => '555-1111',
-                    ],
-                ],
-                [
-                    'nombre'         => 'María Gómez',
-                    'email'          => 'maria@example.com',
-                    'domicilio'      => 'Calle Luna 456, CDMX',
-                    'promotor'       => 'Ana Torres',
-                    'tipo_credito'   => 'en falla',
-                    'monto_credito'  => 7000,
-                    'fecha_creacion' => '2024-06-15',
-                    'status'         => 'liquidado',
-                    'fotos'          => [
-                        'https://via.placeholder.com/150?text=Cliente+2',
-                        'https://via.placeholder.com/150?text=Cliente+2',
-                    ],
-                    'garantia'       => 'https://via.placeholder.com/150?text=Garantia+2',
-                    'aval'           => [
-                        'nombre'   => 'Laura Ruiz',
-                        'telefono' => '555-2222',
-                    ],
-                ],
-                [
-                    'nombre'         => 'Pedro López',
-                    'email'          => 'pedro@example.com',
-                    'domicilio'      => 'Calle Sol 789, CDMX',
-                    'promotor'       => 'Luis Hernández',
-                    'tipo_credito'   => 'activo',
-                    'monto_credito'  => 6000,
-                    'fecha_creacion' => '2024-07-01',
-                    'status'         => 'activo_sin_deuda',
-                    'fotos'          => [
-                        'https://via.placeholder.com/150?text=Cliente+3',
-                        'https://via.placeholder.com/150?text=Cliente+3',
-                    ],
-                    'garantia'       => 'https://via.placeholder.com/150?text=Garantia+3',
-                    'aval'           => [
-                        'nombre'   => 'Miguel Pérez',
-                        'telefono' => '555-3333',
-                    ],
-                ],
-                [
-                    'nombre'         => 'Lucía Díaz',
-                    'email'          => 'lucia@example.com',
-                    'domicilio'      => 'Av. Norte 321, CDMX',
-                    'promotor'       => 'Ana Torres',
-                    'tipo_credito'   => 'en falla',
-                    'monto_credito'  => 8000,
-                    'fecha_creacion' => '2024-08-20',
-                    'status'         => 'deudor',
-                    'deuda_interes'  => 2000,
-                    'fotos'          => [
-                        'https://via.placeholder.com/150?text=Cliente+4',
-                        'https://via.placeholder.com/150?text=Cliente+4',
-                    ],
-                    'garantia'       => 'https://via.placeholder.com/150?text=Garantia+4',
-                    'aval'           => [
-                        'nombre'   => 'Rosa Martínez',
-                        'telefono' => '555-4444',
-                    ],
-                ],
-            ],
-            'promotores' => [
-                ['nombre' => 'Luis Hernández', 'email' => 'luis@example.com'],
-                ['nombre' => 'Ana Torres', 'email' => 'ana@example.com'],
-            ],
+                ];
+            })->toArray(),
         ];
 
         $query = request('q');
@@ -118,7 +56,7 @@
                     class="flex-1 py-2 bg-blue-800 text-white font-semibold rounded-lg hover:bg-blue-900 shadow-sm"
                 >Buscar</button>
                 <a
-                    href="javascript:history.back()"
+                    href="{{ route('supervisor.index') }}"
                     class="flex-1 py-2 text-center bg-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-400"
                 >Regresar</a>
             </div>
