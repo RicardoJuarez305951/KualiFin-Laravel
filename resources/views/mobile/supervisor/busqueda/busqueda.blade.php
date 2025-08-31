@@ -2,8 +2,24 @@
     @php
         $fake = [
             'clientes' => [
-                ['nombre' => 'Juan Pérez', 'email' => 'juan@example.com'],
-                ['nombre' => 'María Gómez', 'email' => 'maria@example.com'],
+                [
+                    'nombre'         => 'Juan Pérez',
+                    'email'          => 'juan@example.com',
+                    'domicilio'      => 'Av. Reforma 123, CDMX',
+                    'promotor'       => 'Luis Hernández',
+                    'tipo_credito'   => 'activo',
+                    'monto_credito'  => 5000,
+                    'fecha_creacion' => '2024-05-10',
+                ],
+                [
+                    'nombre'         => 'María Gómez',
+                    'email'          => 'maria@example.com',
+                    'domicilio'      => 'Calle Luna 456, CDMX',
+                    'promotor'       => 'Ana Torres',
+                    'tipo_credito'   => 'en falla',
+                    'monto_credito'  => 7000,
+                    'fecha_creacion' => '2024-06-15',
+                ],
             ],
             'promotores' => [
                 ['nombre' => 'Luis Hernández', 'email' => 'luis@example.com'],
@@ -52,10 +68,26 @@
             @if(count($resultados))
                 <div class="space-y-2">
                     @foreach($resultados as $r)
-                        <div class="p-2 border border-gray-200 rounded">
-                            <p class="font-semibold">{{ ucfirst($r['tipo']) }}: {{ $r['nombre'] }}</p>
-                            <p class="text-sm text-gray-600">{{ $r['email'] }}</p>
-                        </div>
+                        @if($r['tipo'] === 'clientes')
+                            <div x-data="{ open: false }" class="border border-gray-200 rounded">
+                                <div class="flex items-center justify-between p-2 cursor-pointer" @click="open = !open">
+                                    <p class="font-semibold text-gray-800">{{ $r['nombre'] }}</p>
+                                    <a href="#" @click.stop class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
+                                </div>
+                                <div x-show="open" x-cloak class="p-2 text-sm text-gray-700 space-y-1">
+                                    <p><span class="font-semibold">Domicilio:</span> {{ $r['domicilio'] }}</p>
+                                    <p><span class="font-semibold">Promotor:</span> {{ $r['promotor'] }}</p>
+                                    <p><span class="font-semibold">Tipo de crédito:</span> {{ ucfirst($r['tipo_credito']) }}</p>
+                                    <p><span class="font-semibold">Cantidad:</span> ${{ number_format($r['monto_credito'], 2) }}</p>
+                                    <p><span class="font-semibold">Fecha:</span> {{ $r['fecha_creacion'] }}</p>
+                                </div>
+                            </div>
+                        @else
+                            <div class="p-2 border border-gray-200 rounded">
+                                <p class="font-semibold">{{ ucfirst($r['tipo']) }}: {{ $r['nombre'] }}</p>
+                                <p class="text-sm text-gray-600">{{ $r['email'] }}</p>
+                            </div>
+                        @endif
                     @endforeach
                 </div>
             @else
