@@ -1,19 +1,56 @@
 {{-- resources/views/mobile/supervisor/Apertura/apertura.blade.php --}}
 <x-layouts.mobile.mobile-layout title="Alta de Promotor">
-    @php($faker = \Faker\Factory::create('es_MX'))
-
+@php($faker = \Faker\Factory::create('es_MX'))
     <div
-        x-data="{ ineUploaded: false, compUploaded: false }"
+        x-data="{
+            nombre: '',
+            domicilio: '',
+            telefono: '',
+            correo: '',
+            ineUploaded: false,
+            compUploaded: false,
+            submit() {
+                if (!this.nombre.trim()) {
+                    alert('Falta el campo Nombre completo');
+                    return;
+                }
+                if (!this.domicilio.trim()) {
+                    alert('Falta el campo Domicilio');
+                    return;
+                }
+                if (!this.correo.trim()) {
+                    alert('Falta el campo Correo electrónico');
+                    return;
+                }
+                if (!this.ineUploaded) {
+                    alert('Falta subir el archivo INE');
+                    return;
+                }
+                if (!this.compUploaded) {
+                    alert('Falta subir el Comprobante Domicilio');
+                    return;
+                }
+                alert('Se ha añadido un nuevo promotor');
+                this.$refs.form.reset();
+                this.nombre = '';
+                this.domicilio = '';
+                this.telefono = '';
+                this.correo = '';
+                this.ineUploaded = false;
+                this.compUploaded = false;
+            }
+        }"
         class="bg-white rounded-2xl shadow-md p-6 w-full max-w-md space-y-6"
     >
         <h1 class="text-xl font-bold text-gray-900 text-center">Alta de Promotor</h1>
 
-        <form class="space-y-4">
+        <form class="space-y-4" x-ref="form" @submit.prevent="submit">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Nombre completo</label>
                 <input
                     type="text"
                     value="{{ $faker->name() }}"
+                    x-model="nombre"
                     class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 />
             </div>
@@ -23,6 +60,7 @@
                 <input
                     type="text"
                     value="{{ $faker->streetAddress() . ', ' . $faker->city() }}"
+                    x-model="domicilio"
                     class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 />
             </div>
@@ -41,6 +79,7 @@
                 <input
                     type="email"
                     value="{{ $faker->safeEmail() }}"
+                    x-model="correo"
                     class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 />
             </div>
@@ -104,6 +143,7 @@
             </a>
             <button
                 class="flex-1 bg-blue-800 hover:bg-blue-900 text-white font-semibold py-3 rounded-lg shadow-sm"
+                @click="submit"
             >
                 Confirmar
             </button>
