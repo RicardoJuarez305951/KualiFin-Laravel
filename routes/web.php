@@ -84,6 +84,7 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('clientes-prospectados',    'clientes_prospectados')    ->name('clientes_prospectados');
                       Route::get('clientes-supervisados',    'clientes_supervisados')    ->name('clientes_supervisados');
                       Route::get('busqueda',          'busqueda')          ->name('busqueda');
+                      Route::get('apertura',          'apertura')          ->name('apertura');  
                   });
          });
 
