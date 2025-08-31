@@ -1,7 +1,6 @@
 <x-layouts.mobile.mobile-layout title="Búsqueda">
     @php
-        use Faker\Factory as Faker;
-        $faker = Faker::create('es_MX');
+        $faker = \Faker\Factory::create('es_MX');
         $fake = [
             'clientes' => collect(range(1, 5))->map(function ($i) use ($faker) {
                 return [
@@ -15,8 +14,11 @@
                     'status'         => $faker->randomElement(['activo_con_deuda','activo_sin_deuda','liquidado','deudor']),
                     'deuda'          => $faker->randomFloat(2, 100, 5000),
                     'deuda_interes'  => $faker->randomFloat(2, 100, 5000),
-                    'fotos'    => [$faker->imageUrl(), $faker->imageUrl()],
-                    'garantia' => $faker->imageUrl(),
+                    'fotos'          => [
+                        asset('imagenes_kualifin_propuestas/' . $faker->numberBetween(1,11) . '.jpg'),
+                        asset('imagenes_kualifin_propuestas/' . $faker->numberBetween(1,11) . '.jpg'),
+                    ],
+                     'garantia'       => asset('imagenes_kualifin_propuestas/' . $faker->numberBetween(1,11) . '.jpg'),
                     'aval'     => [
                         'nombre'   => $faker->name(),
                         'telefono' => $faker->phoneNumber(),
@@ -56,7 +58,7 @@
                     class="flex-1 py-2 bg-blue-800 text-white font-semibold rounded-lg hover:bg-blue-900 shadow-sm"
                 >Buscar</button>
                 <a
-                    href="{{ route('supervisor.index') }}"
+                    href="{{ route('mobile.supervisor.index') }}"
                     class="flex-1 py-2 text-center bg-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-400"
                 >Regresar</a>
             </div>
@@ -87,13 +89,13 @@
                                         <p class="mb-2">
                                             <span class="font-semibold">Status:</span>
                                             @if($r['status'] === 'activo_con_deuda')
-                                                Activo con cantidad de deuda: ${{ number_format($r['deuda'], 2) }}
+                                                Activo con deuda: ${{ number_format($r['deuda'], 2) }}
                                             @elseif($r['status'] === 'activo_sin_deuda')
-                                                Activo pero sin deuda mensual activa
+                                                Activo sin deuda
                                             @elseif($r['status'] === 'liquidado')
                                                 Liquidado
                                             @elseif($r['status'] === 'deudor')
-                                                Deudor con la cantidad de la deuda con intereses: ${{ number_format($r['deuda_interes'], 2) }}
+                                                Deudor: ${{ number_format($r['deuda_interes'], 2) }}
                                             @endif
                                         </p>
                                         <div class="grid grid-cols-2 gap-2 mb-2">
