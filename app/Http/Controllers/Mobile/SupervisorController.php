@@ -87,4 +87,9 @@ class SupervisorController extends Controller
         return view('mobile.supervisor.cartera.reacreditacion');
     }
 
+    public function busqueda()
+    {
+        return view('mobile.supervisor.busqueda.busqueda');
+    }
+
 }
