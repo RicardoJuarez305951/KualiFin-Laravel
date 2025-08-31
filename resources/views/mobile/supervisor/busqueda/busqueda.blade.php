@@ -5,7 +5,6 @@
             'clientes' => collect(range(1, 5))->map(function ($i) use ($faker) {
                 return [
                     'nombre'         => $faker->name(),
-                    'email'          => $faker->safeEmail(),
                     'telefono'       => $faker->phoneNumber(),
                     'domicilio'      => $faker->streetAddress() . ', ' . $faker->city(),
                     'promotor'       => [
@@ -30,21 +29,7 @@
                         'email'     => $faker->safeEmail(),
                         'telefono'  => $faker->phoneNumber(),
                         'domicilio' => $faker->streetAddress() . ', ' . $faker->city(),
-                        'status'    => $faker->randomElement(['activo_con_deuda','activo_sin_deuda','liquidado','deudor']),
-                        'deuda'     => $faker->randomFloat(2, 100, 5000),
-                        'deuda_interes' => $faker->randomFloat(2, 100, 5000),
                     ],
-                ];
-            })->toArray(),
-            'avales' => collect(range(1, 5))->map(function ($i) use ($faker) {
-                return [
-                    'nombre'    => $faker->name(),
-                    'email'     => $faker->safeEmail(),
-                    'telefono'  => $faker->phoneNumber(),
-                    'domicilio' => $faker->streetAddress() . ', ' . $faker->city(),
-                    'status'    => $faker->randomElement(['activo_con_deuda','activo_sin_deuda','liquidado','deudor']),
-                    'deuda'     => $faker->randomFloat(2, 100, 5000),
-                    'deuda_interes' => $faker->randomFloat(2, 100, 5000),
                 ];
             })->toArray(),
             'promotores' => collect(range(1, 5))->map(function ($i) use ($faker) {
@@ -63,7 +48,10 @@
         if ($query) {
             foreach ($fake as $tipo => $lista) {
                 foreach ($lista as $item) {
-                    if (stripos($item['nombre'], $query) !== false || stripos($item['email'], $query) !== false) {
+                    if (
+                        stripos($item['nombre'], $query) !== false ||
+                        (isset($item['email']) && stripos($item['email'], $query) !== false)
+                    ) {
                         $resultados[] = array_merge($item, ['tipo' => $tipo]);
                     }
                 }
@@ -121,7 +109,6 @@
                                 <div class="bg-white rounded-lg p-4 w-full max-w-md relative">
                                     <button class="absolute top-2 right-2 text-gray-500" @click="detail = false">✕</button>
                                     <h2 class="text-lg font-bold mb-2">{{ $r['nombre'] }}</h2>
-                                    <p class="text-sm mb-1"><span class="font-semibold">Email:</span> {{ $r['email'] }}</p>
                                     <p class="text-sm mb-1"><span class="font-semibold">Teléfono:</span> {{ $r['telefono'] }}</p>
                                     <p class="text-sm mb-1"><span class="font-semibold">Domicilio:</span> {{ $r['domicilio'] }}</p>
                                     <p class="text-sm mb-2">
@@ -146,21 +133,8 @@
                                         <div>
                                             <p class="font-semibold">Aval</p>
                                             <p>{{ $r['aval']['nombre'] }}</p>
-                                            <p>{{ $r['aval']['email'] }}</p>
                                             <p>{{ $r['aval']['telefono'] }}</p>
                                             <p>{{ $r['aval']['domicilio'] }}</p>
-                                            <p>
-                                                <span class="font-semibold">Status:</span>
-                                                @if($r['aval']['status'] === 'activo_con_deuda')
-                                                    Activo con deuda: ${{ number_format($r['aval']['deuda'], 2) }}
-                                                @elseif($r['aval']['status'] === 'activo_sin_deuda')
-                                                    Activo sin deuda
-                                                @elseif($r['aval']['status'] === 'liquidado')
-                                                    Liquidado
-                                                @elseif($r['aval']['status'] === 'deudor')
-                                                    Deudor: ${{ number_format($r['aval']['deuda_interes'], 2) }}
-                                                @endif
-                                            </p>
                                         </div>
                                         <div>
                                             <p class="font-semibold">Promotor</p>
