@@ -1,5 +1,5 @@
 {{-- resources/views/promotor/promotor_index.blade.php --}}
-<x-layouts.mobile.mobile-layout title="Panel Promotor">
+<x-layouts.mobile.mobile-layout title="Panel Mobile">
     <div class="bg-white rounded-2xl shadow-md p-6 w-full max-w-md space-y-6">
       
       {{-- Saludo dinámico --}}
@@ -52,7 +52,7 @@
 
         @role('supervisor')
           {{-- Busquedas --}}
-          <a href="{{ route("mobile.$role.venta") }}"
+          <a href="{{ route('mobile.supervisor.busqueda') }}"
             class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
             {{-- Icono Lupa --}}
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
@@ -63,7 +63,7 @@
             <span>Busquedas</span>
           </a>
           {{-- Apertura --}}
-          <a href="{{ route("mobile.$role.venta") }}"
+          <a href="{{ route("mobile.supervisor.apertura") }}"
            class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
           {{-- Icono: Candado abierto --}}
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
