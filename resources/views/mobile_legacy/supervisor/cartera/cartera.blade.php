@@ -127,9 +127,9 @@
          DIV3: Acciones
        ======================= --}}
     <section class="grid grid-cols-3 gap-3">
-      <a href="{{ route("mobile.$role.index") }}"
-         class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white text-gray-800 text-sm font-semibold px-3 py-2 hover:bg-gray-50 shadow-sm">
-        Regresar
+      <a href="{{ url()->previous() }}"
+          class="flex items-center justify-center rounded-xl border border-gray-300 text-white text-sm font-semibold px-3 py-2 bg-blue-600 hover:bg-blue-700 shadow-sm">
+          Regresar
       </a>
 
       {{-- Actualizar: recarga la misma URL --}}
