@@ -6,21 +6,34 @@
   <title>K con Triángulos</title>
   @vite(['resources/css/app.css', 'resources/js/app.js'])
   <style>
+    :root{
+      @role('promotor')
+      --color-primary: #FDC42D;
+      --color-secondary: #FDE59D;
+      --color-background: #FAF6EA;
+      @endrole
+
+      @role('supervisor')
+      --color-primary: #1187C4;
+      --color-secondary: #A6D9F6;
+      --color-background: #FAF6EA;
+      @endrole
+    }
     .triangulo {
       position: absolute;
       width: 100%;
       height: 100%;
     }
     .t1 {
-      background: #FDC42D; /* naranja */
+      background: var(--color-primary); /* naranja */
       clip-path: polygon(0% 50%, 0% 0%, 150% 0%);
     }
     .t2 {
-      background: #FDE59D; /* amarillo */
-      clip-path: polygon(0% 0%, 100% 100%, 0% 100%);
+      background: var(--color-secondary); /* amarillo */
+      clip-path: polygon(0% 0%, 150% 100%, 0% 100%);
     }
     .bg {
-      background: #FAF6EA; /* verde */
+      background: var(--color-background); /* verde */
     }
   </style>
 </head>

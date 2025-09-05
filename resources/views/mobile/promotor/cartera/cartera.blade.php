@@ -121,7 +121,6 @@
                 Regresar
             </a>
         </div>
-
          @include('mobile.modals.calculadora')
          @include('mobile.modals.detalle')
 

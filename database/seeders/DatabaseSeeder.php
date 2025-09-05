@@ -18,7 +18,7 @@ class DatabaseSeeder extends Seeder
         $user = User::factory()->create([
             'name' => 'Super Admin',
             'email' => 'superadmin@example.com',
-            'password' => Hash::make('Password123'),
+            'password' => Hash::make('12345'),
             'telefono' => '1234567890',
         ]);
         $user->assignRole('superadmin');
@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
         $user = User::factory()->create([
             'name' => 'Admin User',
             'email' => 'admin@example.com',
-            'password' => Hash::make('Password123'),
+            'password' => Hash::make('12345'),
             'telefono' => '1234567890',
         ]);
         $user->assignRole('administrador');
@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
         $user = User::factory()->create([
             'name' => 'Supervisor User',
             'email' => 'supervisor@example.com',
-            'password' => Hash::make('Password123'),
+            'password' => Hash::make('12345'),
             'telefono' => '0987654321',
         ]);
         $user->assignRole('supervisor');
@@ -42,7 +42,7 @@ class DatabaseSeeder extends Seeder
         $user = User::factory()->create([
             'name' => 'Ejecutivo User',
             'email' => 'ejecutivo@example.com',
-            'password' => Hash::make('Password123'),
+            'password' => Hash::make('12345'),
             'telefono' => '0987654321',
         ]);
         $user->assignRole('ejecutivo');
@@ -50,7 +50,7 @@ class DatabaseSeeder extends Seeder
         $user = User::factory()->create([
             'name' => 'Promotor User',
             'email' => 'promotor@example.com',
-            'password' => Hash::make('Password123'),
+            'password' => Hash::make('12345'),
             'telefono' => '0987654321',
         ]);
         $user->assignRole('promotor');
