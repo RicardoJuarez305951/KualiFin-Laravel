@@ -118,10 +118,29 @@
 
         <button
             class="w-full mt-6 py-2 bg-blue-600 text-white rounded"
-            @click="$store.multiPay.open()"
+            @click="$store.multiPay.toggleMode()"
         >
             Pagos Múltiples
         </button>
+
+        <div
+            x-show="$store.multiPay.active"
+            class="mt-2 flex gap-2"
+        >
+            <button
+                class="flex-1 py-2 bg-green-600 text-white rounded"
+                @click="$store.multiPay.confirm()"
+            >
+                Registrar Pagos
+            </button>
+
+            <button
+                class="flex-1 py-2 bg-red-600 text-white rounded"
+                @click="$store.multiPay.cancel()"
+            >
+                Cancelar
+            </button>
+        </div>
 
         <div class="mt-8">
             <a href="{{ route('mobile.' . ($role ?? 'promotor') . '.index') }}"
