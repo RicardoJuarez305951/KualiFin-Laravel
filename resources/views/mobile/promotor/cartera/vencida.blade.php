@@ -1,10 +1,22 @@
 <ul class="divide-y divide-gray-200">
     @forelse($vencidos as $c)
-        <li class="flex items-center justify-between py-2">
-            <div class="flex-1">
-                <p class="text-base font-semibold text-gray-800">
-                    {{ ($c['apellido'] ?? $c->apellido ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '') }}
-                </p>
+        <li
+            x-data="{ cliente: @js($c) }"
+            :class="{ 'bg-blue-50': $store.multiPay.clients.some(cl => cl.id === cliente.id) }"
+            class="flex items-center justify-between py-2"
+        >
+            <div class="flex items-center flex-1">
+                <input
+                    type="checkbox"
+                    class="mr-2"
+                    @click.stop="$store.multiPay.toggle(cliente)"
+                    :checked="$store.multiPay.clients.some(cl => cl.id === cliente.id)"
+                >
+                <div>
+                    <p class="text-base font-semibold text-gray-800">
+                        {{ ($c['apellido'] ?? $c->apellido ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '') }}
+                    </p>
+                </div>
             </div>
 
             <div class="w-24 text-right">
@@ -17,7 +29,8 @@
                 <button
                     class="w-8 h-8 border-2 border-green-500 text-green-500 rounded-full flex items-center justify-center"
                     title="Registrar pago"
-                 @click="$store.calc.open(@js(($c['apellido'] ?? $c->apellido ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '')))">
+                    @click="$store.calc.open(@js(($c['apellido'] ?? $c->apellido ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '')))"
+                >
                     $
                 </button>
 
@@ -33,3 +46,4 @@
         <li class="py-2 text-center text-base text-gray-500">Sin clientes vencidos</li>
     @endforelse
 </ul>
+
