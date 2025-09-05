@@ -1,36 +1,36 @@
 document.addEventListener('alpine:init', () => {
     Alpine.store('multiPay', {
         active: false,
-        show: false,
         clients: [],
-        total: 0,
         toggleMode() {
             this.active = !this.active;
             if (!this.active) {
                 this.clients = [];
-                this.total = 0;
             }
         },
         toggle(cliente) {
             const id = cliente.id ?? cliente;
-            if (this.clients.includes(id)) {
-                this.clients = this.clients.filter(c => c !== id);
+            const name = cliente.name ?? `${cliente.apellido ?? ''} ${cliente.nombre ?? ''}`.trim();
+            const amount = cliente.amount ?? cliente.deuda_total ?? 0;
+            const index = this.clients.findIndex(c => c.id === id);
+            if (index !== -1) {
+                this.clients.splice(index, 1);
             } else {
-                this.clients.push(id);
+                this.clients.push({ id, name, amount });
             }
         },
+        get total() {
+            return this.clients.reduce((sum, c) => sum + Number(c.amount || 0), 0);
+        },
         confirm() {
-            this.show = true;
+            return axios.post('/mobile/promotor/pagos-multiples', { clients: this.clients })
+                .then(() => {
+                    this.cancel();
+                });
         },
         cancel() {
+            this.clients = [];
             this.active = false;
-            this.clients = [];
-            this.total = 0;
-        },
-        close() {
-            this.show = false;
-            this.clients = [];
-            this.total = 0;
         }
     });
 });
