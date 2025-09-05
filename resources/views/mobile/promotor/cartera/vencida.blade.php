@@ -2,15 +2,17 @@
     @forelse($vencidos as $c)
         <li
             x-data="{ cliente: @js($c) }"
-            :class="{ 'bg-blue-50': $store.multiPay.clients.some(cl => cl.id === cliente.id) }"
+            :class="{ 'bg-blue-200': $store.multiPay.clients.includes(cliente.id) }"
             class="flex items-center justify-between py-2"
         >
             <div class="flex items-center flex-1">
                 <input
+                    x-show="$store.multiPay.active"
+                    x-cloak
                     type="checkbox"
                     class="mr-2"
                     @click.stop="$store.multiPay.toggle(cliente)"
-                    :checked="$store.multiPay.clients.some(cl => cl.id === cliente.id)"
+                    :checked="$store.multiPay.clients.includes(cliente.id)"
                 >
                 <div>
                     <p class="text-base font-semibold text-gray-800">
