@@ -253,35 +253,5 @@
             </div>
         </div>
 
-        {{-- Modal: Pagos Múltiples --}}
-        <div
-            x-show="$store.multiPay.show"
-            x-cloak
-            @keydown.escape.window="$store.multiPay.close()"
-            class="fixed inset-0 z-10 flex items-center justify-center bg-black/50"
-        >
-            <div class="bg-white rounded-2xl p-6 w-80" @click.away="$store.multiPay.close()" x-transition>
-                <h3 class="text-lg font-bold mb-4">Pagos Múltiples</h3>
-
-                <div class="mb-4 max-h-40 overflow-y-auto">
-                    <template x-for="client in $store.multiPay.clients" :key="client.id">
-                        <p class="py-1 border-b" x-text="client.name"></p>
-                    </template>
-                    <template x-if="$store.multiPay.clients.length === 0">
-                        <p class="text-sm text-gray-500">No hay clientes seleccionados.</p>
-                    </template>
-                </div>
-
-                <p class="font-semibold mb-4">
-                    Total a pagar:
-                    <span x-text="new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format($store.multiPay.total)"></span>
-                </p>
-
-                <div class="flex space-x-2">
-                    <button class="flex-1 py-2 bg-gray-300 rounded" @click="$store.multiPay.close()">Cancelar</button>
-                    <button class="flex-1 py-2 bg-blue-600 text-white rounded" @click="$store.multiPay.confirm()">Confirmar pagos</button>
-                </div>
-            </div>
-        </div>
     </div>
 </x-layouts.mobile.mobile-layout>
