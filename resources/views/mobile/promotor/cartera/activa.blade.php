@@ -17,17 +17,27 @@
             </div>
 
             <div class="flex items-center space-x-2 ml-2">
-                <button
-                    class="w-8 h-8 border-2 border-green-500 text-green-500 rounded-full flex items-center justify-center"
-                    title="Registrar pago"
-                 @click="$store.calc.open(@js(($c['apellido'] ?? $c->apellido ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '')))">
-                    $
-                </button>
-                <a href="{{route("mobile.$role.cliente_historial")}}"
-                   class="w-8 h-8 border-2 border-yellow-500 text-yellow-500 rounded-full flex items-center justify-center"
-                   title="Historial">
-                    H
-                </a>
+                <input
+                    x-show="multipagosActivos"
+                    type="checkbox"
+                    class="w-5 h-5 text-blue-600"
+                    :value="$c['id'] ?? $c->id ?? ''"
+                    @change="toggleCliente($event.target.value)"
+                    :checked="clientesSeleccionados.includes(String($c['id'] ?? $c->id ?? ''))"
+                />
+                <div class="flex items-center space-x-2" x-show="!multipagosActivos">
+                    <button
+                        class="w-8 h-8 border-2 border-green-500 text-green-500 rounded-full flex items-center justify-center"
+                        title="Registrar pago"
+                        @click="$store.calc.open(@js(($c['apellido'] ?? $c->apellido ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '')))">
+                        $
+                    </button>
+                    <a href="{{route("mobile.$role.cliente_historial")}}"
+                       class="w-8 h-8 border-2 border-yellow-500 text-yellow-500 rounded-full flex items-center justify-center"
+                       title="Historial">
+                        H
+                    </a>
+                </div>
             </div>
         </li>
     @empty

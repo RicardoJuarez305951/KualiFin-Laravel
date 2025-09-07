@@ -4,6 +4,7 @@
     $faker = Faker::create('es_MX');
 
     $activos = collect(range(1, 5))->map(fn($i) => [
+        'id' => $i,
         'nombre' => $faker->firstName(),
         'apellido' => $faker->lastName(),
         'semana_credito' => $faker->numberBetween(1, 12),
@@ -93,6 +94,28 @@
                     fecha_prestamo: c['fecha_prestamo'] ?? c.fecha_prestamo ?? '',
                 };
                 this.showVencidaDetail = true;
+            },
+
+            // Pagos múltiples
+            multipagosActivos: false,
+            clientesSeleccionados: [],
+            toggleMultipagos() {
+                this.multipagosActivos = !this.multipagosActivos;
+                this.clientesSeleccionados = [];
+            },
+            toggleCliente(id) {
+                id = String(id);
+                if (this.clientesSeleccionados.includes(id)) {
+                    this.clientesSeleccionados = this.clientesSeleccionados.filter(c => c !== id);
+                } else {
+                    this.clientesSeleccionados.push(id);
+                }
+            },
+            enviarMultipagos() {
+                if (this.clientesSeleccionados.length === 0) return;
+                alert(`Procesar pagos para: ${this.clientesSeleccionados.join(', ')}`);
+                this.multipagosActivos = false;
+                this.clientesSeleccionados = [];
             }
         }"
         class="bg-white rounded-2xl shadow p-4 w-full max-w-lg mx-auto"
@@ -102,7 +125,25 @@
         <div class="space-y-6">
             <section>
                 <h3 class="text-2xl font-bold text-gray-700 mb-2">Cartera Activa</h3>
+                <div class="flex justify-end mb-2">
+                    <button
+                        class="px-3 py-1 text-sm text-white bg-blue-600 rounded"
+                        @click="toggleMultipagos()"
+                    >
+                        <span x-show="!multipagosActivos">Pagos múltiples</span>
+                        <span x-show="multipagosActivos">Cancelar</span>
+                    </button>
+                </div>
                 @include('mobile.promotor.cartera.activa')
+                <div x-show="multipagosActivos" class="mt-4">
+                    <button
+                        class="w-full py-2 bg-green-600 text-white rounded disabled:opacity-50"
+                        :disabled="clientesSeleccionados.length === 0"
+                        @click="enviarMultipagos()"
+                    >
+                        Registrar Pagos
+                    </button>
+                </div>
             </section>
 
             <section>
