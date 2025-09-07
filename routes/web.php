@@ -9,6 +9,7 @@ use App\Http\Controllers\SolicitudCreditoController;
 use App\Http\Controllers\Mobile\PromotorController;
 use App\Http\Controllers\Mobile\EjecutivoController;
 use App\Http\Controllers\Mobile\SupervisorController;
+use App\Http\Controllers\PagoRealController;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Middleware\ShareRole;
 
@@ -130,3 +131,6 @@ Route::middleware(['auth','verified'])->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+// Ruta para registrar múltiples pagos
+Route::post('/mobile/promotor/pagos-multiples', [PagoRealController::class, 'storeMultiple']);

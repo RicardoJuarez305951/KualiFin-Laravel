@@ -2,7 +2,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\PagoReal;
+use App\Models\PagoProyectado;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class PagoRealController extends Controller
 {
@@ -55,5 +57,27 @@ class PagoRealController extends Controller
     {
         $pagoReal->delete();
         return redirect()->route('pagos_reales.index');
+    }
+
+    public function storeMultiple(Request $request)
+    {
+        $data = $request->validate([
+            'pago_proyectado_ids' => 'required|array',
+            'pago_proyectado_ids.*' => 'exists:pagos_proyectados,id',
+        ]);
+
+        $pagos = [];
+
+        foreach ($data['pago_proyectado_ids'] as $id) {
+            $pagoProyectado = PagoProyectado::findOrFail($id);
+            $pagos[] = PagoReal::create([
+                'pago_proyectado_id' => $id,
+                'monto_pagado' => $pagoProyectado->deuda_total ?? $pagoProyectado->monto_proyectado,
+                'tipo' => 'completo',
+                'fecha_pago' => Carbon::now()->toDateString(),
+            ]);
+        }
+
+        return response()->json($pagos, 201);
     }
 }
