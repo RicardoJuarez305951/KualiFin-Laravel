@@ -8,6 +8,7 @@ class PagoProyectado extends Model
 {
     use HasFactory;
     protected $guarded = [];
+    protected $table = 'pagos_proyectados';
 
     public function credito()
     {

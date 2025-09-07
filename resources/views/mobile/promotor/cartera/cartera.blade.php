@@ -4,6 +4,7 @@
     $faker = Faker::create('es_MX');
 
     $activos = collect(range(1, 5))->map(fn($i) => [
+        'id' => $faker->uuid(),
         'nombre' => $faker->firstName(),
         'apellido' => $faker->lastName(),
         'semana_credito' => $faker->numberBetween(1, 12),
@@ -14,6 +15,7 @@
         $monto = $faker->randomFloat(2, 100, 1000);
 
         return [
+            'id' => $faker->uuid(),
             'nombre' => $faker->firstName(),
             'apellido' => $faker->lastName(),
             'direccion' => $faker->address(),
@@ -30,6 +32,7 @@
     });
 
     $inactivos = collect(range(1, 2))->map(fn($i) => [
+        'id' => $faker->uuid(),
         'nombre' => $faker->firstName(),
         'apellido' => $faker->lastName(),
         'direccion' => $faker->address(),
@@ -115,13 +118,39 @@
                 @include('mobile.promotor.cartera.inactiva')
             </section>
         </div>
+
+        <button
+            class="w-full mt-6 py-2 bg-blue-600 text-white rounded"
+            @click="$store.multiPay.toggleMode()"
+        >
+            Pagos Múltiples
+        </button>
+
+        <div
+            x-show="$store.multiPay.active"
+            class="mt-2 flex gap-2"
+        >
+            <button
+                class="flex-1 py-2 bg-green-600 text-white rounded"
+                @click="$store.multiPay.confirm()"
+            >
+                Registrar Pagos
+            </button>
+
+            <button
+                class="flex-1 py-2 bg-red-600 text-white rounded"
+                @click="$store.multiPay.cancel()"
+            >
+                Cancelar
+            </button>
+        </div>
+
         <div class="mt-8">
             <a href="{{ route('mobile.' . ($role ?? 'promotor') . '.index') }}"
                class="block w-full text-center text-blue-800 hover:text-blue-900 font-medium py-3">
                 Regresar
             </a>
         </div>
-
          @include('mobile.modals.calculadora')
          @include('mobile.modals.detalle')
 
@@ -226,5 +255,6 @@
                 <button @click="showInactivaDetail = null" class="w-full py-2 bg-blue-600 text-white rounded">Cerrar</button>
             </div>
         </div>
+
     </div>
 </x-layouts.mobile.mobile-layout>

@@ -4,6 +4,7 @@
     $faker = Faker::create('es_MX');
 
     $activos = collect(range(1, 5))->map(fn($i) => [
+        'id' => $faker->uuid(),
         'nombre' => $faker->firstName(),
         'apellido' => $faker->lastName(),
         'semana_credito' => $faker->numberBetween(1, 12),
@@ -14,6 +15,7 @@
         $monto = $faker->randomFloat(2, 100, 1000);
 
         return [
+            'id' => $faker->uuid(),
             'nombre' => $faker->firstName(),
             'apellido' => $faker->lastName(),
             'direccion' => $faker->address(),
@@ -30,6 +32,7 @@
     });
 
     $inactivos = collect(range(1, 2))->map(fn($i) => [
+        'id' => $faker->uuid(),
         'nombre' => $faker->firstName(),
         'apellido' => $faker->lastName(),
         'direccion' => $faker->address(),
