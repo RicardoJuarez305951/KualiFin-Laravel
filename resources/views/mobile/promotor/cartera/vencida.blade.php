@@ -2,7 +2,8 @@
     @forelse($vencidos as $c)
         <li
             x-data="{ cliente: @js($c) }"
-            :class="{ 'bg-blue-200': $store.multiPay.clients.includes(cliente.id) }"
+            :class="{ 'bg-blue-200': $store.multiPay.clients.some(c => c.id === cliente.id) }"
+            @click="$store.multiPay.active && $store.multiPay.toggle(cliente)"
             class="flex items-center justify-between py-2"
         >
             <div class="flex items-center flex-1">
@@ -12,7 +13,7 @@
                     type="checkbox"
                     class="mr-2"
                     @click.stop="$store.multiPay.toggle(cliente)"
-                    :checked="$store.multiPay.clients.includes(cliente.id)"
+                    :checked="$store.multiPay.clients.some(c => c.id === cliente.id)"
                 >
                 <div>
                     <p class="text-base font-semibold text-gray-800">
@@ -27,7 +28,7 @@
                 </span>
             </div>
 
-            <div class="flex items-center space-x-2 ml-2">
+            <div class="flex items-center space-x-2 ml-2" x-show="!$store.multiPay.active">
                 <button
                     class="w-8 h-8 border-2 border-green-500 text-green-500 rounded-full flex items-center justify-center"
                     title="Registrar pago"
