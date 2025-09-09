@@ -15,17 +15,22 @@ class ExcelController extends Controller
         $limit = (int) $request->input('limit', 50);
         $offset = (int) $request->input('offset', 0);
         $context = (int) $request->input('context', 3);
-        $searchAll = $request->boolean('search_all');
 
-        // Listar hojas
-        $sheets = $excel->listSheets();
+        // Listar hojas solo si se solicita explícitamente
+        $sheets = [];
+        if ($request->boolean('list_sheets')) {
+            $sheets = $excel->listSheets();
+        }
 
         $data = null;
-        $results = null;
-        if (! $sheet || $searchAll) {
-            $results = $excel->searchAllSheets($filters['q'] ?? '', $context);
-        } else {
+        if ($sheet) {
             $data = $excel->getSheetRows($sheet, $filters, $limit, $offset);
+        }
+
+        $results = null;
+        $q = $filters['q'] ?? null;
+        if ($q !== null && $q !== '') {
+            $results = $excel->searchAllSheets($q, $context);
         }
 
         return view('consulta_base_datos_historica', [
