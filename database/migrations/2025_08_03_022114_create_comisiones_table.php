@@ -11,8 +11,7 @@ class CreateComisionesTable extends Migration
     {
         Schema::create('comisiones', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->string('tipo_beneficiado', 20);
-            $table->unsignedBigInteger('beneficiado_id');
+            $table->morphs('comisionable');
             $table->decimal('porcentaje', 5, 2);
             $table->decimal('monto_base', 12, 2);
             $table->decimal('monto_pago', 12, 2);

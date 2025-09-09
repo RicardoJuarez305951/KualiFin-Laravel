@@ -20,12 +20,12 @@ class ComisionController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'tipo_beneficiado' => 'required|string',
-            'beneficiado_id'   => 'required|integer',
-            'porcentaje'       => 'required|numeric',
-            'monto_base'       => 'required|numeric',
-            'monto_pago'       => 'required|numeric',
-            'fecha_pago'       => 'required|date',
+            'comisionable_type' => 'required|string',
+            'comisionable_id'   => 'required|integer',
+            'porcentaje'        => 'required|numeric',
+            'monto_base'        => 'required|numeric',
+            'monto_pago'        => 'required|numeric',
+            'fecha_pago'        => 'required|date',
         ]);
 
         Comision::create($data);
