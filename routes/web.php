@@ -12,6 +12,8 @@ use App\Http\Controllers\Mobile\SupervisorController;
 use App\Http\Controllers\PagoRealController;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Middleware\ShareRole;
+use App\Http\Controllers\ExcelController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -25,6 +27,11 @@ Route::get('/', function () {
         return redirect()->route('mobile.index');
     }
     return redirect()->route('login');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/consulta-base-datos-historica', [ExcelController::class, 'index'])
+        ->name('consulta.historica');
 });
 
 Route::middleware(['auth','verified'])->group(function () {
