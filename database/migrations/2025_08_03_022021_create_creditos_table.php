@@ -15,7 +15,7 @@ class CreateCreditosTable extends Migration
             $table->decimal('monto_total', 12, 2);
             $table->string('estado', 20);
             $table->decimal('interes', 5, 2);
-            $table->string('periodo_pago', 100);
+            $table->string('periodicidad', 100);
             $table->date('fecha_inicio');
             $table->date('fecha_final');
 
