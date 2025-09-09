@@ -14,9 +14,9 @@ class CreateGarantiasTable extends Migration
             $table->unsignedBigInteger('credito_id');
             $table->string('propietario', 100);
             $table->string('tipo', 100);
-            $table->string('marca', 100);
-            $table->string('modelo', 100);
-            $table->string('num_serie', 100);
+            $table->string('marca', 100)->nullable();
+            $table->string('modelo', 100)->nullable();
+            $table->string('num_serie', 100)->nullable();
             $table->string('antiguedad', 20);
             $table->decimal('monto_garantizado', 12, 2);
             $table->string('foto_url', 255);

@@ -16,8 +16,8 @@
     $ventaEjercicio    = $faker->numberBetween(0, $objetivoEjercicio);
     $faltanteEjercicio = max(0, $objetivoEjercicio - $ventaEjercicio);
 
-    // Promotoras
-    $promotoras = collect(range(1, 6))->map(function($i) use ($faker) {
+    // Promotores
+    $promotores = collect(range(1, 6))->map(function($i) use ($faker) {
         $nombre   = $faker->firstName().' '.$faker->lastName();
         $obj      = $faker->numberBetween(10_000, 80_000);
         $venta    = $faker->numberBetween(0, $obj);
@@ -105,12 +105,12 @@
       <div class="h-0.5 bg-gray-200"></div>
     </div>
 
-    {{-- DIV3: Promotoras --}}
+    {{-- DIV3: Promotores --}}
     <div class="bg-white rounded-2xl shadow-md border border-gray-200 p-4">
-      <h2 class="text-base font-bold text-gray-900 mb-3">Promotoras</h2>
+      <h2 class="text-base font-bold text-gray-900 mb-3">Promotores</h2>
 
       <div class="space-y-3">
-        @foreach($promotoras as $idx => $p)
+        @foreach($promotores as $idx => $p)
           <div class="rounded-xl border border-gray-100 p-3 shadow-sm">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">

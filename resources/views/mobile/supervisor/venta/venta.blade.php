@@ -22,9 +22,9 @@
         'alerta' => $faker->boolean(20) // 20% con alerta
     ]);
 
-    // Prospectos por promotora
-    $prospectosPorPromotora = collect(range(1, 3))->map(fn($i) => [
-        'promotora' => $faker->name(),
+    // Prospectos por promotor
+    $prospectosPorPromotor = collect(range(1, 3))->map(fn($i) => [
+        'promotor' => $faker->name(),
         'prospectos' => collect(range(1, $faker->numberBetween(2, 5)))->map(fn() => [
             'nombre' => $faker->name(),
             'alerta' => $faker->boolean(20)
