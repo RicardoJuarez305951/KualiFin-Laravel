@@ -7,7 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class Credito extends Model
 {
     use HasFactory;
-    protected $guarded = [];
+
+    protected $fillable = [
+        'cliente_id',
+        'monto_total',
+        'estado',
+        'interes',
+        'periodicidad',
+        'fecha_inicio',
+        'fecha_final',
+    ];
 
     public function cliente()
     {
