@@ -33,8 +33,51 @@
             </div>
         </form>
 
-        {{-- Tabla con datos --}}
-        @if($data && $data['rows'])
+        {{-- Resultados multi-hoja --}}
+        @if($results !== null)
+            @php
+                $contextHeaders = collect($results)
+                    ->flatMap(fn($r) => array_keys($r['context'] ?? []))
+                    ->unique()
+                    ->take($context)
+                    ->all();
+            @endphp
+
+            @if(count($results))
+                <div class="overflow-x-auto border rounded">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-3 py-2 text-left font-semibold">Hoja</th>
+                                <th class="px-3 py-2 text-left font-semibold">Columna coincidencia</th>
+                                <th class="px-3 py-2 text-left font-semibold">Valor</th>
+                                @foreach($contextHeaders as $header)
+                                    <th class="px-3 py-2 text-left font-semibold">
+                                        {{ ucfirst(str_replace('_',' ', $header)) }}
+                                    </th>
+                                @endforeach
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @foreach($results as $row)
+                                <tr>
+                                    <td class="px-3 py-2">{{ $row['sheet'] }}</td>
+                                    <td class="px-3 py-2">{{ $row['match_column'] }}</td>
+                                    <td class="px-3 py-2">{{ $row['match_value'] }}</td>
+                                    @foreach($contextHeaders as $header)
+                                        <td class="px-3 py-2">{{ $row['context'][$header] ?? '' }}</td>
+                                    @endforeach
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <p class="text-gray-600">No se encontraron registros.</p>
+            @endif
+
+        {{-- Tabla con datos de una sola hoja --}}
+        @elseif($data && $data['rows'])
             <div class="overflow-x-auto border rounded">
                 <table class="min-w-full divide-y divide-gray-200 text-sm">
                     <thead class="bg-gray-100">
