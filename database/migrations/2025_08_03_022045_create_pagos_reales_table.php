@@ -12,7 +12,6 @@ class CreatePagosRealesTable extends Migration
         Schema::create('pagos_reales', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->unsignedBigInteger('pago_proyectado_id');
-            $table->decimal('monto_pagado', 12, 2);
             $table->string('tipo', 100);
             $table->date('fecha_pago');
             $table->text('comentario')->nullable();
