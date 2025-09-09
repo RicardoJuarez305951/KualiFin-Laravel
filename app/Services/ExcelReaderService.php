@@ -132,45 +132,29 @@ class ExcelReaderService
                     $headers = array_map(fn ($i) => "col_$i", range(0, count($cells) - 1));
                 }
 
-                $assoc = [];
                 foreach ($cells as $i => $value) {
-                    $assoc[$headers[$i] ?? "col_$i"] = is_string($value) ? trim($value) : $value;
-                }
+                    $val = is_string($value) ? trim($value) : $value;
 
-                foreach ($assoc as $col => $val) {
                     if (! is_scalar($val)) {
                         continue;
                     }
 
-                    $valStr = Str::lower((string) $val);
+                    $valLower = Str::lower((string) $val);
 
-                    $lev = levenshtein($queryLower, $valStr);
-                    similar_text($queryLower, $valStr, $percent);
-
-                    if (
-                        $valStr !== '' && (
-                            Str::contains($valStr, $queryLower) ||
-                            $lev <= 2 ||
-                            $percent >= 80
-                        )
-                    ) {
+                    if (Str::contains($valLower, $queryLower)) {
                         $contextPairs = [];
-                        foreach ($assoc as $k => $v) {
-                            if ($k === $col) {
+                        for ($j = $i + 1; $j < count($cells) && count($contextPairs) < $context; $j++) {
+                            $nextVal = is_string($cells[$j]) ? trim($cells[$j]) : $cells[$j];
+                            if ($nextVal === null || $nextVal === '') {
                                 continue;
                             }
-                            if ($v === null || $v === '') {
-                                continue;
-                            }
-                            $contextPairs[$k] = $v;
-                            if (count($contextPairs) >= $context) {
-                                break;
-                            }
+                            $contextPairs[$headers[$j] ?? "col_$j"] = $nextVal;
                         }
 
                         $results[] = [
                             'sheet' => $sheet->getName(),
-                            'match_column' => $col,
+                            'row' => $rowIndex,
+                            'match_column' => $headers[$i] ?? "col_$i",
                             'match_value' => $val,
                             'context' => $contextPairs,
                         ];
