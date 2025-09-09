@@ -115,12 +115,14 @@ class ExcelReaderService
         $results = [];
 
         foreach ($reader->getSheetIterator() as $sheet) {
+            $headersRaw = [];
             $headers = [];
 
             foreach ($sheet->getRowIterator() as $rowIndex => $row) {
                 $cells = $row->toArray();
 
                 if ($rowIndex === 1) {
+                    $headersRaw = array_map(fn ($h) => trim((string) $h), $cells);
                     $headers = array_map(function ($h) {
                         $formatted = $this->normalizeCellValue($h) ?? '';
                         return Str::of($formatted)->trim()->lower()->snake()->toString();
@@ -129,8 +131,9 @@ class ExcelReaderService
                     continue;
                 }
 
-                if (! $headers) {
-                    $headers = array_map(fn ($i) => "col_$i", range(0, count($cells) - 1));
+                if (! $headersRaw) {
+                    $headersRaw = array_map(fn ($i) => "col_$i", range(0, count($cells) - 1));
+                    $headers = $headersRaw;
                 }
 
                 foreach ($cells as $i => $value) {
@@ -149,13 +152,11 @@ class ExcelReaderService
                             if ($nextVal === null || $nextVal === '') {
                                 continue;
                             }
-                            $contextPairs[$headers[$j] ?? "col_$j"] = $nextVal;
+                            $contextPairs[$headersRaw[$j] ?? "col_$j"] = $nextVal;
                         }
 
                         $results[] = [
                             'sheet' => $sheet->getName(),
-                            'row' => $rowIndex,
-                            'match_column' => $headers[$i] ?? "col_$i",
                             'match_value' => $val,
                             'context' => $contextPairs,
                         ];
