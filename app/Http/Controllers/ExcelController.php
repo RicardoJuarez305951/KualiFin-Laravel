@@ -30,7 +30,30 @@ class ExcelController extends Controller
         $results = null;
         $q = $filters['q'] ?? null;
         if ($q !== null && $q !== '') {
-            $results = $excel->searchAllSheets($q, $context);
+            $resultsRaw = $excel->searchAllSheets($q, $context);
+
+            $results = collect($resultsRaw)
+                ->map(function ($item) {
+                    $contextItems = collect($item['context'] ?? [])
+                        ->mapWithKeys(function ($value, $key) {
+                            if (is_array($value)) {
+                                $name = $value['header'] ?? ($value['name'] ?? $key);
+                                $val = $value['value'] ?? null;
+
+                                return [$name => $val];
+                            }
+
+                            return [$key => $value];
+                        })
+                        ->all();
+
+                    return [
+                        'sheet' => $item['sheet'] ?? '',
+                        'match_value' => $item['match_value'] ?? '',
+                        'context' => $contextItems,
+                    ];
+                })
+                ->all();
         }
 
         return view('consulta_base_datos_historica', [
