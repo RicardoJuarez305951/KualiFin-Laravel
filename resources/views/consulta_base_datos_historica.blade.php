@@ -24,9 +24,7 @@
         @if($results !== null)
             @php
                 $contextHeaders = collect($results)
-                    ->flatMap(function ($r) {
-                        return array_keys($r['context'] ?? []);
-                    })
+                    ->flatMap(fn ($r) => array_keys($r['context'] ?? []))
                     ->unique()
                     ->take($context)
                     ->all();
@@ -39,6 +37,7 @@
                             <tr>
                                 <th class="px-3 py-2 text-left font-semibold">Hoja</th>
                                 <th class="px-3 py-2 text-left font-semibold">Valor</th>
+                                {{-- Cabeceras contextuales generadas dinámicamente --}}
                                 @foreach($contextHeaders as $header)
                                     <th class="px-3 py-2 text-left font-semibold">
                                         {{ $header }}
