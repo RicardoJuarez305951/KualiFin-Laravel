@@ -5,20 +5,7 @@
             Consulta Base de Datos Histórica
         </h1>
 
-        {{-- Selector de hoja --}}
         <form method="GET" class="flex items-center gap-4">
-            <div>
-                <label class="block text-sm font-medium">Selecciona hoja</label>
-                <select name="sheet" class="border rounded p-2">
-                    <option value="">-- Selecciona --</option>
-                    @foreach($sheets as $s)
-                        <option value="{{ $s }}" @selected($current === $s)>
-                            {{ $s }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-
             <div>
                 <label class="block text-sm font-medium">Buscar</label>
                 <input type="text" name="q" value="{{ $filters['q'] ?? '' }}"
@@ -49,6 +36,7 @@
                         <thead class="bg-gray-100">
                             <tr>
                                 <th class="px-3 py-2 text-left font-semibold">Hoja</th>
+                                <th class="px-3 py-2 text-left font-semibold">Fila</th>
                                 <th class="px-3 py-2 text-left font-semibold">Columna coincidencia</th>
                                 <th class="px-3 py-2 text-left font-semibold">Valor</th>
                                 @foreach($contextHeaders as $header)
@@ -62,6 +50,7 @@
                             @foreach($results as $row)
                                 <tr>
                                     <td class="px-3 py-2">{{ $row['sheet'] }}</td>
+                                    <td class="px-3 py-2">{{ $row['row'] }}</td>
                                     <td class="px-3 py-2">{{ $row['match_column'] }}</td>
                                     <td class="px-3 py-2">{{ $row['match_value'] }}</td>
                                     @foreach($contextHeaders as $header)
