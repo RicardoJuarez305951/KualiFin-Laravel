@@ -23,12 +23,13 @@ class ExcelReaderService
      */
     public function downloadAndStore(): array
     {
-        $url     = env('EXCEL_SOURCE_URL');
-        $path    = $this->path();
+        $url = env('EXCEL_SOURCE_URL');
+        $path = $this->path();
         $timeout = (int) env('EXCEL_TIMEOUT', 60);
 
-        if (!$url) {
+        if (! $url) {
             Log::channel('excel')->warning('EXCEL_SOURCE_URL no configurada.');
+
             return ['ok' => false, 'message' => 'URL no configurada'];
         }
 
@@ -37,11 +38,12 @@ class ExcelReaderService
 
             $response = Http::timeout($timeout)->get($url);
 
-            if (!$response->ok()) {
+            if (! $response->ok()) {
                 Log::channel('excel')->error('Fallo al descargar Excel', [
                     'status' => $response->status(),
                     'reason' => $response->reason(),
                 ]);
+
                 return ['ok' => false, 'message' => 'HTTP '.$response->status()];
             }
 
@@ -59,6 +61,7 @@ class ExcelReaderService
             Log::channel('excel')->error('Error descargando Excel', [
                 'error' => $e->getMessage(),
             ]);
+
             return ['ok' => false, 'message' => $e->getMessage()];
         }
     }
@@ -73,13 +76,14 @@ class ExcelReaderService
 
         if ($exists) {
             $lastModified = Storage::lastModified($path);
-            $ageMinutes   = (time() - $lastModified) / 60;
+            $ageMinutes = (time() - $lastModified) / 60;
 
             if ($ageMinutes < $maxAgeMinutes) {
                 Log::channel('excel')->info('Excel local vigente, no se descarga', [
                     'path' => $path,
                     'age_minutes' => round($ageMinutes, 2),
                 ]);
+
                 return ['ok' => true, 'path' => $path, 'cached' => true];
             }
         }
@@ -98,7 +102,86 @@ class ExcelReaderService
         }
 
         $reader->close();
+
         return $names;
+    }
+
+    public function searchAllSheets(string $query, int $context = 3): array
+    {
+        $reader = ReaderEntityFactory::createXLSXReader();
+        $reader->open(Storage::path($this->path()));
+
+        $queryLower = Str::lower($query);
+        $results = [];
+
+        foreach ($reader->getSheetIterator() as $sheet) {
+            $headers = [];
+
+            foreach ($sheet->getRowIterator() as $rowIndex => $row) {
+                $cells = $row->toArray();
+
+                if ($rowIndex === 1) {
+                    $headers = array_map(function ($h) {
+                        return Str::of((string) $h)->trim()->lower()->snake()->toString();
+                    }, $cells);
+
+                    continue;
+                }
+
+                if (! $headers) {
+                    $headers = array_map(fn ($i) => "col_$i", range(0, count($cells) - 1));
+                }
+
+                $assoc = [];
+                foreach ($cells as $i => $value) {
+                    $assoc[$headers[$i] ?? "col_$i"] = is_string($value) ? trim($value) : $value;
+                }
+
+                foreach ($assoc as $col => $val) {
+                    if (! is_scalar($val)) {
+                        continue;
+                    }
+
+                    $valStr = Str::lower((string) $val);
+
+                    $lev = levenshtein($queryLower, $valStr);
+                    similar_text($queryLower, $valStr, $percent);
+
+                    if (
+                        $valStr !== '' && (
+                            Str::contains($valStr, $queryLower) ||
+                            $lev <= 2 ||
+                            $percent >= 80
+                        )
+                    ) {
+                        $contextPairs = [];
+                        foreach ($assoc as $k => $v) {
+                            if ($k === $col) {
+                                continue;
+                            }
+                            if ($v === null || $v === '') {
+                                continue;
+                            }
+                            $contextPairs[$k] = $v;
+                            if (count($contextPairs) >= $context) {
+                                break;
+                            }
+                        }
+
+                        $results[] = [
+                            'sheet' => $sheet->getName(),
+                            'match_column' => $col,
+                            'match_value' => $val,
+                            'context' => $contextPairs,
+                        ];
+                    }
+                }
+            }
+        }
+
+        $reader->close();
+
+        return $results;
     }
 
     public function getSheetRows(string $sheetName, ?array $filters = null, int $limit = 200, int $offset = 0): array
@@ -110,23 +193,26 @@ class ExcelReaderService
 
         $headers = [];
         $results = [];
-        $total   = 0;
+        $total = 0;
 
         foreach ($reader->getSheetIterator() as $sheet) {
-            if ($sheet->getName() !== $sheetName) continue;
+            if ($sheet->getName() !== $sheetName) {
+                continue;
+            }
 
             foreach ($sheet->getRowIterator() as $rowIndex => $row) {
                 $cells = $row->toArray();
 
                 if ($rowIndex === 1) {
                     $headers = array_map(function ($h) {
-                        return Str::of((string)$h)->trim()->lower()->snake()->toString();
+                        return Str::of((string) $h)->trim()->lower()->snake()->toString();
                     }, $cells);
+
                     continue;
                 }
 
-                if (!$headers) {
-                    $headers = array_map(fn($i) => "col_$i", range(0, count($cells)-1));
+                if (! $headers) {
+                    $headers = array_map(fn ($i) => "col_$i", range(0, count($cells) - 1));
                 }
 
                 $assoc = [];
@@ -134,11 +220,15 @@ class ExcelReaderService
                     $assoc[$headers[$i] ?? "col_$i"] = is_string($value) ? trim($value) : $value;
                 }
 
-                if (!$this->passFilters($assoc, $filters)) continue;
+                if (! $this->passFilters($assoc, $filters)) {
+                    continue;
+                }
 
                 $total++;
 
-                if ($total <= $offset) continue;
+                if ($total <= $offset) {
+                    continue;
+                }
                 if (count($results) < $limit) {
                     $results[] = $assoc;
                 } else {
@@ -152,10 +242,10 @@ class ExcelReaderService
 
         return [
             'headers' => $headers,
-            'rows'    => $results,
-            'offset'  => $offset,
-            'limit'   => $limit,
-            'total'   => $total,
+            'rows' => $results,
+            'offset' => $offset,
+            'limit' => $limit,
+            'total' => $total,
         ];
     }
 
@@ -165,28 +255,43 @@ class ExcelReaderService
         if ($q) {
             $found = false;
             foreach ($row as $v) {
-                if (is_scalar($v) && Str::contains(Str::lower((string)$v), Str::lower($q))) {
-                    $found = true; break;
+                if (is_scalar($v) && Str::contains(Str::lower((string) $v), Str::lower($q))) {
+                    $found = true;
+                    break;
                 }
             }
-            if (!$found) return false;
+            if (! $found) {
+                return false;
+            }
         }
 
         foreach ($filters as $key => $val) {
-            if (in_array($key, ['q','date_from','date_to','monto_min','monto_max'], true)) continue;
-            if ($val === null || $val === '') continue;
-            if (!array_key_exists($key, $row)) continue;
-            if (Str::lower((string)$row[$key]) !== Str::lower((string)$val)) return false;
+            if (in_array($key, ['q', 'date_from', 'date_to', 'monto_min', 'monto_max'], true)) {
+                continue;
+            }
+            if ($val === null || $val === '') {
+                continue;
+            }
+            if (! array_key_exists($key, $row)) {
+                continue;
+            }
+            if (Str::lower((string) $row[$key]) !== Str::lower((string) $val)) {
+                return false;
+            }
         }
 
         $fechaKey = array_key_exists('fecha', $row) ? 'fecha' : (array_key_exists('date', $row) ? 'date' : null);
         if ($fechaKey) {
             $from = $filters['date_from'] ?? null;
-            $to   = $filters['date_to'] ?? null;
+            $to = $filters['date_to'] ?? null;
             if ($from || $to) {
-                $ts = strtotime((string)$row[$fechaKey]);
-                if ($from && $ts < strtotime($from)) return false;
-                if ($to   && $ts > strtotime($to))   return false;
+                $ts = strtotime((string) $row[$fechaKey]);
+                if ($from && $ts < strtotime($from)) {
+                    return false;
+                }
+                if ($to && $ts > strtotime($to)) {
+                    return false;
+                }
             }
         }
 
@@ -194,10 +299,14 @@ class ExcelReaderService
         if ($mKey) {
             $min = $filters['monto_min'] ?? null;
             $max = $filters['monto_max'] ?? null;
-            $val = is_numeric($row[$mKey]) ? (float)$row[$mKey] : (float)str_replace([',','$',' '], '', (string)$row[$mKey]);
+            $val = is_numeric($row[$mKey]) ? (float) $row[$mKey] : (float) str_replace([',', '$', ' '], '', (string) $row[$mKey]);
 
-            if ($min !== null && $val < (float)$min) return false;
-            if ($max !== null && $val > (float)$max) return false;
+            if ($min !== null && $val < (float) $min) {
+                return false;
+            }
+            if ($max !== null && $val > (float) $max) {
+                return false;
+            }
         }
 
         return true;
