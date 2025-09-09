@@ -23,4 +23,9 @@ class Ejecutivo extends Model
     {
         return $this->hasMany(Ejercicio::class);
     }
+
+    public function comisiones()
+    {
+        return $this->morphMany(Comision::class, 'comisionable');
+    }
 }
