@@ -15,7 +15,8 @@ class CreateEjerciciosTable extends Migration
             $table->unsignedBigInteger('ejecutivo_id');
             $table->date('fecha_inicio');
             $table->date('fecha_final');
-            $table->decimal('dinero', 12, 2);
+            $table->decimal('venta_objetivo', 12, 2);
+            $table->decimal('dinero_autorizado', 12, 2);
 
             $table->foreign('supervisor_id')
                   ->references('id')->on('supervisores')
