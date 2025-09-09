@@ -14,4 +14,19 @@ class PagoReal extends Model
     {
         return $this->belongsTo(PagoProyectado::class);
     }
+
+    public function pagoDiferido()
+    {
+        return $this->hasOne(PagoDiferido::class);
+    }
+
+    public function pagoCompleto()
+    {
+        return $this->hasOne(PagoCompleto::class);
+    }
+
+    public function pagoAnticipo()
+    {
+        return $this->hasOne(PagoAnticipo::class);
+    }
 }

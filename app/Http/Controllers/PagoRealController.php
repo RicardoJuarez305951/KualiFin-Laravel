@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PagoReal;
 use App\Models\PagoProyectado;
+use App\Models\PagoCompleto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
@@ -23,7 +24,6 @@ class PagoRealController extends Controller
     {
         $data = $request->validate([
             'pago_proyectado_id'=> 'required|exists:pagos_proyectados,id',
-            'monto_pagado'      => 'required|numeric',
             'tipo'              => 'required|string',
             'fecha_pago'        => 'required|date',
             'comentario'        => 'nullable|string',
@@ -70,12 +70,18 @@ class PagoRealController extends Controller
 
         foreach ($data['pago_proyectado_ids'] as $id) {
             $pagoProyectado = PagoProyectado::findOrFail($id);
-            $pagos[] = PagoReal::create([
+            $pagoReal = PagoReal::create([
                 'pago_proyectado_id' => $id,
-                'monto_pagado' => $pagoProyectado->deuda_total ?? $pagoProyectado->monto_proyectado,
                 'tipo' => 'completo',
                 'fecha_pago' => Carbon::now()->toDateString(),
             ]);
+
+            PagoCompleto::create([
+                'pago_real_id' => $pagoReal->id,
+                'monto_completo' => $pagoProyectado->deuda_total ?? $pagoProyectado->monto_proyectado,
+            ]);
+
+            $pagos[] = $pagoReal;
         }
 
         return response()->json($pagos, 201);
