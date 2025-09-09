@@ -122,7 +122,8 @@ class ExcelReaderService
 
                 if ($rowIndex === 1) {
                     $headers = array_map(function ($h) {
-                        return Str::of((string) $h)->trim()->lower()->snake()->toString();
+                        $formatted = $this->normalizeCellValue($h) ?? '';
+                        return Str::of($formatted)->trim()->lower()->snake()->toString();
                     }, $cells);
 
                     continue;
@@ -133,18 +134,18 @@ class ExcelReaderService
                 }
 
                 foreach ($cells as $i => $value) {
-                    $val = is_string($value) ? trim($value) : $value;
+                    $val = $this->normalizeCellValue($value);
 
-                    if (! is_scalar($val)) {
+                    if ($val === null || $val === '') {
                         continue;
                     }
 
-                    $valLower = Str::lower((string) $val);
+                    $valLower = Str::lower($val);
 
                     if (Str::contains($valLower, $queryLower)) {
                         $contextPairs = [];
                         for ($j = $i + 1; $j < count($cells) && count($contextPairs) < $context; $j++) {
-                            $nextVal = is_string($cells[$j]) ? trim($cells[$j]) : $cells[$j];
+                            $nextVal = $this->normalizeCellValue($cells[$j]);
                             if ($nextVal === null || $nextVal === '') {
                                 continue;
                             }
@@ -189,7 +190,8 @@ class ExcelReaderService
 
                 if ($rowIndex === 1) {
                     $headers = array_map(function ($h) {
-                        return Str::of((string) $h)->trim()->lower()->snake()->toString();
+                        $formatted = $this->normalizeCellValue($h) ?? '';
+                        return Str::of($formatted)->trim()->lower()->snake()->toString();
                     }, $cells);
 
                     continue;
@@ -201,7 +203,7 @@ class ExcelReaderService
 
                 $assoc = [];
                 foreach ($cells as $i => $value) {
-                    $assoc[$headers[$i] ?? "col_$i"] = is_string($value) ? trim($value) : $value;
+                    $assoc[$headers[$i] ?? "col_$i"] = $this->normalizeCellValue($value) ?? '';
                 }
 
                 if (! $this->passFilters($assoc, $filters)) {
@@ -231,6 +233,19 @@ class ExcelReaderService
             'limit' => $limit,
             'total' => $total,
         ];
+    }
+
+    protected function normalizeCellValue(mixed $value): ?string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        if (is_scalar($value)) {
+            return trim((string) $value);
+        }
+
+        return null;
     }
 
     protected function passFilters(array $row, array $filters): bool
