@@ -10,12 +10,16 @@ class Promotor extends Model
     protected $guarded = [];
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     const CREATED_AT = 'creado_en';
     const UPDATED_AT = 'actualizado_en';
 =======
 >>>>>>> theirs
     protected $table = 'promotores';
 =======
+>>>>>>> theirs
+=======
+    protected $table = 'promotores';
 >>>>>>> theirs
 
     public function user()

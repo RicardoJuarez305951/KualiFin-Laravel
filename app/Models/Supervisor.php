@@ -10,11 +10,15 @@ class Supervisor extends Model
     protected $guarded = [];
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
     public $timestamps = false;
 =======
 >>>>>>> theirs
     protected $table = 'supervisores';
 =======
+>>>>>>> theirs
+=======
+    protected $table = 'supervisores';
 >>>>>>> theirs
 
     public function user()
