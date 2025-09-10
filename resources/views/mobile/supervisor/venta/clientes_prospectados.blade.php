@@ -174,7 +174,7 @@
 
         {{-- sheet/modal --}}
         <div
-          class="relative w-full sm:max-w-md bg-white text-gray-900 border border-gray-200 shadow-2xl
+          class="relative w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white text-gray-900 border border-gray-200 shadow-2xl
                  sm:rounded-2xl rounded-t-2xl p-5 sm:mx-auto"
           x-trap.noscroll="showModal" x-transition>
           
