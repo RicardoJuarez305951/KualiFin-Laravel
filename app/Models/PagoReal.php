@@ -9,6 +9,7 @@ class PagoReal extends Model
     use HasFactory;
     protected $guarded = [];
     protected $table = 'pagos_reales';
+    const UPDATED_AT = null;
 
     public function pagoProyectado()
     {

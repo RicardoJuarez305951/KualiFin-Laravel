@@ -9,6 +9,8 @@ class Comision extends Model
 {
     use HasFactory;
     protected $guarded = [];
+    public $timestamps = false;
+    protected $table = 'comisiones';
 
     public function comisionable(): MorphTo
     {
