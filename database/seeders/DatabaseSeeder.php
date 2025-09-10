@@ -16,6 +16,30 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolePermissionSeeder::class,
             EjecutivoSeeder::class,
+            SupervisorSeeder::class,
+            PromotorSeeder::class,
+            EjercicioSeeder::class,
+            ClienteSeeder::class,
+            CreditoSeeder::class,
+            PagoProyectadoSeeder::class,
+            PagoRealSeeder::class,
+            PagoDiferidoSeeder::class,
+            PagoCompletoSeeder::class,
+            PagoAnticipoSeeder::class,
+            OcupacionSeeder::class,
+            IngresoAdicionalSeeder::class,
+            DatoContactoSeeder::class,
+            InformacionFamiliarSeeder::class,
+            AvalSeeder::class,
+            DocumentoClienteSeeder::class,
+            DocumentoAvalSeeder::class,
+            GarantiaSeeder::class,
+            ContratoSeeder::class,
+            InversionSeeder::class,
+            ComisionSeeder::class,
+            AdministrativoSeeder::class,
+            DocumentoSeeder::class,
+            UserSeeder::class,
         ]);
 
         $user = User::factory()->create([
@@ -57,8 +81,5 @@ class DatabaseSeeder extends Seeder
             'telefono' => '0987654321',
         ]);
         $user->assignRole('promotor');
-
-        $this->call(UserSeeder::class);
     }
 }
-
