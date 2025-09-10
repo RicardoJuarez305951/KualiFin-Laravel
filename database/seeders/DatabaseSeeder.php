@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(RolePermissionSeeder::class);
+        $this->call(InversionSeeder::class);
 
         $user = User::factory()->create([
             'name' => 'Super Admin',
