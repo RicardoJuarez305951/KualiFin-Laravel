@@ -14,14 +14,14 @@ class CreateDatosContactoTable extends Migration
             $table->unsignedBigInteger('credito_id');
             $table->string('calle', 150);
             $table->string('numero_ext', 10);
-            $table->string('numero_int', 10);
+            $table->string('numero_int', 10)->nullable();
             $table->integer('monto_mensual');
             $table->string('colonia', 100);
             $table->string('municipio', 100);
-            $table->string('estado', 100);
+            $table->string('estado', 100)->nullable();
             $table->string('cp', 10);
-            $table->string('tiempo_residencia', 20);
-            $table->string('tel_fijo', 20);
+            $table->string('tiempo_en_residencia', 20);
+            $table->string('tel_fijo', 20)->nullable();
             $table->string('tel_cel', 20);
             $table->string('tipo_de_vivienda', 100);
             $table->timestamp('creado_en')->useCurrent();

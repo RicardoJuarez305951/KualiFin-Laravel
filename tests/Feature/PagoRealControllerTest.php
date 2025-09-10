@@ -17,6 +17,7 @@ class PagoRealControllerTest extends TestCase
 
         Schema::dropIfExists('pagos_reales');
         Schema::dropIfExists('pagos_proyectados');
+        Schema::dropIfExists('pagos_completos');
 
         Schema::create('pagos_proyectados', function (Blueprint $table) {
             $table->id();
@@ -27,9 +28,15 @@ class PagoRealControllerTest extends TestCase
         Schema::create('pagos_reales', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('pago_proyectado_id');
-            $table->decimal('monto_pagado', 12, 2);
             $table->string('tipo', 100);
             $table->date('fecha_pago');
+            $table->timestamps();
+        });
+
+        Schema::create('pagos_completos', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('pago_real_id');
+            $table->decimal('monto_completo', 12, 2);
             $table->timestamps();
         });
     }
@@ -48,14 +55,20 @@ class PagoRealControllerTest extends TestCase
 
         $this->assertDatabaseHas('pagos_reales', [
             'pago_proyectado_id' => $pago1->id,
-            'monto_pagado' => 100,
             'tipo' => 'completo',
         ]);
 
         $this->assertDatabaseHas('pagos_reales', [
             'pago_proyectado_id' => $pago2->id,
-            'monto_pagado' => 200,
             'tipo' => 'completo',
+        ]);
+
+        $this->assertDatabaseHas('pagos_completos', [
+            'monto_completo' => 100,
+        ]);
+
+        $this->assertDatabaseHas('pagos_completos', [
+            'monto_completo' => 200,
         ]);
     }
 }

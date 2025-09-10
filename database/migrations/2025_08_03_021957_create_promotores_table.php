@@ -16,7 +16,7 @@ class CreatePromotoresTable extends Migration
             $table->string('nombre', 100);
             $table->string('apellido_p', 100);
             $table->string('apellido_m', 100);
-            $table->decimal('venta_maximas', 12, 2);
+            $table->decimal('venta_maxima', 12, 2);
             $table->string('colonia', 100);
             $table->decimal('venta_proyectada_objetivo', 12, 2);
             $table->decimal('bono', 12, 2);

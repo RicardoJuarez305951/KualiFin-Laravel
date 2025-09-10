@@ -23,7 +23,7 @@
             'aval_nombre' => $faker->name(),
             'aval_direccion' => $faker->address(),
             'aval_telefono' => $faker->phoneNumber(),
-            'promotora' => $faker->name(),
+            'promotor' => $faker->name(),
             'supervisora' => $faker->name(),
             'monto_deuda' => $monto,
             'deuda_total' => $monto,
@@ -55,7 +55,7 @@
                 nombre_aval: '',
                 direccion_aval: '',
                 telefono_aval: '',
-                promotora: '',
+                promotor: '',
                 supervisora: '',
                 monto_deuda: '',
                 fecha_prestamo: '',
@@ -90,7 +90,7 @@
                     nombre_aval: c['aval_nombre'] ?? c.aval_nombre ?? '',
                     direccion_aval: c['aval_direccion'] ?? c.aval_direccion ?? '',
                     telefono_aval: c['aval_telefono'] ?? c.aval_telefono ?? '',
-                    promotora: c['promotora'] ?? c.promotora ?? '',
+                    promotor: c['promotor'] ?? c.promotor ?? '',
                     supervisora: c['supervisora'] ?? c.supervisora ?? '',
                     monto_deuda: c['monto_deuda'] ?? c.monto_deuda ?? '',
                     fecha_prestamo: c['fecha_prestamo'] ?? c.fecha_prestamo ?? '',
@@ -168,13 +168,13 @@
                 {{-- Divisor --}}
                 <div class="my-4 border-t border-gray-200"></div>
 
-                {{-- Grid fila 2: Promotora + Deuda (21) | Supervisora + Fecha (22) --}}
+                {{-- Grid fila 2: Promotor + Deuda (21) | Supervisora + Fecha (22) --}}
                 <div class="grid grid-cols-2 gap-4">
-                    {{-- 21: Promotora y deuda --}}
+                    {{-- 21: Promotor y deuda --}}
                     <div class="space-y-2">
                         <div>
-                            <p class="text-xs text-gray-500">Promotora</p>
-                            <p class="font-medium" x-text="vencidaDetail.promotora"></p>
+                            <p class="text-xs text-gray-500">Promotor</p>
+                            <p class="font-medium" x-text="vencidaDetail.promotor"></p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Monto deuda</p>
