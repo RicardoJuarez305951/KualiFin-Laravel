@@ -54,6 +54,8 @@ class DatabaseSeeder extends Seeder
             'telefono' => '0987654321',
         ]);
         $user->assignRole('promotor');
+
+        $this->call(EjercicioSeeder::class);
     }
 }
 
