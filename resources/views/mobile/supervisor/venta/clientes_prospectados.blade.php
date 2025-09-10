@@ -186,61 +186,33 @@
           </div>
 
           {{-- Formulario documentos y datos --}}
-          <form class="mt-4 space-y-4">
-            <div>
-              <h3 class="text-sm font-semibold mb-2 text-center">Datos del Cliente</h3>
-              <div class="grid grid-cols-1 gap-2">
-                <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.nombre" readonly>
-                <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.apellido_p" readonly>
-                <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.apellido_m" readonly>
-                <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.curp" readonly>
-              </div>
+          <form x-data="{ step: 1 }" method="POST" action="{{ route('creditos.store') }}" class="mt-4 space-y-4">
+            @csrf
+            <div x-show="step === 1">
+              @include('mobile.supervisor.venta.clientes_prospectados_form_steps.credito')
+            </div>
+            <div x-show="step === 2">
+              @include('mobile.supervisor.venta.clientes_prospectados_form_steps.ocupacion')
+            </div>
+            <div x-show="step === 3">
+              @include('mobile.supervisor.venta.clientes_prospectados_form_steps.ingreso_adicional')
+            </div>
+            <div x-show="step === 4">
+              @include('mobile.supervisor.venta.clientes_prospectados_form_steps.dato_contacto')
+            </div>
+            <div x-show="step === 5">
+              @include('mobile.supervisor.venta.clientes_prospectados_form_steps.informacion_familiar')
+            </div>
+            <div x-show="step === 6">
+              @include('mobile.supervisor.venta.clientes_prospectados_form_steps.garantias')
             </div>
 
-            <div>
-              <h3 class="text-sm font-semibold mb-2 text-center">Datos del Aval</h3>
-              <div class="grid grid-cols-1 gap-2">
-                <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.aval_nombre" readonly>
-                <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.aval_apellido_p" readonly>
-                <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.aval_apellido_m" readonly>
-                <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.aval_curp" readonly>
-              </div>
-            </div>
-
-            <div>
-              <h3 class="text-sm font-semibold mb-2 text-center">Documentos faltantes</h3>
-              <div class="grid grid-cols-1 gap-2 text-sm">
-                <label class="font-medium">INE</label>
-                <input type="file" class="w-full text-xs" />
-                <label class="font-medium">Comprobante de domicilio</label>
-                <input type="file" class="w-full text-xs" />
-              </div>
-            </div>
-
-            <div>
-              <h3 class="text-sm font-semibold mb-2 text-center">Datos adicionales</h3>
-              <div class="grid grid-cols-1 gap-2">
-                <input type="date" class="w-full px-3 py-2 border rounded-lg text-sm" x-model="selected.fecha_nacimiento">
-                <input type="number" step="0.01" placeholder="Monto máximo" class="w-full px-3 py-2 border rounded-lg text-sm" x-model="selected.monto_maximo">
-                <input type="text" placeholder="Estatus" class="w-full px-3 py-2 border rounded-lg text-sm" x-model="selected.estatus">
-                <label class="flex items-center text-xs"><input type="checkbox" class="mr-2" x-model="selected.tiene_credito_activo">Tiene crédito activo</label>
-                <label class="flex items-center text-xs"><input type="checkbox" class="mr-2" x-model="selected.activo">Activo</label>
-              </div>
+            <div class="mt-6 flex justify-between gap-3">
+              <button type="button" x-show="step > 1" @click="step--" class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold shadow-sm transition">Anterior</button>
+              <button type="button" x-show="step < 6" @click="step++" class="ml-auto inline-flex items-center justify-center px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm transition">Siguiente</button>
+              <button type="submit" x-show="step === 6" class="ml-auto inline-flex items-center justify-center px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm transition">Enviar</button>
             </div>
           </form>
-          {{-- Botones acciones --}}
-          <div class="mt-6 grid grid-cols-2 gap-3">
-            <button
-              class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold shadow-sm transition"
-              @click="rechazar()">
-              Rechazar
-            </button>
-            <button
-              class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm transition"
-              @click="aceptar()">
-              Aceptar
-            </button>
-          </div>
 
           {{-- Cerrar esquina --}}
           <button class="absolute top-3 right-3 p-2 rounded-lg bg-gray-100 hover:bg-gray-200" @click="closeModal()">✕</button>
@@ -255,27 +227,18 @@
     function prospectado() {
       return {
         showModal: false,
+        step: 1,
         selected: { id:null, nombre:'', apellido_p:'', apellido_m:'', curp:'', ine_url:'', comp_url:'', aval_nombre:'', aval_apellido_p:'', aval_apellido_m:'', aval_curp:'', fecha_nacimiento:'', tiene_credito_activo:false, estatus:'', monto_maximo:'', activo:false },
 
         openModal(data) {
           this.selected = data;
+          this.step = 1;
           this.showModal = true;
         },
         closeModal() {
           this.showModal = false;
+          this.step = 1;
           this.selected  = { id:null, nombre:'', apellido_p:'', apellido_m:'', curp:'', ine_url:'', comp_url:'', aval_nombre:'', aval_apellido_p:'', aval_apellido_m:'', aval_curp:'', fecha_nacimiento:'', tiene_credito_activo:false, estatus:'', monto_maximo:'', activo:false };
-        },
-
-        // Acciones
-        aceptar() {
-          // Aquí POST a tu endpoint para aceptar al cliente
-          console.log('ACEPTAR', this.selected);
-          this.closeModal();
-        },
-        rechazar() {
-          // Aquí POST a tu endpoint para rechazar al cliente
-          console.log('RECHAZAR', this.selected);
-          this.closeModal();
         },
       }
     }
