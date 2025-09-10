@@ -8,9 +8,15 @@ class Promotor extends Model
 {
     use HasFactory;
     protected $guarded = [];
+<<<<<<< ours
+<<<<<<< ours
     const CREATED_AT = 'creado_en';
     const UPDATED_AT = 'actualizado_en';
+=======
+>>>>>>> theirs
     protected $table = 'promotores';
+=======
+>>>>>>> theirs
 
     public function user()
     {
