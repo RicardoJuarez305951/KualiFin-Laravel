@@ -13,13 +13,42 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(RolePermissionSeeder::class);
+        $this->call([
+            RolePermissionSeeder::class,
+            EjecutivoSeeder::class,
+            SupervisorSeeder::class,
+            PromotorSeeder::class,
+            EjercicioSeeder::class,
+            ClienteSeeder::class,
+            CreditoSeeder::class,
+            PagoProyectadoSeeder::class,
+            PagoRealSeeder::class,
+            PagoDiferidoSeeder::class,
+            PagoCompletoSeeder::class,
+            PagoAnticipoSeeder::class,
+            OcupacionSeeder::class,
+            IngresoAdicionalSeeder::class,
+            DatoContactoSeeder::class,
+            InformacionFamiliarSeeder::class,
+            AvalSeeder::class,
+            DocumentoClienteSeeder::class,
+            DocumentoAvalSeeder::class,
+            GarantiaSeeder::class,
+            ContratoSeeder::class,
+            InversionSeeder::class,
+            ComisionSeeder::class,
+            AdministrativoSeeder::class,
+            TipoDocumentoSeeder::class,
+            DocumentoSeeder::class,
+            UserSeeder::class,
+        ]);
 
         $user = User::factory()->create([
             'name' => 'Super Admin',
             'email' => 'superadmin@example.com',
             'password' => Hash::make('12345'),
             'telefono' => '1234567890',
+            'rol' => 'superadmin',
         ]);
         $user->assignRole('superadmin');
 
@@ -28,6 +57,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'admin@example.com',
             'password' => Hash::make('12345'),
             'telefono' => '1234567890',
+            'rol' => 'administrador',
         ]);
         $user->assignRole('administrador');
 
@@ -36,6 +66,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'supervisor@example.com',
             'password' => Hash::make('12345'),
             'telefono' => '0987654321',
+            'rol' => 'supervisor',
         ]);
         $user->assignRole('supervisor');
 
@@ -44,6 +75,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'ejecutivo@example.com',
             'password' => Hash::make('12345'),
             'telefono' => '0987654321',
+            'rol' => 'ejecutivo',
         ]);
         $user->assignRole('ejecutivo');
 
@@ -52,8 +84,8 @@ class DatabaseSeeder extends Seeder
             'email' => 'promotor@example.com',
             'password' => Hash::make('12345'),
             'telefono' => '0987654321',
+            'rol' => 'promotor',
         ]);
         $user->assignRole('promotor');
     }
 }
-

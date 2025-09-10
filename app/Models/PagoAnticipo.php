@@ -10,6 +10,7 @@ class PagoAnticipo extends Model
     use HasFactory;
     protected $guarded = [];
     protected $table = 'pagos_anticipo';
+    const UPDATED_AT = null;
 
     public function pagoReal()
     {

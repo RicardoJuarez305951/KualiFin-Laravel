@@ -18,6 +18,8 @@ class Credito extends Model
         'fecha_final',
     ];
 
+    public $timestamps = false;
+
     public function cliente()
     {
         return $this->belongsTo(Cliente::class);
