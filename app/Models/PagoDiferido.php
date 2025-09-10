@@ -10,6 +10,7 @@ class PagoDiferido extends Model
     use HasFactory;
     protected $guarded = [];
     protected $table = 'pagos_diferidos';
+    const UPDATED_AT = null;
 
     public function pagoReal()
     {

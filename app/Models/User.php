@@ -14,6 +14,12 @@ class User extends Authenticatable
     use HasFactory, Notifiable, HasRoles;
 
     /**
+     * Custom timestamp columns.
+     */
+    const CREATED_AT = 'creado_en';
+    const UPDATED_AT = null;
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
