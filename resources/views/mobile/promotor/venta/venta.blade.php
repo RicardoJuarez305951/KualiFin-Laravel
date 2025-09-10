@@ -1,24 +1,7 @@
 {{-- resources/views/mobile/promotor/venta/venta.blade.php --}}
 @php
-    use Faker\Factory as Faker;
-
     /** @var string $role */
     $role = isset($role) && $role ? $role : 'promotor';
-
-    $faker = Faker::create('es_MX');
-
-    // Datos generales
-    $fecha      = now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
-    $supervisor = $faker->name();
-    $ejecutivo  = $faker->name();
-
-    // Lista de clientes con montos
-    $clientes = collect(range(1, 6))->map(fn() => [
-        'nombre' => $faker->name(),
-        'monto'   => $faker->randomFloat(2, 500, 8000),
-    ]);
-
-    $total = $clientes->sum('monto');
 
     function money_mx($v) {
         return '$' . number_format($v, 2, '.', ',');

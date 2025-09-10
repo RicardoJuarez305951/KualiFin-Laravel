@@ -3,6 +3,11 @@
 namespace App\Http\Controllers\Mobile;
 
 use App\Http\Controllers\Controller;
+use App\Models\Promotor;
+use App\Models\Cliente;
+use App\Models\Credito;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class PromotorController extends Controller
 {
@@ -18,7 +23,30 @@ class PromotorController extends Controller
 
     public function venta()
     {
-        return view('mobile.promotor.venta.venta');
+        $promotor = Promotor::with(['supervisor.ejecutivo.user', 'supervisor.user', 'clientes.credito'])
+            ->first();
+
+        $fecha = now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
+        $supervisor = $promotor?->supervisor?->user?->name;
+        $ejecutivo = $promotor?->supervisor?->ejecutivo?->user?->name;
+
+        $clientes = $promotor?->clientes->map(function ($c) {
+            $monto = $c->credito->monto_total ?? $c->monto_maximo;
+            return [
+                'nombre' => trim($c->nombre . ' ' . $c->apellido_p),
+                'monto' => (float) $monto,
+            ];
+        }) ?? collect();
+
+        $total = $clientes->sum('monto');
+
+        return view('mobile.promotor.venta.venta', compact(
+            'fecha',
+            'supervisor',
+            'ejecutivo',
+            'clientes',
+            'total'
+        ));
     }
 
     public function solicitar_venta()
