@@ -122,7 +122,7 @@ class ExcelReaderService
                 $cells = $row->toArray();
 
                 if ($rowIndex === 1) {
-                    $headersRaw = array_map(fn ($h) => trim((string) $h), $cells);
+                    $headersRaw = array_map(fn ($h) => $this->normalizeCellValue($h) ?? '', $cells);
                     $headers = array_map(function ($h) {
                         $formatted = $this->normalizeCellValue($h) ?? '';
                         return Str::of($formatted)->trim()->lower()->snake()->toString();
