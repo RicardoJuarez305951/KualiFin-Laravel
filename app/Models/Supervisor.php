@@ -8,18 +8,8 @@ class Supervisor extends Model
 {
     use HasFactory;
     protected $guarded = [];
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
     public $timestamps = false;
-=======
->>>>>>> theirs
     protected $table = 'supervisores';
-=======
->>>>>>> theirs
-=======
-    protected $table = 'supervisores';
->>>>>>> theirs
 
     public function user()
     {
