@@ -7,26 +7,42 @@
     $promotores = collect(range(1, 3))->map(function() use ($faker) {
         $clientes = collect(range(1, rand(2, 5)))->map(function() use ($faker) {
             return [
-                'id'        => $faker->uuid(),
-                'nombre'    => $faker->name(),
-                'telefono'  => $faker->numerify('55########'),
-                'direccion' => $faker->streetAddress.', '.$faker->city,
-                'curp'      => strtoupper($faker->regexify('[A-Z]{4}[0-9]{6}[A-Z]{6}[0-9]{2}')),
+                'id'         => $faker->uuid(),
+                'nombre'     => $faker->firstName(),
+                'apellido_p' => $faker->lastName(),
+                'apellido_m' => $faker->lastName(),
+                'telefono'   => $faker->numerify('55########'),
+                'direccion'  => $faker->streetAddress.', '.$faker->city,
+                'curp'       => strtoupper($faker->regexify('[A-Z]{4}[0-9]{6}[A-Z]{6}[0-9]{2}')),
                 // URLs DEMO (pondrás tus rutas a Drive / storage)
-                'ine_url'   => 'https://picsum.photos/seed/ine/640/400',
-                'comp_url'  => 'https://picsum.photos/seed/comprobante/640/900',
+                'ine_url'    => 'https://picsum.photos/seed/ine/640/400',
+                'comp_url'   => 'https://picsum.photos/seed/comprobante/640/900',
+                'aval'       => [
+                    'nombre'      => $faker->firstName(),
+                    'apellido_p'  => $faker->lastName(),
+                    'apellido_m'  => $faker->lastName(),
+                    'curp'        => strtoupper($faker->regexify('[A-Z]{4}[0-9]{6}[A-Z]{6}[0-9]{2}')),
+                ],
             ];
         });
 
         $recreditos = collect(range(1, rand(1, 3)))->map(function() use ($faker) {
             return [
-                'id'        => $faker->uuid(),
-                'nombre'    => $faker->name().' (Recrédito)',
-                'telefono'  => $faker->numerify('55########'),
-                'direccion' => $faker->streetAddress.', '.$faker->city,
-                'curp'      => strtoupper($faker->regexify('[A-Z]{4}[0-9]{6}[A-Z]{6}[0-9]{2}')),
-                'ine_url'   => 'https://picsum.photos/seed/ine2/640/400',
-                'comp_url'  => 'https://picsum.photos/seed/comprobante2/640/900',
+                'id'         => $faker->uuid(),
+                'nombre'     => $faker->firstName().' '.$faker->lastName().' (Recrédito)',
+                'apellido_p' => $faker->lastName(),
+                'apellido_m' => $faker->lastName(),
+                'telefono'   => $faker->numerify('55########'),
+                'direccion'  => $faker->streetAddress.', '.$faker->city,
+                'curp'       => strtoupper($faker->regexify('[A-Z]{4}[0-9]{6}[A-Z]{6}[0-9]{2}')),
+                'ine_url'    => 'https://picsum.photos/seed/ine2/640/400',
+                'comp_url'   => 'https://picsum.photos/seed/comprobante2/640/900',
+                'aval'       => [
+                    'nombre'      => $faker->firstName(),
+                    'apellido_p'  => $faker->lastName(),
+                    'apellido_m'  => $faker->lastName(),
+                    'curp'        => strtoupper($faker->regexify('[A-Z]{4}[0-9]{6}[A-Z]{6}[0-9]{2}')),
+                ],
             ];
         });
 
@@ -74,9 +90,15 @@
                         @click="openModal({
                           id: '{{ $c['id'] }}',
                           nombre: @js($c['nombre']),
+                          apellido_p: '{{ $c['apellido_p'] }}',
+                          apellido_m: '{{ $c['apellido_m'] }}',
                           curp: '{{ $c['curp'] }}',
                           ine_url: '{{ $c['ine_url'] }}',
-                          comp_url: '{{ $c['comp_url'] }}'
+                          comp_url: '{{ $c['comp_url'] }}',
+                          aval_nombre: @js($c['aval']['nombre']),
+                          aval_apellido_p: '{{ $c['aval']['apellido_p'] }}',
+                          aval_apellido_m: '{{ $c['aval']['apellido_m'] }}',
+                          aval_curp: '{{ $c['aval']['curp'] }}'
                         })">
                         CHECK
                       </button>
@@ -108,9 +130,15 @@
                         @click="openModal({
                           id: '{{ $r['id'] }}',
                           nombre: @js($r['nombre']),
+                          apellido_p: '{{ $r['apellido_p'] }}',
+                          apellido_m: '{{ $r['apellido_m'] }}',
                           curp: '{{ $r['curp'] }}',
                           ine_url: '{{ $r['ine_url'] }}',
-                          comp_url: '{{ $r['comp_url'] }}'
+                          comp_url: '{{ $r['comp_url'] }}',
+                          aval_nombre: @js($r['aval']['nombre']),
+                          aval_apellido_p: '{{ $r['aval']['apellido_p'] }}',
+                          aval_apellido_m: '{{ $r['aval']['apellido_m'] }}',
+                          aval_curp: '{{ $r['aval']['curp'] }}'
                         })">
                         CHECK
                       </button>
@@ -146,7 +174,7 @@
 
         {{-- sheet/modal --}}
         <div
-          class="relative w-full sm:max-w-md bg-white text-gray-900 border border-gray-200 shadow-2xl
+          class="relative w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white text-gray-900 border border-gray-200 shadow-2xl
                  sm:rounded-2xl rounded-t-2xl p-5 sm:mx-auto"
           x-trap.noscroll="showModal" x-transition>
           
@@ -157,45 +185,86 @@
             <p class="text-xs text-gray-600" x-text="selected.curp || '—'"></p>
           </div>
 
-          {{-- Línea --}}
-          <div class="my-4 h-px bg-gray-200"></div>
+          {{-- Formulario documentos y datos --}}
+          <form class="mt-4 space-y-4">
+            <template x-if="step === 1">
+              <div class="space-y-4">
+                <div>
+                  <h3 class="text-sm font-semibold mb-2 text-center">Datos del Cliente</h3>
+                  <div class="grid grid-cols-1 gap-2">
+                    <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.nombre" readonly>
+                    <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.apellido_p" readonly>
+                    <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.apellido_m" readonly>
+                    <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.curp" readonly>
+                  </div>
+                </div>
 
-          {{-- Fotografía INE --}}
-          <div class="space-y-2">
-            <p class="text-center text-sm font-semibold">Fotografía INE</p>
-            <div class="w-full rounded-xl overflow-hidden border border-gray-200 bg-gray-50 flex justify-center">
-              <img 
-                :src="selected.ine_url" 
-                alt="INE" 
-                class="object-contain cursor-pointer max-h-[200px] max-w-[400px]" 
-                @click="zoomImg = selected.ine_url" 
-              >
-            </div>
-          </div>
+                <div>
+                  <h3 class="text-sm font-semibold mb-2 text-center">Datos del Aval</h3>
+                  <div class="grid grid-cols-1 gap-2">
+                    <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.aval_nombre" readonly>
+                    <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.aval_apellido_p" readonly>
+                    <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.aval_apellido_m" readonly>
+                    <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.aval_curp" readonly>
+                  </div>
+                </div>
 
-          {{-- separador --}}
-          <div class="my-4 h-px bg-gray-200"></div>
+                <div>
+                  <h3 class="text-sm font-semibold mb-2 text-center">Documentos faltantes</h3>
+                  <div class="grid grid-cols-1 gap-2 text-sm">
+                    <label class="font-medium">INE</label>
+                    <input type="file" class="w-full text-xs" />
+                    <label class="font-medium">Comprobante de domicilio</label>
+                    <input type="file" class="w-full text-xs" />
+                  </div>
+                </div>
 
-          {{-- Fotografía Comprobante Domicilio --}}
-          <div class="space-y-2">
-            <p class="text-center text-sm font-semibold">Fotografía Comprobante Domicilio</p>
-            <div class="w-full rounded-xl overflow-hidden border border-gray-200 bg-gray-50 flex justify-center">
-              <img 
-                :src="selected.comp_url" 
-                alt="Comprobante de domicilio" 
-                class="object-contain cursor-pointer max-h-[200px] max-w-[400px]" 
-                @click="zoomImg = selected.comp_url" 
-              >
-            </div>
-          </div>
+                <div>
+                  <h3 class="text-sm font-semibold mb-2 text-center">Datos adicionales</h3>
+                  <div class="grid grid-cols-1 gap-2">
+                    <input type="date" class="w-full px-3 py-2 border rounded-lg text-sm" x-model="selected.fecha_nacimiento">
+                    <input type="number" step="0.01" placeholder="Monto máximo" class="w-full px-3 py-2 border rounded-lg text-sm" x-model="selected.monto_maximo">
+                    <input type="text" placeholder="Estatus" class="w-full px-3 py-2 border rounded-lg text-sm" x-model="selected.estatus">
+                    <label class="flex items-center text-xs"><input type="checkbox" class="mr-2" x-model="selected.tiene_credito_activo">Tiene crédito activo</label>
+                    <label class="flex items-center text-xs"><input type="checkbox" class="mr-2" x-model="selected.activo">Activo</label>
+                  </div>
+                </div>
+              </div>
+            </template>
 
+            <template x-if="step === 2">
+              <div class="space-y-4">
+                <h3 class="text-sm font-semibold mb-2 text-center">Datos del Crédito</h3>
+                <div class="grid grid-cols-1 gap-2">
+                  <input type="number" step="0.01" placeholder="Monto total" class="w-full px-3 py-2 border rounded-lg text-sm" x-model="selected.monto_total">
+                  <input type="text" placeholder="Estado" class="w-full px-3 py-2 border rounded-lg text-sm" x-model="selected.estado">
+                  <input type="number" step="0.01" placeholder="Interés" class="w-full px-3 py-2 border rounded-lg text-sm" x-model="selected.interes">
+                  <input type="text" placeholder="Periodo de pago" class="w-full px-3 py-2 border rounded-lg text-sm" x-model="selected.periodo_pago">
+                  <input type="date" class="w-full px-3 py-2 border rounded-lg text-sm" x-model="selected.fecha_inicio">
+                  <input type="date" class="w-full px-3 py-2 border rounded-lg text-sm" x-model="selected.fecha_final">
+                </div>
+              </div>
+            </template>
+          </form>
 
           {{-- Botones acciones --}}
-          <div class="mt-6 grid grid-cols-2 gap-3">
+          <div class="mt-6 grid grid-cols-2 gap-3" x-show="step === 1">
             <button
               class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold shadow-sm transition"
               @click="rechazar()">
               Rechazar
+            </button>
+            <button
+              class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm transition"
+              @click="step = 2">
+              Siguiente
+            </button>
+          </div>
+          <div class="mt-6 grid grid-cols-2 gap-3" x-show="step === 2">
+            <button
+              class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold shadow-sm transition"
+              @click="step = 1">
+              Atrás
             </button>
             <button
               class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm transition"
@@ -210,13 +279,6 @@
       </div>
     </template>
 
-    {{-- Modal Zoom Imagen --}}
-    <template x-if="zoomImg">
-      <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80" @click="zoomImg = null">
-        <img :src="zoomImg" alt="zoom" class="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl">
-      </div>
-    </template>
-
   </div>
 
   {{-- === Alpine.js === --}}
@@ -224,16 +286,64 @@
     function prospectado() {
       return {
         showModal: false,
-        zoomImg: null,
-        selected: { id:null, nombre:'', curp:'', ine_url:'', comp_url:'' },
+        step: 1,
+        selected: {
+          id: null,
+          nombre: '',
+          apellido_p: '',
+          apellido_m: '',
+          curp: '',
+          ine_url: '',
+          comp_url: '',
+          aval_nombre: '',
+          aval_apellido_p: '',
+          aval_apellido_m: '',
+          aval_curp: '',
+          fecha_nacimiento: '',
+          tiene_credito_activo: false,
+          estatus: '',
+          monto_maximo: '',
+          activo: false,
+          monto_total: '',
+          estado: '',
+          interes: '',
+          periodo_pago: '',
+          fecha_inicio: '',
+          fecha_final: ''
+        },
 
         openModal(data) {
-          this.selected = data;
+          this.selected = Object.assign({}, this.selected, data);
+          this.step = 1;
           this.showModal = true;
         },
         closeModal() {
           this.showModal = false;
-          this.selected  = { id:null, nombre:'', curp:'', ine_url:'', comp_url:'' };
+          this.step = 1;
+          this.selected = {
+            id: null,
+            nombre: '',
+            apellido_p: '',
+            apellido_m: '',
+            curp: '',
+            ine_url: '',
+            comp_url: '',
+            aval_nombre: '',
+            aval_apellido_p: '',
+            aval_apellido_m: '',
+            aval_curp: '',
+            fecha_nacimiento: '',
+            tiene_credito_activo: false,
+            estatus: '',
+            monto_maximo: '',
+            activo: false,
+            monto_total: '',
+            estado: '',
+            interes: '',
+            periodo_pago: '',
+            fecha_inicio: '',
+            fecha_final: ''
+          };
         },
 
         // Acciones
