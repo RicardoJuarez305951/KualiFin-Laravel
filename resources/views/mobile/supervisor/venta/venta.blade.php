@@ -60,7 +60,7 @@
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Venta - Supervisor">
-  <div class="max-w-md mx-auto space-y-6">
+  <div class="max-w-sm mx-auto space-y-6">
     
     {{-- Objetivos del supervisor --}}
     <div class="bg-white rounded-2xl shadow-md p-6 grid grid-cols-2 gap-4 text-center">
