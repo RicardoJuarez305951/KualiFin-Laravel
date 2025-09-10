@@ -67,7 +67,7 @@ class PromotorController extends Controller
             'apellido_p' => 'required|string',
             'apellido_m' => 'nullable|string',
             'CURP' => 'required|string|size:18',
-            'monto' => 'required|numeric',
+            'monto' => 'required|numeric|min:0|max:3000'
         ]);
 
         $cliente = Cliente::create([
@@ -100,7 +100,7 @@ class PromotorController extends Controller
     {
         $data = $request->validate([
             'CURP' => 'required|string|size:18|exists:clientes,CURP',
-            'monto' => 'required|numeric',
+            'monto' => 'required|numeric|min:0|max:20000',
         ]);
 
         $cliente = Cliente::where('CURP', $data['CURP'])->first();

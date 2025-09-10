@@ -8,7 +8,7 @@
   <div @click.stop class="bg-white rounded-2xl shadow-lg w-full max-w-md p-6 relative text-gray-900">
     <h3 class="text-xl font-semibold uppercase text-center mb-4">Ingresar Datos (Recrédito)</h3>
 
-    <form method="POST" action="{{ route('mobile.promotor.store_recredito') }}" class="space-y-4">
+    <form method="POST" action="{{ route('mobile.promotor.store_cliente') }}" @submit.prevent="validateNuevoCliente($event)" class="space-y-4">
       @csrf
       {{-- div1: Cliente --}}
       <div class="space-y-3 border rounded-xl p-4">
@@ -16,7 +16,7 @@
         <input name="CURP" type="text" placeholder="CURP" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
 
         <p class="font-semibold">Monto del crédito:</p>
-        <input name="monto" type="number" step="0.01" placeholder="Monto" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+        <input name="monto" type="number" step="100.00" min="0" max="20000" placeholder="Monto" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
 
         <p class="font-semibold">Nombre del cliente:</p>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
