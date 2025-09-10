@@ -94,7 +94,7 @@ class SupervisorController extends Controller
 
       public function apertura()
     {
-        return view('mobile.supervisor.Apertura.apertura');
+        return view('mobile.supervisor.apertura.apertura');
     }
 
 }
