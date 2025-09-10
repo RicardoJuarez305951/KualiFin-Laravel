@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(RolePermissionSeeder::class);
+        $this->call(ContratoSeeder::class);
 
         $user = User::factory()->create([
             'name' => 'Super Admin',
@@ -56,4 +57,3 @@ class DatabaseSeeder extends Seeder
         $user->assignRole('promotor');
     }
 }
-
