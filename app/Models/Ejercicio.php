@@ -24,6 +24,8 @@ class Ejercicio extends Model
         'dinero_autorizado' => 'decimal:2',
     ];
 
+    public $timestamps = false;
+
     public function supervisor()
     {
         return $this->belongsTo(Supervisor::class);

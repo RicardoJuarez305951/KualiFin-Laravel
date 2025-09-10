@@ -11,7 +11,7 @@ class EjecutivoSeeder extends Seeder
     public function run(): void
     {
         for ($i = 0; $i < 20; $i++) {
-            $user = User::factory()->create();
+            $user = User::factory()->create(['rol' => 'ejecutivo']);
 
             Ejecutivo::create([
                 'user_id' => $user->id,

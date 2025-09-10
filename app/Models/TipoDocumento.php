@@ -1,17 +1,14 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Contrato extends Model
+class TipoDocumento extends Model
 {
     use HasFactory;
-    protected $guarded = [];
     public $timestamps = false;
-
-    public function credito()
-    {
-        return $this->belongsTo(Credito::class);
-    }
+    protected $guarded = [];
+    protected $table = 'tipo_documentos';
 }

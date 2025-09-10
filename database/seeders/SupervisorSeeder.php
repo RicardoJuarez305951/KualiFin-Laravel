@@ -14,7 +14,7 @@ class SupervisorSeeder extends Seeder
         $ejecutivos = Ejecutivo::all();
 
         for ($i = 0; $i < 20; $i++) {
-            $user = User::factory()->create();
+            $user = User::factory()->create(['rol' => 'supervisor']);
             Supervisor::create([
                 'user_id' => $user->id,
                 'ejecutivo_id' => $ejecutivos->random()->id,

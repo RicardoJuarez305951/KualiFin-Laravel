@@ -8,6 +8,9 @@ class Aval extends Model
 {
     use HasFactory;
     protected $guarded = [];
+    const CREATED_AT = 'creado_en';
+    const UPDATED_AT = null;
+    protected $table = 'avales';
 
     public function credito()
     {

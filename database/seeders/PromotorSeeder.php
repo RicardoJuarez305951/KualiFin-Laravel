@@ -14,7 +14,7 @@ class PromotorSeeder extends Seeder
         $supervisores = Supervisor::all();
 
         for ($i = 0; $i < 20; $i++) {
-            $user = User::factory()->create();
+            $user = User::factory()->create(['rol' => 'promotor']);
             Promotor::create([
                 'user_id' => $user->id,
                 'supervisor_id' => $supervisores->random()->id,

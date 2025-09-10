@@ -8,6 +8,8 @@ class Inversion extends Model
 {
     use HasFactory;
     protected $guarded = [];
+    public $timestamps = false;
+    protected $table = 'inversiones';
 
     public function promotor()
     {

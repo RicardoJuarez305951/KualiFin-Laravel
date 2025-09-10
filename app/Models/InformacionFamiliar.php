@@ -8,6 +8,9 @@ class InformacionFamiliar extends Model
 {
     use HasFactory;
     protected $guarded = [];
+    const CREATED_AT = 'creado_en';
+    const UPDATED_AT = null;
+    protected $table = 'informacion_familiares';
 
     public function credito()
     {
