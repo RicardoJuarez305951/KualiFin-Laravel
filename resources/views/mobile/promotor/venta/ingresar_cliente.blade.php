@@ -51,7 +51,7 @@
         },
         validateMonto(valor) {
           const monto = parseFloat(valor);
-          return !(isNaN(monto) || monto < 0 || monto > 20000);
+          return !(isNaN(monto) || monto < 0 || monto > 3000);
         },
         validateNuevoCliente(e) {
           const f = e.target;
