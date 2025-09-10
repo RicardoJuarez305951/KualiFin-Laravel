@@ -52,10 +52,15 @@
             'recreditos' => $recreditos,
         ];
     });
+
+    // Lista plana de clientes para el selector
+    $clientesList = $promotores->flatMap(function ($p) {
+        return $p['clientes']->merge($p['recreditos']);
+    })->values();
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Clientes Prospectado">
-  <div x-data="prospectado()" class="p-4 w-full max-w-md mx-auto space-y-6">
+  <div x-data="prospectado(@js($clientesList))" class="p-4 w-full max-w-md mx-auto space-y-6">
 
     {{-- LISTA POR PROMOTOR --}}
     @foreach($promotores as $promotor)
@@ -87,19 +92,7 @@
                       <button
                         type="button"
                         class="w-full px-3 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm ring-1 ring-emerald-900/20 transition"
-                        @click="openModal({
-                          id: '{{ $c['id'] }}',
-                          nombre: @js($c['nombre']),
-                          apellido_p: '{{ $c['apellido_p'] }}',
-                          apellido_m: '{{ $c['apellido_m'] }}',
-                          curp: '{{ $c['curp'] }}',
-                          ine_url: '{{ $c['ine_url'] }}',
-                          comp_url: '{{ $c['comp_url'] }}',
-                          aval_nombre: @js($c['aval']['nombre']),
-                          aval_apellido_p: '{{ $c['aval']['apellido_p'] }}',
-                          aval_apellido_m: '{{ $c['aval']['apellido_m'] }}',
-                          aval_curp: '{{ $c['aval']['curp'] }}'
-                        })">
+                        @click="openModal('{{ $c['id'] }}')">
                         CHECK
                       </button>
                     </div>
@@ -127,19 +120,7 @@
                       <button
                         type="button"
                         class="w-full px-3 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm ring-1 ring-emerald-900/20 transition"
-                        @click="openModal({
-                          id: '{{ $r['id'] }}',
-                          nombre: @js($r['nombre']),
-                          apellido_p: '{{ $r['apellido_p'] }}',
-                          apellido_m: '{{ $r['apellido_m'] }}',
-                          curp: '{{ $r['curp'] }}',
-                          ine_url: '{{ $r['ine_url'] }}',
-                          comp_url: '{{ $r['comp_url'] }}',
-                          aval_nombre: @js($r['aval']['nombre']),
-                          aval_apellido_p: '{{ $r['aval']['apellido_p'] }}',
-                          aval_apellido_m: '{{ $r['aval']['apellido_m'] }}',
-                          aval_curp: '{{ $r['aval']['curp'] }}'
-                        })">
+                        @click="openModal('{{ $r['id'] }}')">
                         CHECK
                       </button>
                     </div>
@@ -188,6 +169,15 @@
           {{-- Formulario documentos y datos --}}
           <form x-data="{ step: 1 }" method="POST" action="{{ route('creditos.store') }}" class="mt-4 space-y-4">
             @csrf
+            <div class="space-y-1">
+              <label for="cliente_id" class="text-sm font-medium text-gray-700">Cliente</label>
+              <select id="cliente_id" name="cliente_id" x-model="selected.id" @change="selectCliente($event.target.value)" class="w-full border-gray-300 rounded-lg">
+                <option value="">Seleccione un cliente</option>
+                @foreach($clientesList as $cli)
+                  <option value="{{ $cli['id'] }}">{{ $cli['nombre'] }} {{ $cli['apellido_p'] }} {{ $cli['apellido_m'] }}</option>
+                @endforeach
+              </select>
+            </div>
             <div x-show="step === 1">
               @include('mobile.supervisor.venta.clientes_prospectados_form_steps.credito')
             </div>
@@ -224,21 +214,26 @@
 
   {{-- === Alpine.js === --}}
   <script>
-    function prospectado() {
+    function prospectado(clientesData = []) {
       return {
         showModal: false,
         step: 1,
-        selected: { id:null, nombre:'', apellido_p:'', apellido_m:'', curp:'', ine_url:'', comp_url:'', aval_nombre:'', aval_apellido_p:'', aval_apellido_m:'', aval_curp:'', fecha_nacimiento:'', tiene_credito_activo:false, estatus:'', monto_maximo:'', activo:false },
+        clientes: clientesData,
+        selected: { id:null, nombre:'', apellido_p:'', apellido_m:'', curp:'', ine_url:'', comp_url:'', aval:{ nombre:'', apellido_p:'', apellido_m:'', curp:'' }, fecha_nacimiento:'', tiene_credito_activo:false, estatus:'', monto_maximo:'', activo:false },
 
-        openModal(data) {
-          this.selected = data;
+        openModal(id) {
+          this.selectCliente(id);
           this.step = 1;
           this.showModal = true;
+        },
+        selectCliente(id) {
+          const found = this.clientes.find(c => c.id === id);
+          if (found) this.selected = JSON.parse(JSON.stringify(found));
         },
         closeModal() {
           this.showModal = false;
           this.step = 1;
-          this.selected  = { id:null, nombre:'', apellido_p:'', apellido_m:'', curp:'', ine_url:'', comp_url:'', aval_nombre:'', aval_apellido_p:'', aval_apellido_m:'', aval_curp:'', fecha_nacimiento:'', tiene_credito_activo:false, estatus:'', monto_maximo:'', activo:false };
+          this.selected  = { id:null, nombre:'', apellido_p:'', apellido_m:'', curp:'', ine_url:'', comp_url:'', aval:{ nombre:'', apellido_p:'', apellido_m:'', curp:'' }, fecha_nacimiento:'', tiene_credito_activo:false, estatus:'', monto_maximo:'', activo:false };
         },
       }
     }
