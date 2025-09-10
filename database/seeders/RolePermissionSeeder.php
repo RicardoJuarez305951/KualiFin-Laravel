@@ -10,31 +10,32 @@ class RolePermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        $permissions = [
-            'view users',
-            'create users',
-            'edit users',
-            'delete users',
-        ];
-
-        foreach ($permissions as $permission) {
-            Permission::firstOrCreate(['name' => $permission]);
+        $permissions = [];
+        for ($i = 1; $i <= 20; $i++) {
+            $permissions[] = Permission::create(['name' => 'permission'.$i]);
         }
 
-        $roles = [
-            'promotor' => ['view users'],
-            'administrador' => ['view users', 'create users', 'edit users', 'delete users'],
-            'supervisor' => ['view users', 'edit users'],
-            'ejecutivo' => ['view users'],
+        $roleNames = [
+            'superadmin',
+            'administrador',
+            'supervisor',
+            'ejecutivo',
+            'promotor',
         ];
-
-        foreach ($roles as $roleName => $rolePermissions) {
-            $role = Role::firstOrCreate(['name' => $roleName]);
-            $role->syncPermissions($rolePermissions);
+        for ($i = 1; $i <= 15; $i++) {
+            $roleNames[] = 'role'.$i;
         }
 
-        $superAdminRole = Role::firstOrCreate(['name' => 'superadmin']);
-        $superAdminRole->syncPermissions(Permission::all());
+        $roles = [];
+        foreach ($roleNames as $roleName) {
+            $roles[] = Role::create(['name' => $roleName]);
+        }
+
+        foreach ($roles as $role) {
+            foreach ($permissions as $permission) {
+                $role->givePermissionTo($permission);
+            }
+        }
     }
 }
 
