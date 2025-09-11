@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Box\Spout\Reader\Common\Creator\ReaderEntityFactory;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -293,6 +294,10 @@ class ExcelReaderService
     {
         if ($value instanceof \DateTimeInterface) {
             return $value->format('Y-m-d');
+        }
+
+        if (is_numeric($value)) {
+            return Carbon::createFromTimestampUTC(((float) $value - 25569) * 86400)->format('Y-m-d');
         }
 
         if (is_scalar($value)) {
