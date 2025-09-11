@@ -106,6 +106,57 @@ class ExcelReaderService
         return $names;
     }
 
+    public function searchDebtors(string $cliente): array
+    {
+        $reader = ReaderEntityFactory::createXLSXReader();
+        $reader->open(Storage::path($this->path()));
+
+        $clienteLower = Str::lower($cliente);
+        $results = [];
+
+        foreach ($reader->getSheetIterator() as $sheet) {
+            if ($sheet->getName() !== 'DEUDORES-NO PRESTAR') {
+                continue;
+            }
+
+            foreach ($sheet->getRowIterator() as $rowIndex => $row) {
+                if ($rowIndex <= 4) {
+                    continue;
+                }
+
+                $cells = $row->toArray();
+
+                // First table A-D (indices 0-3)
+                $cliente1 = $this->normalizeCellValue($cells[1] ?? null) ?? '';
+                if ($cliente1 !== '' && Str::contains(Str::lower($cliente1), $clienteLower)) {
+                    $results[] = [
+                        'fecha_prestamo' => $this->normalizeCellValue($cells[0] ?? null) ?? '',
+                        'cliente' => $cliente1,
+                        'promotora' => $this->normalizeCellValue($cells[2] ?? null) ?? '',
+                        'deuda' => $this->normalizeCellValue($cells[3] ?? null) ?? '',
+                    ];
+                }
+
+                // Second table G-J (indices 6-9)
+                $cliente2 = $this->normalizeCellValue($cells[7] ?? null) ?? '';
+                if ($cliente2 !== '' && Str::contains(Str::lower($cliente2), $clienteLower)) {
+                    $results[] = [
+                        'fecha_prestamo' => $this->normalizeCellValue($cells[6] ?? null) ?? '',
+                        'cliente' => $cliente2,
+                        'promotora' => $this->normalizeCellValue($cells[8] ?? null) ?? '',
+                        'deuda' => $this->normalizeCellValue($cells[9] ?? null) ?? '',
+                    ];
+                }
+            }
+
+            break;
+        }
+
+        $reader->close();
+
+        return $results;
+    }
+
     public function searchAllSheets(string $query, int $context = 3): array
     {
         $reader = ReaderEntityFactory::createXLSXReader();
@@ -125,6 +176,7 @@ class ExcelReaderService
                     $headersRaw = array_map(fn ($h) => $this->normalizeCellValue($h) ?? '', $cells);
                     $headers = array_map(function ($h) {
                         $formatted = $this->normalizeCellValue($h) ?? '';
+
                         return Str::of($formatted)->trim()->lower()->snake()->toString();
                     }, $cells);
 
@@ -192,6 +244,7 @@ class ExcelReaderService
                 if ($rowIndex === 1) {
                     $headers = array_map(function ($h) {
                         $formatted = $this->normalizeCellValue($h) ?? '';
+
                         return Str::of($formatted)->trim()->lower()->snake()->toString();
                     }, $cells);
 
