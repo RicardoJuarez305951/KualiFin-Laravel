@@ -20,6 +20,48 @@
             </div>
         </form>
 
+        <form method="GET" action="{{ route('consulta.deudores') }}" class="flex items-center gap-4">
+            <div>
+                <label class="block text-sm font-medium">Cliente</label>
+                <input type="text" name="cliente" class="border rounded p-2" placeholder="Cliente..." />
+            </div>
+
+            <div class="pt-6">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">
+                    Consultar Deudores
+                </button>
+            </div>
+        </form>
+
+        @isset($deudores)
+            @if(count($deudores))
+                <div class="overflow-x-auto border rounded">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-3 py-2 text-left font-semibold">Fecha Préstamo</th>
+                                <th class="px-3 py-2 text-left font-semibold">Cliente</th>
+                                <th class="px-3 py-2 text-left font-semibold">Promotora</th>
+                                <th class="px-3 py-2 text-left font-semibold">Deuda</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @foreach($deudores as $deudor)
+                                <tr>
+                                    <td class="px-3 py-2">{{ $deudor['fecha_prestamo'] ?? '' }}</td>
+                                    <td class="px-3 py-2">{{ $deudor['cliente'] ?? '' }}</td>
+                                    <td class="px-3 py-2">{{ $deudor['promotora'] ?? '' }}</td>
+                                    <td class="px-3 py-2">{{ $deudor['deuda'] ?? '' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <p class="text-gray-600">No se encontraron deudores.</p>
+            @endif
+        @endisset
+
         {{-- Resultados multi-hoja --}}
         @if($results !== null)
             @php
