@@ -256,6 +256,12 @@ class ExcelReaderService
                 continue;
             }
 
+            Log::debug('[HEADER] Encabezado detectado', [
+                'sheet' => $sheet->getName(),
+                'row' => $headerRowIndex,
+                'col' => $startCol,
+            ]);
+
             // Mapear columnas principales
             $cols = [];
             $cells = $headerRow->getCells();
@@ -283,6 +289,11 @@ class ExcelReaderService
                 }
             }
 
+            Log::debug('[COLUMNS] Columnas principales mapeadas', [
+                'sheet' => $sheet->getName(),
+                'cols' => $cols,
+            ]);
+
             // Detectar columnas de fechas de pago en filas superiores
             $paymentCols = [];
             $row1 = $topRows[1] ?? [];
@@ -305,6 +316,11 @@ class ExcelReaderService
                 }
             }
 
+            Log::debug('[PAYMENT_COLS] Columnas de pago identificadas', [
+                'sheet' => $sheet->getName(),
+                'payment_cols' => $paymentCols,
+            ]);
+
             $clienteFound = false;
             foreach ($sheet->getRowIterator() as $rowIndex => $row) {
                 if ($rowIndex <= $headerRowIndex) {
@@ -314,6 +330,11 @@ class ExcelReaderService
                 $cells = $row->getCells();
                 $nombre = $this->getCellText($cells[$cols['nombre'] ?? -1] ?? null);
                 if ($nombre && Str::lower($nombre) === $clienteLower) {
+                    Log::debug('[CLIENT_ROW] Fila de cliente encontrada', [
+                        'sheet' => $sheet->getName(),
+                        'row' => $rowIndex,
+                        'nombre' => $nombre,
+                    ]);
                     $assoc = [
                         'fecha_credito' => $this->normalizeDateValue($cells[$cols['fecha_credito'] ?? -1] ?? null, $this->getCellText($cells[$cols['fecha_credito'] ?? -1] ?? null)),
                         'nombre'        => $nombre,
@@ -338,6 +359,10 @@ class ExcelReaderService
                         'cliente'   => $this->castAssoc($assoc),
                         'pagos'     => $pagos,
                     ];
+                    Log::debug('[RESULT_ADDED] Resultado agregado', [
+                        'sheet' => $sheet->getName(),
+                        'nombre' => $nombre,
+                    ]);
                     $clienteFound = true;
                     break;
                 }
