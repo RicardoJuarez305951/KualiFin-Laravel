@@ -14,9 +14,7 @@ class ExcelReaderService
     public function path(): string
     {
         // Prioriza EXCEL_STORAGE_PATH si existe; si no, usa config('excel.local_path')
-        $raw = env('EXCEL_STORAGE_PATH', config('excel.local_path', 'excel/origen.xlsx'));
-
-        return sanitizeStoragePath($raw);
+        return env('EXCEL_STORAGE_PATH', config('excel.local_path', 'excel/origen.xlsx'));
     }
 
     /**

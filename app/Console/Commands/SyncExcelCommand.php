@@ -28,7 +28,7 @@ class SyncExcelCommand extends Command
         }
 
         // Asegurar que el directorio exista
-        $relative = sanitizeStoragePath($local);
+        $relative = str_replace(storage_path('app/'), '', $local);
         $dir = dirname(storage_path('app/'.$relative));
         if (! is_dir($dir)) {
             @mkdir($dir, 0775, true);
