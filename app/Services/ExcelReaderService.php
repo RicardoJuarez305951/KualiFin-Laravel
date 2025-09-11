@@ -258,31 +258,58 @@ class ExcelReaderService
             $headerLabel = null;
 
             // Guardar filas superiores hasta detectar encabezado real
-            // Se escanean como máximo 20 filas para evitar lecturas innecesarias
+            // Se escanean como máximo 50 filas para evitar lecturas innecesarias
             $topRows = [];
-            $maxScanRows = 20;
+            $maxScanRows = 50;
             foreach ($sheet->getRowIterator() as $rowIndex => $row) {
                 if ($rowIndex > $maxScanRows) {
                     break;
                 }
 
-                $topRows[$rowIndex] = $row->getCells();
+                $cells = $row->getCells();
+                $topRows[$rowIndex] = $cells;
 
                 if ($headerRowIndex === null) {
-                    $cells = $row->getCells();
-                    foreach ($cells as $colIndex => $cell) {
-                        $txt = Str::of($this->getCellText($cell))->trim()->lower();
-                        if ($txt->contains('fecha')) {
-                            $headerRowIndex = $rowIndex;
-                            $headerRow = $row;
-                            $startCol = $colIndex;
-                            $headerLabel = (string) $txt;
-                            break;
+                    $lower = array_map(fn ($c) => Str::of($this->getCellText($c))->trim()->lower()->toString(), $cells);
+                    $fechaIdx = null;
+                    $hasNombre = false;
+                    foreach ($lower as $colIndex => $txt) {
+                        if ($fechaIdx === null && Str::contains($txt, 'fecha')) {
+                            $fechaIdx = $colIndex;
+                            $headerLabel = $txt;
                         }
+                        if (Str::contains($txt, ['nombre', 'cliente'])) {
+                            $hasNombre = true;
+                        }
+                    }
+                    if ($fechaIdx !== null && $hasNombre) {
+                        $headerRowIndex = $rowIndex;
+                        $headerRow = $cells;
+                        $startCol = $fechaIdx;
                     }
                 } elseif ($rowIndex >= $headerRowIndex + 1) {
                     // ya contamos la fila posterior al encabezado
                     break;
+                }
+            }
+
+            if ($headerRowIndex === null || $headerRow === null) {
+                foreach ($topRows as $rIdx => $cellsRow) {
+                    $nonEmpty = false;
+                    foreach ($cellsRow as $cell) {
+                        $txt = Str::of($this->getCellText($cell))->trim()->toString();
+                        if ($txt !== '') {
+                            $nonEmpty = true;
+                            break;
+                        }
+                    }
+                    if ($nonEmpty) {
+                        $headerRowIndex = $rIdx;
+                        $headerRow = $cellsRow;
+                        $startCol = 0;
+                        $headerLabel = null;
+                        break;
+                    }
                 }
             }
 
@@ -297,12 +324,12 @@ class ExcelReaderService
                 'row' => $headerRowIndex,
                 'col' => $startCol,
                 'label' => $headerLabel,
-                'match' => $headerLabel === 'fecha' ? 'exact' : 'partial',
+                'match' => $headerLabel === 'fecha' ? 'exact' : ($headerLabel ? 'partial' : 'fallback'),
             ]);
 
             // Mapear columnas principales
             $cols = [];
-            $cells = $headerRow->getCells();
+            $cells = $headerRow;
             for ($i = $startCol; $i < count($cells); $i++) {
                 $label = Str::of($this->getCellText($cells[$i]))->trim()->lower()->toString();
 
@@ -328,7 +355,7 @@ class ExcelReaderService
 
             // Detectar columnas de fechas de pago
             $paymentCols = [];
-            $headerCells = $headerRow->getCells();
+            $headerCells = $headerRow;
             $fechaIndexes = [];
             $belowRow = $topRows[$headerRowIndex + 1] ?? [];
             foreach ($headerCells as $i => $cell) {
