@@ -404,7 +404,6 @@ class ExcelReaderService
                 ]);
             }
 
-            $clienteFound = false;
             foreach ($sheet->getRowIterator() as $rowIndex => $row) {
                 if ($rowIndex <= $headerRowIndex) {
                     continue;
@@ -462,13 +461,7 @@ class ExcelReaderService
                         'sheet' => $sheet->getName(),
                         'nombre' => $nombre,
                     ]);
-                    $clienteFound = true;
-                    break;
                 }
-            }
-
-            if ($clienteFound) {
-                continue;
             }
         }
 
