@@ -297,7 +297,12 @@ class ExcelReaderService
         }
 
         if (is_numeric($value)) {
-            return Carbon::createFromTimestampUTC(((float) $value - 25569) * 86400)->format('Y-m-d');
+            $number = (float) $value;
+            if ($number > 20000 && $number < 60000) {
+                return Carbon::createFromTimestampUTC(($number - 25569) * 86400)->format('Y-m-d');
+            }
+
+            return (string) $value;
         }
 
         if (is_scalar($value)) {
