@@ -255,6 +255,7 @@ class ExcelReaderService
             $headerRowIndex = null;
             $headerRow = null;
             $startCol = null;
+            $headerLabel = null;
 
             // Guardar filas superiores hasta detectar encabezado real
             // Se escanean como máximo 20 filas para evitar lecturas innecesarias
@@ -271,10 +272,11 @@ class ExcelReaderService
                     $cells = $row->getCells();
                     foreach ($cells as $colIndex => $cell) {
                         $txt = Str::of($this->getCellText($cell))->trim()->lower();
-                        if ($txt === 'fecha') {
+                        if ($txt->contains('fecha')) {
                             $headerRowIndex = $rowIndex;
                             $headerRow = $row;
                             $startCol = $colIndex;
+                            $headerLabel = (string) $txt;
                             break;
                         }
                     }
@@ -293,6 +295,8 @@ class ExcelReaderService
                 'sheet' => $sheet->getName(),
                 'row' => $headerRowIndex,
                 'col' => $startCol,
+                'label' => $headerLabel,
+                'match' => $headerLabel === 'fecha' ? 'exact' : 'partial',
             ]);
 
             // Mapear columnas principales
