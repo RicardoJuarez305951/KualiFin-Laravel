@@ -218,6 +218,141 @@ class ExcelReaderService
         return $results;
     }
 
+    public function searchClientHistory(string $cliente): array
+    {
+        $reader = ReaderEntityFactory::createXLSXReader();
+        $reader->open(Storage::path($this->path()));
+
+        $clienteLower = Str::lower($cliente);
+        $results = [];
+
+        foreach ($reader->getSheetIterator() as $sheet) {
+            $headerRowIndex = null;
+            $headerRow = null;
+            $startCol = null;
+
+            // Guardar primeras filas para detectar fechas de pago
+            $topRows = [];
+            foreach ($sheet->getRowIterator() as $rowIndex => $row) {
+                if ($rowIndex <= 5) {
+                    $topRows[$rowIndex] = $row->getCells();
+                }
+
+                if ($headerRowIndex === null) {
+                    $cells = $row->getCells();
+                    foreach ($cells as $colIndex => $cell) {
+                        $txt = Str::of($this->getCellText($cell))->trim()->lower();
+                        if ($txt === 'fecha') {
+                            $headerRowIndex = $rowIndex;
+                            $headerRow = $row;
+                            $startCol = $colIndex;
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            if ($headerRowIndex === null || $headerRow === null) {
+                continue;
+            }
+
+            // Mapear columnas principales
+            $cols = [];
+            $cells = $headerRow->getCells();
+            for ($i = $startCol; $i < count($cells); $i++) {
+                $label = Str::of($this->getCellText($cells[$i]))->trim()->lower();
+                switch ($label) {
+                    case 'fecha':
+                        $cols['fecha_credito'] = $i;
+                        break;
+                    case 'nombre':
+                        $cols['nombre'] = $i;
+                        break;
+                    case 'prestamo':
+                        $cols['prestamo'] = $i;
+                        break;
+                    case 'abono':
+                        $cols['abono'] = $i;
+                        break;
+                    case 'debe':
+                        $cols['debe'] = $i;
+                        break;
+                    case 'observaciones':
+                        $cols['observaciones'] = $i;
+                        break 2;
+                }
+            }
+
+            // Detectar columnas de fechas de pago en filas superiores
+            $paymentCols = [];
+            $row1 = $topRows[1] ?? [];
+            $row2 = $topRows[2] ?? [];
+            $fechaIndexes = [];
+            foreach ($row1 as $i => $cell) {
+                $txt = Str::of($this->getCellText($cell))->trim()->lower();
+                if ($txt === 'fecha') {
+                    $fechaIndexes[] = $i;
+                }
+            }
+            // Ignorar la primera 'FECHA'
+            if (count($fechaIndexes) > 1) {
+                foreach (array_slice($fechaIndexes, 1) as $i) {
+                    $raw = $this->getCellText($row2[$i] ?? null);
+                    $norm = $this->normalizeDateValue($row2[$i] ?? null, $raw);
+                    if ($norm) {
+                        $paymentCols[$norm] = $i;
+                    }
+                }
+            }
+
+            $clienteFound = false;
+            foreach ($sheet->getRowIterator() as $rowIndex => $row) {
+                if ($rowIndex <= $headerRowIndex) {
+                    continue;
+                }
+
+                $cells = $row->getCells();
+                $nombre = $this->getCellText($cells[$cols['nombre'] ?? -1] ?? null);
+                if ($nombre && Str::lower($nombre) === $clienteLower) {
+                    $assoc = [
+                        'fecha_credito' => $this->normalizeDateValue($cells[$cols['fecha_credito'] ?? -1] ?? null, $this->getCellText($cells[$cols['fecha_credito'] ?? -1] ?? null)),
+                        'nombre'        => $nombre,
+                        'prestamo'      => $this->getCellText($cells[$cols['prestamo'] ?? -1] ?? null),
+                        'abono'         => $this->getCellText($cells[$cols['abono'] ?? -1] ?? null),
+                        'debe'          => $this->getCellText($cells[$cols['debe'] ?? -1] ?? null),
+                    ];
+                    if (isset($cols['observaciones'])) {
+                        $assoc['observaciones'] = $this->getCellText($cells[$cols['observaciones']] ?? null);
+                    }
+
+                    $pagos = [];
+                    foreach ($paymentCols as $fecha => $colIndex) {
+                        $val = $this->getCellText($cells[$colIndex] ?? null);
+                        if ($val !== null && $val !== '') {
+                            $pagos[$fecha] = $this->parseMoney($val);
+                        }
+                    }
+
+                    $results[] = [
+                        'promotora' => $sheet->getName(),
+                        'cliente'   => $this->castAssoc($assoc),
+                        'pagos'     => $pagos,
+                    ];
+                    $clienteFound = true;
+                    break;
+                }
+            }
+
+            if ($clienteFound) {
+                continue;
+            }
+        }
+
+        $reader->close();
+
+        return $results;
+    }
+
     public function searchAllSheets(string $query, int $context = 3): array
     {
         $reader = ReaderEntityFactory::createXLSXReader();
