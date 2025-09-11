@@ -34,6 +34,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('consulta.historica');
     Route::get('/consulta-base-datos-historica/deudores', [ExcelController::class, 'deudores'])
         ->name('consulta.deudores');
+    Route::get('/consulta-historial', [ExcelController::class, 'historial'])
+        ->name('consulta.historial');
 });
 
 Route::middleware(['auth','verified'])->group(function () {
