@@ -74,6 +74,20 @@
             </div>
         </form>
 
+        {{-- Buscador historial --}}
+        <form method="GET" action="{{ route('consulta.historial') }}" class="flex items-center gap-4">
+            <div>
+                <label class="block text-sm font-medium">Cliente</label>
+                <input type="text" name="cliente" class="border rounded p-2" placeholder="Cliente..." />
+            </div>
+
+            <div class="pt-6">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">
+                    Consultar Historial
+                </button>
+            </div>
+        </form>
+
         {{-- Resultados deudores --}}
         @isset($deudores)
             @if(count($deudores))
@@ -103,6 +117,67 @@
                 </div>
             @else
                 <p class="text-gray-600">No se encontraron deudores.</p>
+            @endif
+        @endisset
+
+        {{-- Resultados historial --}}
+        @isset($historial)
+            @if(count($historial))
+                <div class="space-y-4">
+                    @foreach($historial as $h)
+                        <div class="border rounded p-4">
+                            <h2 class="font-semibold mb-2">Promotora: {{ (string) ($h['promotora'] ?? '') }}</h2>
+                            <div class="overflow-x-auto border rounded mb-2">
+                                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                    <thead class="bg-gray-100">
+                                        <tr>
+                                            <th class="px-3 py-2 text-left font-semibold">Fecha Crédito</th>
+                                            <th class="px-3 py-2 text-left font-semibold">Préstamo</th>
+                                            <th class="px-3 py-2 text-left font-semibold">Abono</th>
+                                            <th class="px-3 py-2 text-left font-semibold">Debe</th>
+                                            @if(isset($h['cliente']['observaciones']))
+                                                <th class="px-3 py-2 text-left font-semibold">Observaciones</th>
+                                            @endif
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                        <tr>
+                                            <td class="px-3 py-2">{{ $formatDate($h['cliente']['fecha_credito'] ?? null) }}</td>
+                                            <td class="px-3 py-2">{{ $formatMoney($h['cliente']['prestamo'] ?? null) }}</td>
+                                            <td class="px-3 py-2">{{ $formatMoney($h['cliente']['abono'] ?? null) }}</td>
+                                            <td class="px-3 py-2">{{ $formatMoney($h['cliente']['debe'] ?? null) }}</td>
+                                            @if(isset($h['cliente']['observaciones']))
+                                                <td class="px-3 py-2">{{ (string) ($h['cliente']['observaciones'] ?? '') }}</td>
+                                            @endif
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            @if(!empty($h['pagos']))
+                                <div class="overflow-x-auto border rounded">
+                                    <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                        <thead class="bg-gray-100">
+                                            <tr>
+                                                <th class="px-3 py-2 text-left font-semibold">Fecha Pago</th>
+                                                <th class="px-3 py-2 text-left font-semibold">Monto</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-100">
+                                            @foreach($h['pagos'] as $fecha => $monto)
+                                                <tr>
+                                                    <td class="px-3 py-2">{{ (string) $fecha }}</td>
+                                                    <td class="px-3 py-2">{{ $formatMoney($monto) }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <p class="text-gray-600">No se encontraron registros.</p>
             @endif
         @endisset
 
