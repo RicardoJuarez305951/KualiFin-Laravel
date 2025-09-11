@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Box\Spout\Common\Entity\Cell;
 use Box\Spout\Reader\Common\Creator\ReaderEntityFactory;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -124,27 +125,27 @@ class ExcelReaderService
                     continue;
                 }
 
-                $cells = $row->toArray();
+                $cells = $row->getCells();
 
                 // First table A-D (indices 0-3)
-                $cliente1 = $this->normalizeCellValue($cells[1] ?? null) ?? '';
+                $cliente1 = isset($cells[1]) ? $this->getCellText($cells[1]) : '';
                 if ($cliente1 !== '' && Str::contains(Str::lower($cliente1), $clienteLower)) {
                     $results[] = [
-                        'fecha_prestamo' => $this->normalizeCellValue($cells[0] ?? null) ?? '',
+                        'fecha_prestamo' => isset($cells[0]) ? $this->getCellText($cells[0]) : '',
                         'cliente' => $cliente1,
-                        'promotora' => $this->normalizeCellValue($cells[2] ?? null) ?? '',
-                        'deuda' => $this->normalizeCellValue($cells[3] ?? null) ?? '',
+                        'promotora' => isset($cells[2]) ? $this->getCellText($cells[2]) : '',
+                        'deuda' => isset($cells[3]) ? $this->getCellText($cells[3]) : '',
                     ];
                 }
 
                 // Second table G-J (indices 6-9)
-                $cliente2 = $this->normalizeCellValue($cells[7] ?? null) ?? '';
+                $cliente2 = isset($cells[7]) ? $this->getCellText($cells[7]) : '';
                 if ($cliente2 !== '' && Str::contains(Str::lower($cliente2), $clienteLower)) {
                     $results[] = [
-                        'fecha_prestamo' => $this->normalizeCellValue($cells[6] ?? null) ?? '',
+                        'fecha_prestamo' => isset($cells[6]) ? $this->getCellText($cells[6]) : '',
                         'cliente' => $cliente2,
-                        'promotora' => $this->normalizeCellValue($cells[8] ?? null) ?? '',
-                        'deuda' => $this->normalizeCellValue($cells[9] ?? null) ?? '',
+                        'promotora' => isset($cells[8]) ? $this->getCellText($cells[8]) : '',
+                        'deuda' => isset($cells[9]) ? $this->getCellText($cells[9]) : '',
                     ];
                 }
             }
@@ -170,12 +171,12 @@ class ExcelReaderService
             $headers = [];
 
             foreach ($sheet->getRowIterator() as $rowIndex => $row) {
-                $cells = $row->toArray();
+                $cells = $row->getCells();
 
                 if ($rowIndex === 1) {
-                    $headersRaw = array_map(fn ($h) => $this->normalizeCellValue($h) ?? '', $cells);
-                    $headers = array_map(function ($h) {
-                        $formatted = $this->normalizeCellValue($h) ?? '';
+                    $headersRaw = array_map(fn ($cell) => $this->getCellText($cell), $cells);
+                    $headers = array_map(function ($cell) {
+                        $formatted = $this->getCellText($cell);
 
                         return Str::of($formatted)->trim()->lower()->snake()->toString();
                     }, $cells);
@@ -188,8 +189,8 @@ class ExcelReaderService
                     $headers = $headersRaw;
                 }
 
-                foreach ($cells as $i => $value) {
-                    $val = $this->normalizeCellValue($value);
+                foreach ($cells as $i => $cell) {
+                    $val = $this->getCellText($cell);
 
                     if ($val === null || $val === '') {
                         continue;
@@ -200,7 +201,11 @@ class ExcelReaderService
                     if (Str::contains($valLower, $queryLower)) {
                         $contextPairs = [];
                         for ($j = $i + 1; $j < count($cells) && count($contextPairs) < $context; $j++) {
-                            $nextVal = $this->normalizeCellValue($cells[$j]);
+                            $nextCell = $cells[$j] ?? null;
+                            if (! $nextCell) {
+                                continue;
+                            }
+                            $nextVal = $this->getCellText($nextCell);
                             if ($nextVal === null || $nextVal === '') {
                                 continue;
                             }
@@ -239,11 +244,11 @@ class ExcelReaderService
             }
 
             foreach ($sheet->getRowIterator() as $rowIndex => $row) {
-                $cells = $row->toArray();
+                $cells = $row->getCells();
 
                 if ($rowIndex === 1) {
-                    $headers = array_map(function ($h) {
-                        $formatted = $this->normalizeCellValue($h) ?? '';
+                    $headers = array_map(function ($cell) {
+                        $formatted = $this->getCellText($cell);
 
                         return Str::of($formatted)->trim()->lower()->snake()->toString();
                     }, $cells);
@@ -256,8 +261,8 @@ class ExcelReaderService
                 }
 
                 $assoc = [];
-                foreach ($cells as $i => $value) {
-                    $assoc[$headers[$i] ?? "col_$i"] = $this->normalizeCellValue($value) ?? '';
+                foreach ($cells as $i => $cell) {
+                    $assoc[$headers[$i] ?? "col_$i"] = $this->getCellText($cell);
                 }
 
                 if (! $this->passFilters($assoc, $filters)) {
@@ -289,17 +294,51 @@ class ExcelReaderService
         ];
     }
 
-    protected function normalizeCellValue(mixed $value): ?string
+    protected function getCellText(Cell $cell): string
     {
-        if ($value instanceof \DateTimeInterface) {
+        $value = $cell->getValue();
+        $format = $cell->getStyle()->getFormat();
+
+        if ($cell->isDate() && $value instanceof \DateTimeInterface) {
+            if (is_string($format) && $format !== '') {
+                $phpFormat = strtr(strtolower($format), [
+                    'yyyy' => 'Y',
+                    'yy' => 'y',
+                    'mm' => 'm',
+                    'dd' => 'd',
+                ]);
+
+                return $value->format($phpFormat);
+            }
+
             return $value->format('Y-m-d');
         }
 
-        if (is_scalar($value)) {
-            return trim((string) $value);
+        if ($cell->isNumeric() && is_numeric($value)) {
+            if (is_string($format) && $format !== '') {
+                if (preg_match('/^0+$/', $format)) {
+                    return str_pad((string) $value, strlen($format), '0', STR_PAD_LEFT);
+                }
+
+                if (str_contains($format, '$')) {
+                    $decimals = 0;
+                    if (preg_match('/\.(0+)/', $format, $m)) {
+                        $decimals = strlen($m[1]);
+                    }
+
+                    return '$' . number_format((float) $value, $decimals, '.', ',');
+                }
+            }
+
+            return (string) $value;
         }
 
-        return null;
+        return is_scalar($value) ? (string) $value : '';
+    }
+
+    protected function normalizeCellValue(mixed $value): mixed
+    {
+        return $value;
     }
 
     protected function passFilters(array $row, array $filters): bool
