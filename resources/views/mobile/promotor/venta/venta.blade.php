@@ -13,7 +13,7 @@
         <section class="bg-white/95 backdrop-blur rounded-2xl shadow-lg ring-1 ring-gray-900/5 overflow-hidden">
             {{-- Header --}}
             <div class="p-6">
-                <div class="flex items-start justify-between gap-4">
+                <div class="flex items-start justify-center gap-4">
                     <div>
                         <h1 class="text-lg font-bold text-gray-900">Venta registrada</h1>
                         <p class="mt-1 text-sm text-gray-600 flex items-center gap-2">
@@ -45,7 +45,7 @@
             {{-- Clientes --}}
             <div class="px-4">
                 <div class="hidden sm:grid grid-cols-7 gap-2 text-xs font-semibold text-gray-600 px-2 pb-2">
-                    <div class="col-span-4">Cliente</div>
+                    <div class="col-span-4 text-center">Cliente</div>
                     <div class="col-span-3 text-right">Monto</div>
                 </div>
                 <div class="space-y-2">
@@ -72,7 +72,8 @@
             </div>
 
             {{-- Botones --}}
-            <div class="p-6 pt-4 flex flex-col sm:flex-row gap-3">
+
+            <div class="p-3 pt-3 flex flex-col sm:flex-row gap-3">
                 <a href="{{ route("mobile.$role.ingresar_cliente") }}"
                    class="w-full inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-semibold px-4 py-3 shadow-lg hover:from-blue-700 hover:to-blue-600">
                     <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -86,6 +87,15 @@
                         <path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
                     </svg>
                     Regresar
+                </a>
+            </div>
+            <div class="p-3">
+                <a href=""
+                    class="w-2/3 inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-semibold px-4 py-3 shadow-lg hover:from-blue-700 hover:to-blue-600">
+                        <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14" />
+                        </svg>
+                        Enviar mis ventas
                 </a>
             </div>
         </section>
