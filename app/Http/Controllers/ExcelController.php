@@ -25,12 +25,6 @@ class ExcelController extends Controller
         $data = null;
         if ($sheet) {
             $data = $excel->getSheetRows($sheet, $filters, $limit, $offset);
-            if (isset($data['rows'])) {
-                $data['rows'] = array_map(
-                    fn ($row) => array_map(fn ($value) => (string) $value, $row),
-                    $data['rows']
-                );
-            }
         }
 
         $results = null;
@@ -44,18 +38,18 @@ class ExcelController extends Controller
                         ->mapWithKeys(function ($value, $key) {
                             if (is_array($value)) {
                                 $name = $value['header'] ?? ($value['name'] ?? $key);
-                                $val = $value['value'] ?? '';
+                                $val = $value['value'] ?? null;
 
-                                return [$name => (string) $val];
+                                return [$name => $val];
                             }
 
-                            return [$key => (string) $value];
+                            return [$key => $value];
                         })
                         ->all();
 
                     return [
-                        'sheet' => (string) ($item['sheet'] ?? ''),
-                        'match_value' => isset($item['match_value']) ? (string) $item['match_value'] : '',
+                        'sheet' => $item['sheet'] ?? '',
+                        'match_value' => $item['match_value'] ?? '',
                         'context' => $contextItems,
                     ];
                 })
@@ -84,10 +78,7 @@ class ExcelController extends Controller
 
         $resultados = null;
         if ($cliente !== null && $cliente !== '') {
-            $resultados = array_map(
-                fn ($row) => array_map(fn ($value) => (string) $value, $row),
-                $excel->searchDebtors($cliente)
-            );
+            $resultados = $excel->searchDebtors($cliente);
         }
 
         return view('consulta_base_datos_historica', [
