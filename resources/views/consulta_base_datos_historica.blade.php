@@ -8,7 +8,7 @@
         <form method="GET" class="flex items-center gap-4">
             <div>
                 <label class="block text-sm font-medium">Buscar</label>
-                <input type="text" name="q" value="{{ $filters['q'] ?? '' }}"
+                <input type="text" name="q" value="{{ (string) ($filters['q'] ?? '') }}"
                     class="border rounded p-2" placeholder="Buscar..." />
             </div>
 
@@ -48,10 +48,10 @@
                         <tbody class="divide-y divide-gray-100">
                             @foreach($deudores as $deudor)
                                 <tr>
-                                    <td class="px-3 py-2">{{ $deudor['fecha_prestamo'] ?? '' }}</td>
-                                    <td class="px-3 py-2">{{ $deudor['cliente'] ?? '' }}</td>
-                                    <td class="px-3 py-2">{{ $deudor['promotora'] ?? '' }}</td>
-                                    <td class="px-3 py-2">{{ $deudor['deuda'] ?? '' }}</td>
+                                    <td class="px-3 py-2">{{ (string) ($deudor['fecha_prestamo'] ?? '') }}</td>
+                                    <td class="px-3 py-2">{{ (string) ($deudor['cliente'] ?? '') }}</td>
+                                    <td class="px-3 py-2">{{ (string) ($deudor['promotora'] ?? '') }}</td>
+                                    <td class="px-3 py-2">{{ (string) ($deudor['deuda'] ?? '') }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -82,7 +82,7 @@
                                 {{-- Cabeceras contextuales generadas dinámicamente --}}
                                 @foreach($contextHeaders as $header)
                                     <th class="px-3 py-2 text-left font-semibold">
-                                        {{ $header }}
+                                    {{ (string) $header }}
                                     </th>
                                 @endforeach
                             </tr>
@@ -90,10 +90,10 @@
                         <tbody class="divide-y divide-gray-100">
                             @foreach($results as $row)
                                 <tr>
-                                    <td class="px-3 py-2">{{ $row['sheet'] }}</td>
-                                    <td class="px-3 py-2">{{ $row['match_value'] }}</td>
+                                    <td class="px-3 py-2">{{ (string) $row['sheet'] }}</td>
+                                    <td class="px-3 py-2">{{ (string) $row['match_value'] }}</td>
                                     @foreach($contextHeaders as $header)
-                                        <td class="px-3 py-2">{{ $row['context'][$header] ?? '' }}</td>
+                                        <td class="px-3 py-2">{{ (string) ($row['context'][$header] ?? '') }}</td>
                                     @endforeach
                                 </tr>
                             @endforeach
@@ -112,7 +112,7 @@
                         <tr>
                             @foreach($data['headers'] as $header)
                                 <th class="px-3 py-2 text-left font-semibold">
-                                    {{ ucfirst(str_replace('_',' ', $header)) }}
+                                    {{ (string) ucfirst(str_replace('_',' ', $header)) }}
                                 </th>
                             @endforeach
                         </tr>
@@ -122,7 +122,7 @@
                             <tr>
                                 @foreach($data['headers'] as $header)
                                     <td class="px-3 py-2">
-                                        {{ $row[$header] ?? '' }}
+                                        {{ (string) ($row[$header] ?? '') }}
                                     </td>
                                 @endforeach
                             </tr>
