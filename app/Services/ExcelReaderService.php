@@ -244,12 +244,16 @@ class ExcelReaderService
             $headerRow = null;
             $startCol = null;
 
-            // Guardar primeras filas para detectar fechas de pago
+            // Guardar filas superiores hasta detectar encabezado real
+            // Se escanean como máximo 20 filas para evitar lecturas innecesarias
             $topRows = [];
+            $maxScanRows = 20;
             foreach ($sheet->getRowIterator() as $rowIndex => $row) {
-                if ($rowIndex <= 5) {
-                    $topRows[$rowIndex] = $row->getCells();
+                if ($rowIndex > $maxScanRows) {
+                    break;
                 }
+
+                $topRows[$rowIndex] = $row->getCells();
 
                 if ($headerRowIndex === null) {
                     $cells = $row->getCells();
@@ -259,9 +263,12 @@ class ExcelReaderService
                             $headerRowIndex = $rowIndex;
                             $headerRow = $row;
                             $startCol = $colIndex;
-                            break 2;
+                            break;
                         }
                     }
+                } elseif ($rowIndex >= $headerRowIndex + 1) {
+                    // ya contamos la fila posterior al encabezado
+                    break;
                 }
             }
 
@@ -307,22 +314,22 @@ class ExcelReaderService
                 'cols' => $cols,
             ]);
 
-            // Detectar columnas de fechas de pago en filas superiores
+            // Detectar columnas de fechas de pago
             $paymentCols = [];
-            $row1 = $topRows[1] ?? [];
-            $row2 = $topRows[2] ?? [];
+            $headerCells = $headerRow->getCells();
             $fechaIndexes = [];
-            foreach ($row1 as $i => $cell) {
+            foreach ($headerCells as $i => $cell) {
                 $txt = Str::of($this->getCellText($cell))->trim()->lower();
                 if ($txt === 'fecha') {
                     $fechaIndexes[] = $i;
                 }
             }
-            // Ignorar la primera 'FECHA'
+            // Ignorar la primera 'FECHA' (fecha de crédito)
             if (count($fechaIndexes) > 1) {
+                $belowRow = $topRows[$headerRowIndex + 1] ?? [];
                 foreach (array_slice($fechaIndexes, 1) as $i) {
-                    $raw = $this->getCellText($row2[$i] ?? null);
-                    $norm = $this->normalizeDateValue($row2[$i] ?? null, $raw);
+                    $raw = $this->getCellText($belowRow[$i] ?? null);
+                    $norm = $this->normalizeDateValue($belowRow[$i] ?? null, $raw);
                     if ($norm) {
                         $paymentCols[$norm] = $i;
                     }
