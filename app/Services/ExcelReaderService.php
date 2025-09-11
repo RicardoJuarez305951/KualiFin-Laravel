@@ -288,6 +288,7 @@ class ExcelReaderService
 
             if ($headerRowIndex === null || $headerRow === null) {
                 Log::channel('excel')->debug('[HIST][SKIP] No se detectó fila de encabezado con FECHA en esta hoja');
+
                 continue;
             }
 
@@ -329,15 +330,17 @@ class ExcelReaderService
             $paymentCols = [];
             $headerCells = $headerRow->getCells();
             $fechaIndexes = [];
+            $belowRow = $topRows[$headerRowIndex + 1] ?? [];
             foreach ($headerCells as $i => $cell) {
                 $txt = Str::of($this->getCellText($cell))->trim()->lower();
-                if ($txt === 'fecha') {
+                $rawBelow = $this->getCellText($belowRow[$i] ?? null);
+                $normBelow = $this->normalizeDateValue($belowRow[$i] ?? null, $rawBelow);
+                if (Str::contains((string) $txt, 'fecha') || $normBelow) {
                     $fechaIndexes[] = $i;
                 }
             }
             // Ignorar la primera 'FECHA' (fecha de crédito)
             if (count($fechaIndexes) > 1) {
-                $belowRow = $topRows[$headerRowIndex + 1] ?? [];
                 foreach (array_slice($fechaIndexes, 1) as $i) {
                     $raw = $this->getCellText($belowRow[$i] ?? null);
                     $norm = $this->normalizeDateValue($belowRow[$i] ?? null, $raw);
@@ -357,7 +360,7 @@ class ExcelReaderService
                 foreach ($topRows as $rIdx => $cellsRow) {
                     foreach ($cellsRow as $i => $cell) {
                         $txt = Str::of($this->getCellText($cell))->trim()->lower();
-                        if ($txt === 'fecha') {
+                        if (Str::contains((string) $txt, 'fecha')) {
                             $rightCell = $cellsRow[$i + 1] ?? null;
                             $raw = $this->getCellText($rightCell);
                             $norm = $this->normalizeDateValue($rightCell, $raw);
