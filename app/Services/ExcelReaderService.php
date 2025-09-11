@@ -390,7 +390,7 @@ class ExcelReaderService
                 $nombre = $this->getCellText($cells[$cols['nombre'] ?? -1] ?? null);
                 $nombreNorm = $this->normalizeComparable($nombre);
                 $clienteNorm = $this->normalizeComparable($cliente);
-                if ($nombre && Str::contains($nombreNorm, $clienteNorm)) {
+                if ($nombre && $this->containsAllTokens($nombreNorm, $clienteNorm)) {
                     Log::channel('excel')->debug('[HIST][CLIENT_ROW] Fila de cliente encontrada', [
                         'sheet' => $sheet->getName(),
                         'row' => $rowIndex,
@@ -909,5 +909,22 @@ class ExcelReaderService
         $t = Str::ascii($t);
 
         return trim($t);
+    }
+
+    /**
+     * Comprueba que todas las palabras de $needle estén presentes en $haystack.
+     */
+    private function containsAllTokens(string $haystack, string $needle): bool
+    {
+        $haystackTokens = preg_split('/\s+/', $haystack, -1, PREG_SPLIT_NO_EMPTY);
+        $needleTokens = preg_split('/\s+/', $needle, -1, PREG_SPLIT_NO_EMPTY);
+
+        foreach ($needleTokens as $token) {
+            if (! in_array($token, $haystackTokens, true)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
