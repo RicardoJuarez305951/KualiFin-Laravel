@@ -6,10 +6,6 @@
         viable: false,
         errores: [],
         showError: false,
-<<<<<<< ours
-=======
-        errorMessage: '',
->>>>>>> theirs
         clientCurpUploaded: false,
         clientDomUploaded: false,
         clientIneUploaded: false,
@@ -52,51 +48,6 @@
           this.r_avalDomUploaded = false;
           this.r_avalIneUploaded = false;
           this.r_avalCompUploaded = false;
-          this.errorMessage = '';
-          this.showError = false;
-        },
-        validateMonto(valor) {
-          const monto = parseFloat(valor);
-          return !(isNaN(monto) || monto < 0 || monto > 20000);
-        },
-        validateNuevoCliente(e) {
-          const f = e.target;
-          const valido =
-            f.nombre.value.trim() &&
-            f.apellido_p.value.trim() &&
-            f.CURP.value.trim().length === 18 &&
-            this.validateMonto(f.monto.value);
-          const docs = this.clientIneUploaded && this.clientCompUploaded && this.avalIneUploaded && this.avalCompUploaded;
-          if (!valido) {
-            this.errorMessage = 'Datos incorrectos';
-            this.showError = true;
-            return;
-          }
-          if (!docs) {
-            this.errorMessage = 'Información incompleta';
-            this.showError = true;
-            return;
-          }
-          f.submit();
-        },
-        validateRecredito(e) {
-          const f = e.target;
-          const valido =
-            f.CURP.value.trim().length === 18 &&
-            this.validateMonto(f.monto.value);
-          const docsCliente = this.r_clientIneUploaded && this.r_clientCompUploaded;
-          const docsAval = this.r_newAval ? (this.r_avalIneUploaded && this.r_avalCompUploaded) : true;
-          if (!valido) {
-            this.errorMessage = 'Datos incorrectos';
-            this.showError = true;
-            return;
-          }
-          if (!(docsCliente && docsAval)) {
-            this.errorMessage = 'Información incompleta';
-            this.showError = true;
-            return;
-          }
-          f.submit();
         },
         validateMonto(valor) {
           const monto = parseFloat(valor);
@@ -180,17 +131,10 @@
     <div x-show="showError" x-cloak class="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div class="absolute inset-0 bg-black/50" @click="showError = false"></div>
       <div @click.stop class="bg-white rounded-2xl shadow-lg w-full max-w-sm p-6 text-center">
-<<<<<<< ours
         <p class="text-lg font-semibold mb-4">Datos incorrectos</p>
-=======
-        <p class="text-lg font-semibold mb-4" x-text="errorMessage"></p>
->>>>>>> theirs
         <button @click="showError = false" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-2 rounded-lg">Aceptar</button>
       </div>
     </div>
   </div>
-<<<<<<< ours
   
-=======
->>>>>>> theirs
 </x-layouts.mobile.mobile-layout>
