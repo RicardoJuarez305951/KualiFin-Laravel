@@ -303,26 +303,20 @@ class ExcelReaderService
             $cols = [];
             $cells = $headerRow->getCells();
             for ($i = $startCol; $i < count($cells); $i++) {
-                $label = Str::of($this->getCellText($cells[$i]))->trim()->lower();
-                switch ($label) {
-                    case 'fecha':
-                        $cols['fecha_credito'] = $i;
-                        break;
-                    case 'nombre':
-                        $cols['nombre'] = $i;
-                        break;
-                    case 'prestamo':
-                        $cols['prestamo'] = $i;
-                        break;
-                    case 'abono':
-                        $cols['abono'] = $i;
-                        break;
-                    case 'debe':
-                        $cols['debe'] = $i;
-                        break;
-                    case 'observaciones':
-                        $cols['observaciones'] = $i;
-                        break 2;
+                $label = Str::of($this->getCellText($cells[$i]))->trim()->lower()->toString();
+
+                if ($label === 'fecha') {
+                    $cols['fecha_credito'] = $i;
+                } elseif (Str::contains($label, ['nombre', 'cliente'])) {
+                    $cols['nombre'] = $i;
+                } elseif (Str::contains($label, ['prestamo', 'préstamo', 'monto', 'credito', 'crédito'])) {
+                    $cols['prestamo'] = $i;
+                } elseif (Str::contains($label, ['abono', 'pago'])) {
+                    $cols['abono'] = $i;
+                } elseif (Str::contains($label, ['debe', 'saldo', 'adeudo'])) {
+                    $cols['debe'] = $i;
+                } elseif (Str::contains($label, 'observa')) {
+                    $cols['observaciones'] = $i;
                 }
             }
 
