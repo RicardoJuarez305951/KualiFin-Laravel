@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use Box\Spout\Common\Entity\Cell;
 use Box\Spout\Reader\Common\Creator\ReaderEntityFactory;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -13,14 +15,9 @@ class ExcelReaderService
 {
     public function path(): string
     {
-        // Prioriza EXCEL_STORAGE_PATH si existe; si no, usa config('excel.local_path')
         return env('EXCEL_STORAGE_PATH', config('excel.local_path', 'excel/origen.xlsx'));
     }
 
-    /**
-     * Descarga el Excel desde EXCEL_SOURCE_URL y lo guarda en storage/app/{EXCEL_STORAGE_PATH}
-     * Loggea usando el canal 'excel'. Regresa ['ok'=>bool, 'path'=>..., 'size'=>...|'message'=>...]
-     */
     public function downloadAndStore(): array
     {
         $url = env('EXCEL_SOURCE_URL');
@@ -35,7 +32,6 @@ class ExcelReaderService
 
         try {
             Log::channel('excel')->info('Iniciando descarga del Excel', ['url' => $url]);
-
             $response = Http::timeout($timeout)->get($url);
 
             if (! $response->ok()) {
@@ -58,17 +54,12 @@ class ExcelReaderService
 
             return ['ok' => true, 'path' => $path, 'size' => $size];
         } catch (Throwable $e) {
-            Log::channel('excel')->error('Error descargando Excel', [
-                'error' => $e->getMessage(),
-            ]);
+            Log::channel('excel')->error('Error descargando Excel', ['error' => $e->getMessage()]);
 
             return ['ok' => false, 'message' => $e->getMessage()];
         }
     }
 
-    /**
-     * (Opcional) Solo descarga si no existe o si está “viejo”
-     */
     public function refreshIfStale(int $maxAgeMinutes = 60): array
     {
         $path = $this->path();
@@ -100,10 +91,383 @@ class ExcelReaderService
         foreach ($reader->getSheetIterator() as $sheet) {
             $names[] = $sheet->getName();
         }
-
         $reader->close();
 
         return $names;
+    }
+
+    /**
+     * Busca deudores en la hoja "DEUDORES-NO PRESTAR".
+     * - Detecta índices por encabezado (izquierda y derecha).
+     * - Normaliza fecha (Spout date, serial Excel, texto d/m/Y) a 'Y-m-d'.
+     * - Aplica castAssoc() para entregar Carbon/float a quien consuma.
+     */
+    public function searchDebtors(string $cliente): array
+    {
+        $reader = ReaderEntityFactory::createXLSXReader();
+        $reader->open(Storage::path($this->path()));
+
+        $clienteLower = Str::lower($cliente); // <-- FALTA ESTO
+        $results = [];
+
+        foreach ($reader->getSheetIterator() as $sheet) {
+            if ($sheet->getName() !== 'DEUDORES-NO PRESTAR') {
+                continue;
+            }
+
+            // Fallback por si no encontramos encabezados
+            $layout = [
+                'left' => ['fecha' => 0, 'cliente' => 1, 'promotora' => 2, 'deuda' => 3],
+                'right' => ['fecha' => 6, 'cliente' => 7, 'promotora' => 8, 'deuda' => 9],
+                'header_row' => null,
+            ];
+
+            // Detectar encabezados en primeras filas
+            $headerFound = false;
+            foreach ($sheet->getRowIterator() as $rIndex => $row) {
+                if ($rIndex > 15) {
+                    break;
+                } // no más de 15 filas para detección
+                $cells = $row->getCells();
+                $vals = array_map(fn ($c) => $this->getCellText($c), $cells);
+                $lower = array_map(fn ($t) => Str::of($t)->trim()->lower()->toString(), $vals);
+
+                $ixFechaL = $this->findIndexLike($lower, ['fecha']);
+                $ixClienteL = $this->findIndexLike($lower, ['cliente']);
+                $ixPromotoraL = $this->findIndexLike($lower, ['promotora', 'promotor', 'promotora/ promotor']);
+                $ixDeudaL = $this->findIndexLike($lower, ['deuda', 'adeudo', 'saldo']);
+
+                $rightStart = ($ixDeudaL ?? -1) + 1;
+                $ixFechaR = $this->findIndexLike($lower, ['fecha'], minIndex: $rightStart);
+                $ixClienteR = $this->findIndexLike($lower, ['cliente'], minIndex: $rightStart);
+                $ixPromotoraR = $this->findIndexLike($lower, ['promotora', 'promotor', 'promotora/ promotor'], minIndex: $rightStart);
+                $ixDeudaR = $this->findIndexLike($lower, ['deuda', 'adeudo', 'saldo'], minIndex: $rightStart);
+
+                $leftOk = $ixFechaL !== null && $ixClienteL !== null && $ixPromotoraL !== null && $ixDeudaL !== null;
+                $rightOk = $ixFechaR !== null && $ixClienteR !== null && $ixPromotoraR !== null && $ixDeudaR !== null;
+
+                if ($leftOk) {
+                    $layout['left'] = ['fecha' => $ixFechaL, 'cliente' => $ixClienteL, 'promotora' => $ixPromotoraL, 'deuda' => $ixDeudaL];
+                    $headerFound = true;
+                    $layout['header_row'] = $rIndex;
+                }
+                if ($rightOk) {
+                    $layout['right'] = ['fecha' => $ixFechaR, 'cliente' => $ixClienteR, 'promotora' => $ixPromotoraR, 'deuda' => $ixDeudaR];
+                    $headerFound = true;
+                    $layout['header_row'] = $rIndex;
+                }
+
+                if ($headerFound) {
+                    break;
+                }
+            }
+
+            $startIndex = $layout['header_row'] !== null ? ($layout['header_row'] + 1) : 5;
+
+            foreach ($sheet->getRowIterator() as $rowIndex => $row) {
+                if ($rowIndex < $startIndex) {
+                    continue;
+                }
+
+                $cells = $row->getCells();
+
+                // Helper lectura segura (si getCellText da vacío, intenta valor crudo)
+                $cellText = function (array $cells, ?int $i): ?string {
+                    if ($i === null || ! isset($cells[$i])) {
+                        return null;
+                    }
+                    $txt = $this->getCellText($cells[$i]);
+                    if ($txt === '' || $txt === null) {
+                        $raw = $cells[$i]->getValue();
+
+                        return is_scalar($raw) ? (string) $raw : null;
+                    }
+
+                    return $txt;
+                };
+
+                // ---- tabla izquierda ----
+                $cliente1 = $cellText($cells, $layout['left']['cliente'] ?? null);
+                if ($cliente1 !== null && $cliente1 !== '' &&
+                    Str::contains(Str::lower($cliente1), $clienteLower)) {
+
+                    $fechaRaw = $cellText($cells, $layout['left']['fecha'] ?? null);
+                    $prom = $cellText($cells, $layout['left']['promotora'] ?? null);
+                    $deuda = $cellText($cells, $layout['left']['deuda'] ?? null);
+
+                    $record = [
+                        'fecha_prestamo' => $this->normalizeDateValue($cells[$layout['left']['fecha']] ?? null, $fechaRaw),
+                        'cliente' => $cliente1,
+                        'promotora' => $prom,
+                        'deuda' => $deuda,
+                    ];
+                    $results[] = $this->castAssoc($record);
+                }
+
+                // ---- tabla derecha ----
+                $cliente2 = $cellText($cells, $layout['right']['cliente'] ?? null);
+                if ($cliente2 !== null && $cliente2 !== '' &&
+                    Str::contains(Str::lower($cliente2), $clienteLower)) {
+
+                    $fechaRaw = $cellText($cells, $layout['right']['fecha'] ?? null);
+                    $prom = $cellText($cells, $layout['right']['promotora'] ?? null);
+                    $deuda = $cellText($cells, $layout['right']['deuda'] ?? null);
+
+                    $record = [
+                        'fecha_prestamo' => $this->normalizeDateValue($cells[$layout['right']['fecha']] ?? null, $fechaRaw),
+                        'cliente' => $cliente2,
+                        'promotora' => $prom,
+                        'deuda' => $deuda,
+                    ];
+                    $results[] = $this->castAssoc($record);
+                }
+            }
+
+            break; // solo esa hoja
+        }
+
+        $reader->close();
+
+        Log::channel('excel')->debug('[HIST][DONE] Resultados totales', [
+            'count' => count($results),
+        ]);
+
+        return $results;
+    }
+
+    public function searchClientHistory(string $cliente): array
+    {
+        $path = Storage::path($this->path());
+        Log::channel('excel')->debug('[HIST] Abriendo Excel para historial', [
+            'path' => $path,
+            'cliente' => $cliente,
+        ]);
+        $reader = ReaderEntityFactory::createXLSXReader();
+        $reader->open($path);
+
+        $clienteLower = Str::lower($cliente);
+        $results = [];
+
+        foreach ($reader->getSheetIterator() as $sheet) {
+            Log::channel('excel')->debug('[HIST] Procesando hoja', [
+                'sheet' => $sheet->getName(),
+            ]);
+            $headerRowIndex = null;
+            $headerRow = null;
+            $startCol = null;
+            $headerLabel = null;
+
+            // Guardar filas superiores hasta detectar encabezado real
+            // Se escanean como máximo 50 filas para evitar lecturas innecesarias
+            $topRows = [];
+            $maxScanRows = 50;
+            foreach ($sheet->getRowIterator() as $rowIndex => $row) {
+                if ($rowIndex > $maxScanRows) {
+                    break;
+                }
+
+                $cells = $row->getCells();
+                $topRows[$rowIndex] = $cells;
+
+                if ($headerRowIndex === null) {
+                    $lower = array_map(fn ($c) => Str::of($this->getCellText($c))->trim()->lower()->toString(), $cells);
+                    $fechaIdx = null;
+                    $hasNombre = false;
+                    foreach ($lower as $colIndex => $txt) {
+                        if ($fechaIdx === null && Str::contains($txt, 'fecha')) {
+                            $fechaIdx = $colIndex;
+                            $headerLabel = $txt;
+                        }
+                        if (Str::contains($txt, ['nombre', 'cliente'])) {
+                            $hasNombre = true;
+                        }
+                    }
+                    if ($fechaIdx !== null && $hasNombre) {
+                        $headerRowIndex = $rowIndex;
+                        $headerRow = $cells;
+                        $startCol = $fechaIdx;
+                    }
+                } elseif ($rowIndex >= $headerRowIndex + 1) {
+                    // ya contamos la fila posterior al encabezado
+                    break;
+                }
+            }
+
+            if ($headerRowIndex === null || $headerRow === null) {
+                foreach ($topRows as $rIdx => $cellsRow) {
+                    $nonEmpty = false;
+                    foreach ($cellsRow as $cell) {
+                        $txt = Str::of($this->getCellText($cell))->trim()->toString();
+                        if ($txt !== '') {
+                            $nonEmpty = true;
+                            break;
+                        }
+                    }
+                    if ($nonEmpty) {
+                        $headerRowIndex = $rIdx;
+                        $headerRow = $cellsRow;
+                        $startCol = 0;
+                        $headerLabel = null;
+                        break;
+                    }
+                }
+            }
+
+            if ($headerRowIndex === null || $headerRow === null) {
+                Log::channel('excel')->debug('[HIST][SKIP] No se detectó fila de encabezado con FECHA en esta hoja');
+
+                continue;
+            }
+
+            Log::channel('excel')->debug('[HIST][HEADER] Encabezado detectado', [
+                'sheet' => $sheet->getName(),
+                'row' => $headerRowIndex,
+                'col' => $startCol,
+                'label' => $headerLabel,
+                'match' => $headerLabel === 'fecha' ? 'exact' : ($headerLabel ? 'partial' : 'fallback'),
+            ]);
+
+            // Mapear columnas principales
+            $cols = [];
+            $cells = $headerRow;
+            for ($i = $startCol; $i < count($cells); $i++) {
+                $label = Str::of($this->getCellText($cells[$i]))->trim()->lower()->toString();
+
+                if ($label === 'fecha') {
+                    $cols['fecha_credito'] = $i;
+                } elseif (Str::contains($label, ['nombre', 'cliente'])) {
+                    $cols['nombre'] = $i;
+                } elseif (Str::contains($label, ['prestamo', 'préstamo', 'monto', 'credito', 'crédito'])) {
+                    $cols['prestamo'] = $i;
+                } elseif (Str::contains($label, ['abono', 'pago'])) {
+                    $cols['abono'] = $i;
+                } elseif (Str::contains($label, ['debe', 'saldo', 'adeudo'])) {
+                    $cols['debe'] = $i;
+                } elseif (Str::contains($label, 'observa')) {
+                    $cols['observaciones'] = $i;
+                }
+            }
+
+            Log::channel('excel')->debug('[HIST][COLUMNS] Columnas principales mapeadas', [
+                'sheet' => $sheet->getName(),
+                'cols' => $cols,
+            ]);
+
+            // Detectar columnas de fechas de pago
+            $paymentCols = [];
+            $headerCells = $headerRow;
+            $fechaIndexes = [];
+            $belowRow = $topRows[$headerRowIndex + 1] ?? [];
+            foreach ($headerCells as $i => $cell) {
+                $txt = Str::of($this->getCellText($cell))->trim()->lower();
+                $rawBelow = $this->getCellText($belowRow[$i] ?? null);
+                $normBelow = $this->normalizeDateValue($belowRow[$i] ?? null, $rawBelow);
+                if (Str::contains((string) $txt, 'fecha') || $normBelow) {
+                    $fechaIndexes[] = $i;
+                }
+            }
+            // Ignorar la primera 'FECHA' (fecha de crédito)
+            if (count($fechaIndexes) > 1) {
+                foreach (array_slice($fechaIndexes, 1) as $i) {
+                    $raw = $this->getCellText($belowRow[$i] ?? null);
+                    $norm = $this->normalizeDateValue($belowRow[$i] ?? null, $raw);
+                    if ($norm) {
+                        $paymentCols[$norm] = $i;
+                    }
+                }
+            }
+
+            Log::channel('excel')->debug('[HIST][PAYMENT_COLS] Columnas de pago identificadas (patrón A)', [
+                'sheet' => $sheet->getName(),
+                'payment_cols' => $paymentCols,
+            ]);
+
+            // Patrón B: buscar "FECHA" horizontalmente y usar la celda inmediata a la derecha como fecha
+            if (empty($paymentCols)) {
+                foreach ($topRows as $rIdx => $cellsRow) {
+                    foreach ($cellsRow as $i => $cell) {
+                        $txt = Str::of($this->getCellText($cell))->trim()->lower();
+                        if (Str::contains((string) $txt, 'fecha')) {
+                            $rightCell = $cellsRow[$i + 1] ?? null;
+                            $raw = $this->getCellText($rightCell);
+                            $norm = $this->normalizeDateValue($rightCell, $raw);
+                            if ($norm) {
+                                $paymentCols[$norm] = $i + 1;
+                            }
+                        }
+                    }
+                }
+
+                Log::channel('excel')->debug('[HIST][PAYMENT_COLS] Columnas de pago identificadas (patrón B)', [
+                    'sheet' => $sheet->getName(),
+                    'payment_cols' => $paymentCols,
+                ]);
+            }
+
+            foreach ($sheet->getRowIterator() as $rowIndex => $row) {
+                if ($rowIndex <= $headerRowIndex) {
+                    continue;
+                }
+
+                $cells = $row->getCells();
+                $nombre = $this->getCellText($cells[$cols['nombre'] ?? -1] ?? null);
+                $nombreNorm = $this->normalizeComparable($nombre);
+                $clienteNorm = $this->normalizeComparable($cliente);
+                if ($nombre && $this->containsAllTokens($nombreNorm, $clienteNorm)) {
+                    Log::channel('excel')->debug('[HIST][CLIENT_ROW] Fila de cliente encontrada', [
+                        'sheet' => $sheet->getName(),
+                        'row' => $rowIndex,
+                        'nombre' => $nombre,
+                    ]);
+                    $assoc = [
+                        'fecha_credito' => $this->normalizeDateValue($cells[$cols['fecha_credito'] ?? -1] ?? null, $this->getCellText($cells[$cols['fecha_credito'] ?? -1] ?? null)),
+                        'nombre' => $nombre,
+                        'prestamo' => $this->getCellText($cells[$cols['prestamo'] ?? -1] ?? null),
+                        'abono' => $this->getCellText($cells[$cols['abono'] ?? -1] ?? null),
+                        'debe' => $this->getCellText($cells[$cols['debe'] ?? -1] ?? null),
+                    ];
+
+                    if (isset($cols['observaciones'])) {
+                        $assoc['observaciones'] = $this->getCellText($cells[$cols['observaciones']] ?? null);
+                    }
+
+                    if (! array_key_exists('observaciones', $assoc)) {
+                        $assoc['observaciones'] = '';
+                    }
+
+                    $assoc = [
+                        'fecha_credito' => $assoc['fecha_credito'] ?? null,
+                        'nombre' => $assoc['nombre'] ?? null,
+                        'prestamo' => $assoc['prestamo'] ?? null,
+                        'abono' => $assoc['abono'] ?? null,
+                        'debe' => $assoc['debe'] ?? null,
+                        'observaciones' => $assoc['observaciones'] ?? '',
+                    ];
+
+                    $pagos = [];
+                    foreach ($paymentCols as $fecha => $colIndex) {
+                        $val = $this->getCellText($cells[$colIndex] ?? null);
+                        if ($val !== null && $val !== '') {
+                            $pagos[$fecha] = $this->parseMoney($val);
+                        }
+                    }
+
+                    $results[] = [
+                        'promotora' => $sheet->getName(),
+                        'cliente' => $this->castAssoc($assoc),
+                        'pagos' => $pagos,
+                    ];
+                    Log::channel('excel')->debug('[HIST][RESULT_ADDED] Resultado agregado', [
+                        'sheet' => $sheet->getName(),
+                        'nombre' => $nombre,
+                    ]);
+                }
+            }
+        }
+
+        $reader->close();
+
+        return $results;
     }
 
     public function searchAllSheets(string $query, int $context = 3): array
@@ -119,12 +483,13 @@ class ExcelReaderService
             $headers = [];
 
             foreach ($sheet->getRowIterator() as $rowIndex => $row) {
-                $cells = $row->toArray();
+                $cells = $row->getCells();
 
                 if ($rowIndex === 1) {
-                    $headersRaw = array_map(fn ($h) => $this->normalizeCellValue($h) ?? '', $cells);
-                    $headers = array_map(function ($h) {
-                        $formatted = $this->normalizeCellValue($h) ?? '';
+                    $headersRaw = array_map(fn ($cell) => $this->getCellText($cell), $cells);
+                    $headers = array_map(function ($cell) {
+                        $formatted = $this->getCellText($cell);
+
                         return Str::of($formatted)->trim()->lower()->snake()->toString();
                     }, $cells);
 
@@ -136,8 +501,8 @@ class ExcelReaderService
                     $headers = $headersRaw;
                 }
 
-                foreach ($cells as $i => $value) {
-                    $val = $this->normalizeCellValue($value);
+                foreach ($cells as $i => $cell) {
+                    $val = $this->getCellText($cell);
 
                     if ($val === null || $val === '') {
                         continue;
@@ -148,7 +513,11 @@ class ExcelReaderService
                     if (Str::contains($valLower, $queryLower)) {
                         $contextPairs = [];
                         for ($j = $i + 1; $j < count($cells) && count($contextPairs) < $context; $j++) {
-                            $nextVal = $this->normalizeCellValue($cells[$j]);
+                            $nextCell = $cells[$j] ?? null;
+                            if (! $nextCell) {
+                                continue;
+                            }
+                            $nextVal = $this->getCellText($nextCell);
                             if ($nextVal === null || $nextVal === '') {
                                 continue;
                             }
@@ -187,11 +556,12 @@ class ExcelReaderService
             }
 
             foreach ($sheet->getRowIterator() as $rowIndex => $row) {
-                $cells = $row->toArray();
+                $cells = $row->getCells();
 
                 if ($rowIndex === 1) {
-                    $headers = array_map(function ($h) {
-                        $formatted = $this->normalizeCellValue($h) ?? '';
+                    $headers = array_map(function ($cell) {
+                        $formatted = $this->getCellText($cell);
+
                         return Str::of($formatted)->trim()->lower()->snake()->toString();
                     }, $cells);
 
@@ -203,8 +573,8 @@ class ExcelReaderService
                 }
 
                 $assoc = [];
-                foreach ($cells as $i => $value) {
-                    $assoc[$headers[$i] ?? "col_$i"] = $this->normalizeCellValue($value) ?? '';
+                foreach ($cells as $i => $cell) {
+                    $assoc[$headers[$i] ?? "col_$i"] = $this->getCellText($cell);
                 }
 
                 if (! $this->passFilters($assoc, $filters)) {
@@ -216,8 +586,10 @@ class ExcelReaderService
                 if ($total <= $offset) {
                     continue;
                 }
+
                 if (count($results) < $limit) {
-                    $results[] = $assoc;
+                    // Normaliza tipos por nombre de columna (fecha / dinero)
+                    $results[] = $this->castAssoc($assoc);
                 } else {
                     break;
                 }
@@ -236,18 +608,167 @@ class ExcelReaderService
         ];
     }
 
-    protected function normalizeCellValue(mixed $value): ?string
+    /* =================== Helpers de extracción y casteo =================== */
+
+    protected function getCellText(?Cell $cell): string
     {
-        if ($value instanceof \DateTimeInterface) {
+        if (! $cell) {
+            return '';
+        }
+        $value = $cell->getValue();
+        $format = $cell->getStyle()->getFormat();
+
+        if ($cell->isDate() && $value instanceof \DateTimeInterface) {
+            // Intenta respetar formato de celda
+            if (is_string($format) && $format !== '') {
+                $phpFormat = strtr(strtolower($format), [
+                    'yyyy' => 'Y',
+                    'yy' => 'y',
+                    'mm' => 'm',
+                    'dd' => 'd',
+                ]);
+
+                return $value->format($phpFormat);
+            }
+
             return $value->format('Y-m-d');
         }
 
-        if (is_scalar($value)) {
-            return trim((string) $value);
+        if ($cell->isNumeric() && is_numeric($value)) {
+            if (is_string($format) && $format !== '') {
+                // Formato tipo 0000...
+                if (preg_match('/^0+$/', $format)) {
+                    return str_pad((string) $value, strlen($format), '0', STR_PAD_LEFT);
+                }
+                // Moneda
+                if (str_contains($format, '$')) {
+                    $decials = 0;
+                    if (preg_match('/\.(0+)/', $format, $m)) {
+                        $decials = strlen($m[1]);
+                    }
+
+                    return '$'.number_format((float) $value, $decials, '.', ',');
+                }
+            }
+
+            return (string) $value; // si fuese serial y no está marcado como fecha, queda número
         }
 
-        return null;
+        return is_scalar($value) ? (string) $value : '';
     }
+
+    /**
+     * Castea por nombre de campo: fechas -> Carbon, dinero -> float
+     */
+    protected function castAssoc(array $assoc): array
+    {
+        $out = [];
+        foreach ($assoc as $key => $val) {
+            if ($this->looksLikeDateField($key)) {
+                $out[$key] = $this->parseDateFlexible($val);   // Carbon|null
+            } elseif ($this->looksLikeMoneyField($key)) {
+                $out[$key] = $this->parseMoney($val);          // float|null
+            } else {
+                $out[$key] = $val; // string u otros
+            }
+        }
+
+        return $out;
+    }
+
+    protected function looksLikeDateField(string $name): bool
+    {
+        $name = mb_strtolower($name);
+
+        return str_contains($name, 'fecha')
+            || in_array($name, ['fecha_prestamo', 'fecha_pago', 'fecha', 'date', 'fecha_inicio', 'fecha_fin'], true);
+    }
+
+    protected function looksLikeMoneyField(string $name): bool
+    {
+        $name = mb_strtolower($name);
+
+        return str_contains($name, 'monto')
+            || str_contains($name, 'deuda')
+            || str_contains($name, 'importe')
+            || str_contains($name, 'saldo')
+            || str_contains($name, 'abono')
+            || str_contains($name, 'pago')
+            || str_contains($name, 'inversion');
+    }
+
+    /**
+     * Intenta parsear fechas:
+     * - Serial Excel (número de días desde 1899-12-30).
+     * - 'd/m/Y' (prioritario por tu caso).
+     * - 'Y-m-d', 'd-m-Y', 'm/d/Y', etc.
+     */
+    protected function parseDateFlexible(?string $text): ?Carbon
+    {
+        if ($text === null || $text === '') {
+            return null;
+        }
+
+        $txt = trim((string) $text);
+
+        // 1) Serial numérico de Excel (rango razonable de días)
+        if (is_numeric($txt)) {
+            $days = (int) $txt;
+            if ($days > 30000 && $days < 60000) {
+                // 25569 días de 1899-12-30 a 1970-01-01
+                $timestamp = ($days - 25569) * 86400;
+                try {
+                    return Carbon::createFromTimestampUTC($timestamp);
+                } catch (\Throwable $e) {
+                }
+            }
+        }
+
+        // 2) Tu formato por defecto: d/m/Y
+        try {
+            $dt = Carbon::createFromFormat('d/m/Y', $txt);
+            if ($dt !== false) {
+                return $dt;
+            }
+        } catch (\Throwable $e) {
+        }
+
+        // 3) Otros formatos comunes
+        $candidates = ['Y-m-d', 'd-m-Y', 'm/d/Y', 'Y/m/d'];
+        foreach ($candidates as $fmt) {
+            try {
+                $dt = Carbon::createFromFormat($fmt, $txt);
+                if ($dt !== false) {
+                    return $dt;
+                }
+            } catch (\Throwable $e) {
+            }
+        }
+
+        // 4) Último recurso
+        try {
+            return Carbon::parse($txt);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    protected function parseMoney($text): ?float
+    {
+        if ($text === null || $text === '') {
+            return null;
+        }
+        if (is_numeric($text)) {
+            return (float) $text;
+        }
+
+        // Limpia $, comas y espacios
+        $clean = str_replace(['$', ',', ' '], '', (string) $text);
+
+        return is_numeric($clean) ? (float) $clean : null;
+    }
+
+    /* =================== Filtros (igual que los tuyos) =================== */
 
     protected function passFilters(array $row, array $filters): bool
     {
@@ -305,6 +826,118 @@ class ExcelReaderService
                 return false;
             }
             if ($max !== null && $val > (float) $max) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /* =================== Helpers privados extra =================== */
+
+    /**
+     * Busca el índice de la primera celda cuyo texto contenga alguno de los patrones,
+     * comenzando en minIndex.
+     */
+    private function findIndexLike(array $lowerRow, array $needles, int $minIndex = 0): ?int
+    {
+        foreach ($lowerRow as $i => $txt) {
+            if ($i < $minIndex) {
+                continue;
+            }
+            foreach ($needles as $needle) {
+                if ($txt !== '' && Str::contains($txt, Str::lower($needle))) {
+                    return $i;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Normaliza el valor de fecha a string 'Y-m-d' utilizando:
+     * - Spout -> DateTime (si la celda es fecha),
+     * - Serial Excel (numérico),
+     * - Texto 'd/m/Y' u otros comunes.
+     */
+    private function normalizeDateValue(?Cell $cell, ?string $raw): ?string
+    {
+        // 1) Spout marcó como fecha real
+        if ($cell && $cell->isDate()) {
+            $v = $cell->getValue();
+            if ($v instanceof \DateTimeInterface) {
+                return $v->format('Y-m-d');
+            }
+        }
+
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        // 2) Serial Excel
+        if (is_numeric($raw)) {
+            $days = (int) $raw;
+            if ($days > 30000 && $days < 60000) {
+                $timestamp = ($days - 25569) * 86400;
+
+                return gmdate('Y-m-d', $timestamp);
+            }
+        }
+
+        // 3) Texto d/m/Y (tu caso)
+        try {
+            $dt = Carbon::createFromFormat('d/m/Y', trim($raw));
+
+            return $dt->format('Y-m-d');
+        } catch (\Throwable $e) {
+        }
+
+        // 4) Otros comunes
+        foreach (['Y-m-d', 'd-m-Y', 'm/d/Y', 'Y/m/d'] as $fmt) {
+            try {
+                $dt = Carbon::createFromFormat($fmt, trim($raw));
+
+                return $dt->format('Y-m-d');
+            } catch (\Throwable $e2) {
+            }
+        }
+
+        // 5) Parse libre
+        try {
+            return Carbon::parse($raw)->format('Y-m-d');
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Normaliza texto para comparaciones tolerantes (minúsculas, espacios colapsados, sin acentos)
+     */
+    private function normalizeComparable(?string $text): string
+    {
+        if ($text === null) {
+            return '';
+        }
+        $t = Str::of($text)
+            ->squish()
+            ->lower()
+            ->toString();
+        $t = Str::ascii($t);
+
+        return trim($t);
+    }
+
+    /**
+     * Comprueba que todas las palabras de $needle estén presentes en $haystack.
+     */
+    private function containsAllTokens(string $haystack, string $needle): bool
+    {
+        $haystackTokens = preg_split('/\s+/', $haystack, -1, PREG_SPLIT_NO_EMPTY);
+        $needleTokens = preg_split('/\s+/', $needle, -1, PREG_SPLIT_NO_EMPTY);
+
+        foreach ($needleTokens as $token) {
+            if (! in_array($token, $haystackTokens, true)) {
                 return false;
             }
         }

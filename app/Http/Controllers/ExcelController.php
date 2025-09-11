@@ -67,4 +67,56 @@ class ExcelController extends Controller
             'context' => $context,
         ]);
     }
+
+    public function deudores(Request $request, ExcelReaderService $excel)
+    {
+        $cliente = $request->input('cliente');
+        $filters = $request->only(['cliente']);
+        $limit = (int) $request->input('limit', 50);
+        $offset = (int) $request->input('offset', 0);
+        $context = (int) $request->input('context', 3);
+
+        $resultados = null;
+        if ($cliente !== null && $cliente !== '') {
+            $resultados = $excel->searchDebtors($cliente);
+        }
+
+        return view('consulta_base_datos_historica', [
+            'sheets' => [],
+            'current' => null,
+            'data' => null,
+            'results' => null,
+            'deudores' => $resultados,
+            'filters' => $filters,
+            'limit' => $limit,
+            'offset' => $offset,
+            'context' => $context,
+        ]);
+    }
+
+    public function historial(Request $request, ExcelReaderService $excel)
+    {
+        $cliente = $request->input('cliente');
+        $filters = $request->only(['cliente']);
+        $limit = (int) $request->input('limit', 50);
+        $offset = (int) $request->input('offset', 0);
+        $context = (int) $request->input('context', 3);
+
+        $historial = null;
+        if ($cliente !== null && $cliente !== '') {
+            $historial = $excel->searchClientHistory($cliente);
+        }
+
+        return view('consulta_base_datos_historica', [
+            'sheets' => [],
+            'current' => null,
+            'data' => null,
+            'results' => null,
+            'historial' => $historial,
+            'filters' => $filters,
+            'limit' => $limit,
+            'offset' => $offset,
+            'context' => $context,
+        ]);
+    }
 }
