@@ -55,8 +55,6 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('objetivo',          'objetivo')          ->name('objetivo');
                       Route::get('solicitar-venta',   'solicitar_venta')   ->name('solicitar_venta');
                       Route::get('ingresar-cliente',  'ingresar_cliente')  ->name('ingresar_cliente');
-                      Route::post('ingresar-cliente', 'storeCliente')      ->name('store_cliente');
-                      Route::post('recredito',        'storeRecredito')    ->name('store_recredito');
                       Route::get('cliente-historial', 'cliente_historial') ->name('cliente_historial');
                   });
 

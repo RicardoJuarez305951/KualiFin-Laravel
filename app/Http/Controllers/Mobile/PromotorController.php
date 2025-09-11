@@ -67,7 +67,11 @@ class PromotorController extends Controller
             'apellido_p' => 'required|string',
             'apellido_m' => 'nullable|string',
             'CURP' => 'required|string|size:18',
+<<<<<<< ours
             'monto' => 'required|numeric|min:0|max:3000'
+=======
+            'monto' => 'required|numeric|min:0|max:20000',
+>>>>>>> theirs
         ]);
 
         $cliente = Cliente::create([
