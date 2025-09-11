@@ -138,6 +138,7 @@
             @endphp
             @if(count($historial))
                 <div class="overflow-x-auto border rounded">
+                    <pre class="text-xs text-gray-500 p-2">{{ json_encode(['count' => count($historial), 'sample' => $historial[0] ?? null], JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE) }}</pre>
                     <table class="min-w-full divide-y divide-gray-200 text-sm">
                         <thead class="bg-gray-100">
                             <tr>

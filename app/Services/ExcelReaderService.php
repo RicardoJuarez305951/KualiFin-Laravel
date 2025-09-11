@@ -107,7 +107,7 @@ class ExcelReaderService
         $reader = ReaderEntityFactory::createXLSXReader();
         $reader->open(Storage::path($this->path()));
 
-        $clienteLower = Str::lower($cliente);
+        $clienteLower = Str::lower($cliente); // <-- FALTA ESTO
         $results = [];
 
         foreach ($reader->getSheetIterator() as $sheet) {
@@ -228,18 +228,30 @@ class ExcelReaderService
 
         $reader->close();
 
+        Log::channel('excel')->debug('[HIST][DONE] Resultados totales', [
+            'count' => count($results),
+        ]);
+
         return $results;
     }
 
     public function searchClientHistory(string $cliente): array
     {
+        $path = Storage::path($this->path());
+        Log::channel('excel')->debug('[HIST] Abriendo Excel para historial', [
+            'path' => $path,
+            'cliente' => $cliente,
+        ]);
         $reader = ReaderEntityFactory::createXLSXReader();
-        $reader->open(Storage::path($this->path()));
+        $reader->open($path);
 
         $clienteLower = Str::lower($cliente);
         $results = [];
 
         foreach ($reader->getSheetIterator() as $sheet) {
+            Log::channel('excel')->debug('[HIST] Procesando hoja', [
+                'sheet' => $sheet->getName(),
+            ]);
             $headerRowIndex = null;
             $headerRow = null;
             $startCol = null;
@@ -273,10 +285,11 @@ class ExcelReaderService
             }
 
             if ($headerRowIndex === null || $headerRow === null) {
+                Log::channel('excel')->debug('[HIST][SKIP] No se detectó fila de encabezado con FECHA en esta hoja');
                 continue;
             }
 
-            Log::debug('[HEADER] Encabezado detectado', [
+            Log::channel('excel')->debug('[HIST][HEADER] Encabezado detectado', [
                 'sheet' => $sheet->getName(),
                 'row' => $headerRowIndex,
                 'col' => $startCol,
@@ -309,7 +322,7 @@ class ExcelReaderService
                 }
             }
 
-            Log::debug('[COLUMNS] Columnas principales mapeadas', [
+            Log::channel('excel')->debug('[HIST][COLUMNS] Columnas principales mapeadas', [
                 'sheet' => $sheet->getName(),
                 'cols' => $cols,
             ]);
@@ -336,10 +349,32 @@ class ExcelReaderService
                 }
             }
 
-            Log::debug('[PAYMENT_COLS] Columnas de pago identificadas', [
+            Log::channel('excel')->debug('[HIST][PAYMENT_COLS] Columnas de pago identificadas (patrón A)', [
                 'sheet' => $sheet->getName(),
                 'payment_cols' => $paymentCols,
             ]);
+
+            // Patrón B: buscar "FECHA" horizontalmente y usar la celda inmediata a la derecha como fecha
+            if (empty($paymentCols)) {
+                foreach ($topRows as $rIdx => $cellsRow) {
+                    foreach ($cellsRow as $i => $cell) {
+                        $txt = Str::of($this->getCellText($cell))->trim()->lower();
+                        if ($txt === 'fecha') {
+                            $rightCell = $cellsRow[$i + 1] ?? null;
+                            $raw = $this->getCellText($rightCell);
+                            $norm = $this->normalizeDateValue($rightCell, $raw);
+                            if ($norm) {
+                                $paymentCols[$norm] = $i + 1;
+                            }
+                        }
+                    }
+                }
+
+                Log::channel('excel')->debug('[HIST][PAYMENT_COLS] Columnas de pago identificadas (patrón B)', [
+                    'sheet' => $sheet->getName(),
+                    'payment_cols' => $paymentCols,
+                ]);
+            }
 
             $clienteFound = false;
             foreach ($sheet->getRowIterator() as $rowIndex => $row) {
@@ -349,8 +384,10 @@ class ExcelReaderService
 
                 $cells = $row->getCells();
                 $nombre = $this->getCellText($cells[$cols['nombre'] ?? -1] ?? null);
-                if ($nombre && Str::lower($nombre) === $clienteLower) {
-                    Log::debug('[CLIENT_ROW] Fila de cliente encontrada', [
+                $nombreNorm = $this->normalizeComparable($nombre);
+                $clienteNorm = $this->normalizeComparable($cliente);
+                if ($nombre && Str::contains($nombreNorm, $clienteNorm)) {
+                    Log::channel('excel')->debug('[HIST][CLIENT_ROW] Fila de cliente encontrada', [
                         'sheet' => $sheet->getName(),
                         'row' => $rowIndex,
                         'nombre' => $nombre,
@@ -393,7 +430,7 @@ class ExcelReaderService
                         'cliente' => $this->castAssoc($assoc),
                         'pagos' => $pagos,
                     ];
-                    Log::debug('[RESULT_ADDED] Resultado agregado', [
+                    Log::channel('excel')->debug('[HIST][RESULT_ADDED] Resultado agregado', [
                         'sheet' => $sheet->getName(),
                         'nombre' => $nombre,
                     ]);
@@ -552,8 +589,11 @@ class ExcelReaderService
 
     /* =================== Helpers de extracción y casteo =================== */
 
-    protected function getCellText(Cell $cell): string
+    protected function getCellText(?Cell $cell): string
     {
+        if (! $cell) {
+            return '';
+        }
         $value = $cell->getValue();
         $format = $cell->getStyle()->getFormat();
 
@@ -848,5 +888,22 @@ class ExcelReaderService
         } catch (\Throwable $e) {
             return null;
         }
+    }
+
+    /**
+     * Normaliza texto para comparaciones tolerantes (minúsculas, espacios colapsados, sin acentos)
+     */
+    private function normalizeComparable(?string $text): string
+    {
+        if ($text === null) {
+            return '';
+        }
+        $t = Str::of($text)
+            ->squish()
+            ->lower()
+            ->toString();
+        $t = Str::ascii($t);
+
+        return trim($t);
     }
 }

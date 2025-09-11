@@ -1,0 +1,10 @@
+        Log::channel('excel')->debug('[HIST][DONE] Resultados totales', [
+        Log::channel('excel')->debug('[HIST] Abriendo Excel para historial', [
+            Log::channel('excel')->debug('[HIST] Procesando hoja', [
+                Log::channel('excel')->debug('[HIST][SKIP] No se detectó fila de encabezado con FECHA en esta hoja');
+            Log::channel('excel')->debug('[HIST][HEADER] Encabezado detectado', [
+            Log::channel('excel')->debug('[HIST][COLUMNS] Columnas principales mapeadas', [
+            Log::channel('excel')->debug('[HIST][PAYMENT_COLS] Columnas de pago identificadas (patrón A)', [
+                Log::channel('excel')->debug('[HIST][PAYMENT_COLS] Columnas de pago identificadas (patrón B)', [
+                    Log::channel('excel')->debug('[HIST][CLIENT_ROW] Fila de cliente encontrada', [
+                    Log::channel('excel')->debug('[HIST][RESULT_ADDED] Resultado agregado', [
