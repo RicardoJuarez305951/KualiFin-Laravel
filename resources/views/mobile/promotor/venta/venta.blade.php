@@ -92,10 +92,7 @@
             <div class="p-3">
                 <a href=""
                     class="w-2/3 inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-semibold px-4 py-3 shadow-lg hover:from-blue-700 hover:to-blue-600">
-                        <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14" />
-                        </svg>
-                        Enviar mis ventas
+                    Enviar mis ventas
                 </a>
             </div>
         </section>
