@@ -79,6 +79,10 @@ class ExcelController extends Controller
         $resultados = null;
         if ($cliente !== null && $cliente !== '') {
             $resultados = $excel->searchDebtors($cliente);
+            $resultados = collect($resultados)
+                ->sortBy('cliente', SORT_NATURAL | SORT_FLAG_CASE)
+                ->values()
+                ->all();
         }
 
         return view('consulta_base_datos_historica', [
