@@ -63,7 +63,7 @@
           const valido =
             f.nombre.value.trim() &&
             f.apellido_p.value.trim() &&
-            f.CURP.value.trim().length === 18 &&
+            f['CURP'].value.trim().length === 18 &&
             this.validateMonto(f.monto.value);
           if (!valido) {
             this.showError = true;
@@ -95,8 +95,8 @@
         submitRecredito(e) {
           const f = e.target;
           const valido =
-            f.CURP.value.trim().length === 18 &&
-            this.validateMonto(f.monto.value, 20000);
+            f['CURP'].value.trim().length === 18 &&
+            this.validateMonto(f.monto.value);
           if (!valido) {
             this.showError = true;
             return;

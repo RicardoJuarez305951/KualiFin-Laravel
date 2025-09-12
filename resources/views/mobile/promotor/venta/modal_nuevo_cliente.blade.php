@@ -5,10 +5,10 @@
 <div x-show="showCliente" x-cloak class="fixed inset-0 z-40 flex items-center justify-center px-4">
   <div class="absolute inset-0 bg-black/50" @click="resetClienteForm()"></div>
 
-  <div @click.stop class="bg-white rounded-2xl shadow-lg w-full max-w-md p-6 relative text-gray-900">
+<div @click.stop class="bg-white rounded-2xl shadow-lg w-full max-w-md p-6 relative z-50 text-gray-900">
     <h3 class="text-xl font-semibold uppercase text-center mb-4">Ingresar Datos (Crédito)</h3>
 
-    <form x-ref="formCliente" method="POST" action="{{ route('mobile.promotor.store_cliente') }}" @submit.prevent="submitNuevoCliente" class="space-y-4">
+    <form method="POST" action="{{ route('mobile.promotor.store_cliente') }}" @submit.prevent="validateNuevoCliente($event)" class="space-y-4">
       @csrf
       {{-- div1: Cliente --}}
       <div class="space-y-3 border rounded-xl p-4">   
