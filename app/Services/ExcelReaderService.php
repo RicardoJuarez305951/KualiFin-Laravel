@@ -107,7 +107,19 @@ class ExcelReaderService
         $reader = ReaderEntityFactory::createXLSXReader();
         $reader->open(Storage::path($this->path()));
 
-        $clienteLower = Str::lower($cliente); // <-- FALTA ESTO
+        $normalize = function (?string $value): ?string {
+            if ($value === null) {
+                return null;
+            }
+
+            return Str::of($value)
+                ->ascii()
+                ->lower()
+                ->trim()
+                ->toString();
+        };
+
+        $clienteNorm = $normalize($cliente);
         $results = [];
 
         foreach ($reader->getSheetIterator() as $sheet) {
@@ -188,8 +200,9 @@ class ExcelReaderService
 
                 // ---- tabla izquierda ----
                 $cliente1 = $cellText($cells, $layout['left']['cliente'] ?? null);
-                if ($cliente1 !== null && $cliente1 !== '' &&
-                    Str::contains(Str::lower($cliente1), $clienteLower)) {
+                $cliente1Norm = $normalize($cliente1);
+                if ($cliente1Norm !== null && $cliente1Norm !== '' &&
+                    Str::contains($cliente1Norm, $clienteNorm)) {
 
                     $fechaRaw = $cellText($cells, $layout['left']['fecha'] ?? null);
                     $prom = $cellText($cells, $layout['left']['promotora'] ?? null);
@@ -206,8 +219,9 @@ class ExcelReaderService
 
                 // ---- tabla derecha ----
                 $cliente2 = $cellText($cells, $layout['right']['cliente'] ?? null);
-                if ($cliente2 !== null && $cliente2 !== '' &&
-                    Str::contains(Str::lower($cliente2), $clienteLower)) {
+                $cliente2Norm = $normalize($cliente2);
+                if ($cliente2Norm !== null && $cliente2Norm !== '' &&
+                    Str::contains($cliente2Norm, $clienteNorm)) {
 
                     $fechaRaw = $cellText($cells, $layout['right']['fecha'] ?? null);
                     $prom = $cellText($cells, $layout['right']['promotora'] ?? null);
