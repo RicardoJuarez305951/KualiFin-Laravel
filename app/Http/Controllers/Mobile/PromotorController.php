@@ -105,7 +105,10 @@ class PromotorController extends Controller
     {
         $promotor = Auth::user()->promotor;
         if (!$promotor) {
-            return back()->with('error', 'No tienes un perfil de promotor asignado.');
+            $message = 'No tienes un perfil de promotor asignado.';
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => $message], 403)
+                : back()->with('error', $message);
         }
 
         $data = $request->validate([
@@ -142,11 +145,17 @@ class PromotorController extends Controller
                 ]);
             });
 
-            return redirect()->route('mobile.promotor.ingresar_cliente')->with('success', 'Cliente creado con éxito.');
+            $message = 'Cliente creado con éxito.';
+            return $request->expectsJson()
+                ? response()->json(['success' => true, 'message' => $message])
+                : redirect()->route('mobile.promotor.ingresar_cliente')->with('success', $message);
 
         } catch (\Exception $e) {
             Log::error('Error al crear cliente: ' . $e->getMessage(), ['exception' => $e]);
-            return back()->with('error', 'No se pudo crear el cliente. Inténtalo de nuevo.');
+            $message = 'No se pudo crear el cliente. Inténtalo de nuevo.';
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => $message], 500)
+                : back()->with('error', $message);
         }
     }
 
@@ -154,7 +163,10 @@ class PromotorController extends Controller
     {
         $promotor = Auth::user()->promotor;
         if (!$promotor) {
-            return back()->with('error', 'No tienes un perfil de promotor asignado.');
+            $message = 'No tienes un perfil de promotor asignado.';
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => $message], 403)
+                : back()->with('error', $message);
         }
 
         $data = $request->validate([
@@ -181,11 +193,17 @@ class PromotorController extends Controller
                 ]);
             });
 
-            return redirect()->route('mobile.promotor.ingresar_cliente')->with('success', 'Re-crédito asignado con éxito.');
+            $message = 'Re-crédito asignado con éxito.';
+            return $request->expectsJson()
+                ? response()->json(['success' => true, 'message' => $message])
+                : redirect()->route('mobile.promotor.ingresar_cliente')->with('success', $message);
 
         } catch (\Exception $e) {
             Log::error('Error al asignar re-crédito: ' . $e->getMessage(), ['exception' => $e]);
-            return back()->with('error', 'No se pudo asignar el re-crédito. ' . $e->getMessage());
+            $message = 'No se pudo asignar el re-crédito. ' . $e->getMessage();
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => $message], 500)
+                : back()->with('error', $message);
         }
     }
 

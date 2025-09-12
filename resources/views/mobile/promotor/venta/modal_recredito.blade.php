@@ -8,7 +8,7 @@
   <div @click.stop class="bg-white rounded-2xl shadow-lg w-full max-w-md p-6 relative text-gray-900">
     <h3 class="text-xl font-semibold uppercase text-center mb-4">Ingresar Datos (Recrédito)</h3>
 
-    <form method="POST" action="{{ route('mobile.promotor.store_cliente') }}" @submit.prevent="validateNuevoCliente($event)" class="space-y-4">
+    <form x-ref="formRecredito" method="POST" action="{{ route('mobile.promotor.store_recredito') }}" @submit.prevent="submitRecredito" class="space-y-4">
       @csrf
       {{-- div1: Cliente --}}
       <div class="space-y-3 border rounded-xl p-4">

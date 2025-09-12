@@ -54,11 +54,11 @@
           this.r_avalIneUploaded = false;
           this.r_avalCompUploaded = false;
         },
-        validateMonto(valor) {
+        validateMonto(valor, max = 3000) {
           const monto = parseFloat(valor);
-          return !(isNaN(monto) || monto < 0 || monto > 3000);
+          return !(isNaN(monto) || monto < 0 || monto > max);
         },
-        validateNuevoCliente(e) {
+        submitNuevoCliente(e) {
           const f = e.target;
           const valido =
             f.nombre.value.trim() &&
@@ -69,18 +69,60 @@
             this.showError = true;
             return;
           }
-          f.submit();
+
+          const formData = new FormData(f);
+          fetch('{{ route('mobile.promotor.store_cliente') }}', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+            body: formData
+          })
+          .then(res => res.json())
+          .then(data => {
+            this.resultadoExito = data.success;
+            this.resultadoMensaje = data.message;
+            this.showResultado = true;
+            if (data.success) {
+              f.reset();
+              this.resetClienteForm();
+            }
+          })
+          .catch(() => {
+            this.resultadoExito = false;
+            this.resultadoMensaje = 'Error de conexión. Inténtalo de nuevo.';
+            this.showResultado = true;
+          });
         },
-        validateRecredito(e) {
+        submitRecredito(e) {
           const f = e.target;
           const valido =
             f.CURP.value.trim().length === 18 &&
-            this.validateMonto(f.monto.value);
+            this.validateMonto(f.monto.value, 20000);
           if (!valido) {
             this.showError = true;
             return;
           }
-          f.submit();
+
+          const formData = new FormData(f);
+          fetch('{{ route('mobile.promotor.store_recredito') }}', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+            body: formData
+          })
+          .then(res => res.json())
+          .then(data => {
+            this.resultadoExito = data.success;
+            this.resultadoMensaje = data.message;
+            this.showResultado = true;
+            if (data.success) {
+              f.reset();
+              this.resetRecreditoForm();
+            }
+          })
+          .catch(() => {
+            this.resultadoExito = false;
+            this.resultadoMensaje = 'Error de conexión. Inténtalo de nuevo.';
+            this.showResultado = true;
+          });
         },
         checkViabilidad() {
           const posiblesErrores = [
