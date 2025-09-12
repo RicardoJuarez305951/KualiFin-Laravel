@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Gate;
 
 class PromotorController extends Controller
 {
@@ -23,32 +24,25 @@ class PromotorController extends Controller
         return view('mobile.promotor.objetivo.objetivo');
     }
 
-     public function venta()
+    public function venta()
     {
         $user = Auth::user();
 
-        // ---------- INICIA LA CORRECCIÓN ---------- //
-
-        // La sintaxis correcta es pasar un solo array al método load().
         $user->load([
-            'promotor.supervisor.ejecutivo.user', 
+            'promotor.supervisor.ejecutivo.user',
             'promotor.clientes' => function ($query) {
-                $query->where('activo', 1)->where('tiene_credito_activo', 1);
+                $query->where('activo', 1)
+                      ->where('tiene_credito_activo', 1)
+                      ->with('credito');
             }
         ]);
 
-        // ---------- TERMINA LA CORRECCIÓN ---------- //
-
         $promotor = $user->promotor;
-
         $fecha = now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
-        // Usamos el helper optional() para evitar errores si alguna relación es nula.
-        $supervisor = optional(optional($promotor)->supervisor)->user;
-        $ejecutivo = optional(optional(optional($promotor)->supervisor)->ejecutivo)->user;
-
+        $supervisor = $promotor?->supervisor?->user?->name;
+        $ejecutivo = $promotor?->supervisor?->ejecutivo?->user?->name;
 
         $clientes = $promotor?->clientes->map(function ($cliente) {
-            $cliente->load('credito'); 
             $monto = $cliente->credito->monto_total ?? $cliente->monto_maximo;
             return [
                 'nombre' => trim($cliente->nombre . ' ' . $cliente->apellido_p),
@@ -75,17 +69,15 @@ class PromotorController extends Controller
     public function enviarVentas(Request $request)
     {
         try {
-            $user = Auth::user();
-            
-            $promotor = $user->promotor;
+            $promotor = Auth::user()->promotor;
             if (!$promotor) {
-                Log::warning("Usuario sin perfil de promotor intentó enviar ventas.", ['user_id' => $user->id]);
+                Log::warning("Usuario sin perfil de promotor intentó enviar ventas.", ['user_id' => Auth::id()]);
                 return response()->json(['success' => false, 'message' => 'Perfil de promotor no encontrado.'], 404);
             }
 
             DB::beginTransaction();
             
-            Cliente::where('promotora_id', $promotor->id)
+            Cliente::where('promotor_id', $promotor->id)
                 ->where('activo', 1)
                 ->update([
                     'tiene_credito_activo' => 0,
@@ -99,7 +91,7 @@ class PromotorController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al enviar ventas: ' . $e->getMessage());
+            Log::error('Error al enviar ventas: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json(['success' => false, 'message' => 'Hubo un error al procesar la solicitud.'], 500);
         }
     }
@@ -111,70 +103,108 @@ class PromotorController extends Controller
 
     public function storeCliente(Request $request)
     {
-        $promotor = Promotor::first();
+        $promotor = Auth::user()->promotor;
+        if (!$promotor) {
+            return back()->with('error', 'No tienes un perfil de promotor asignado.');
+        }
+
         $data = $request->validate([
-            'nombre' => 'required|string',
-            'apellido_p' => 'required|string',
-            'apellido_m' => 'nullable|string',
-            'CURP' => 'required|string|size:18',
+            'nombre' => 'required|string|max:100',
+            'apellido_p' => 'required|string|max:100',
+            'apellido_m' => 'nullable|string|max:100',
+            'CURP' => 'required|string|size:18|unique:clientes,CURP',
             'monto' => 'required|numeric|min:0|max:3000'
         ]);
 
-        $cliente = Cliente::create([
-            'promotor_id' => $promotor?->id,
-            'CURP' => $data['CURP'],
-            'nombre' => $data['nombre'],
-            'apellido_p' => $data['apellido_p'],
-            'apellido_m' => $data['apellido_m'] ?? '',
-            'fecha_nacimiento' => now()->subYears(18),
-            'tiene_credito_activo' => true,
-            'estatus' => 'activo',
-            'monto_maximo' => $data['monto'],
-            'activo' => true,
-        ]);
+        try {
+            DB::transaction(function () use ($data, $promotor) {
+                $cliente = Cliente::create([
+                    'promotor_id' => $promotor->id,
+                    'CURP' => $data['CURP'],
+                    'nombre' => $data['nombre'],
+                    'apellido_p' => $data['apellido_p'],
+                    'apellido_m' => $data['apellido_m'] ?? '',
+                    'fecha_nacimiento' => now()->subYears(18),
+                    'tiene_credito_activo' => true,
+                    'estatus' => 'activo',
+                    'monto_maximo' => $data['monto'],
+                    'activo' => true,
+                ]);
 
-        Credito::create([
-            'cliente_id' => $cliente->id,
-            'monto_total' => $data['monto'],
-            'estado' => 'pendiente',
-            'interes' => 0,
-            'periodicidad' => 'semanal',
-            'fecha_inicio' => now(),
-            'fecha_final' => now()->addMonths(12),
-        ]);
+                Credito::create([
+                    'cliente_id' => $cliente->id,
+                    'monto_total' => $data['monto'],
+                    'estado' => 'pendiente',
+                    'interes' => 0,
+                    'periodicidad' => 'semanal',
+                    'fecha_inicio' => now(),
+                    'fecha_final' => now()->addMonths(12),
+                ]);
+            });
 
-        return redirect()->route('mobile.promotor.ingresar_cliente');
+            return redirect()->route('mobile.promotor.ingresar_cliente')->with('success', 'Cliente creado con éxito.');
+
+        } catch (\Exception $e) {
+            Log::error('Error al crear cliente: ' . $e->getMessage(), ['exception' => $e]);
+            return back()->with('error', 'No se pudo crear el cliente. Inténtalo de nuevo.');
+        }
     }
 
     public function storeRecredito(Request $request)
     {
+        $promotor = Auth::user()->promotor;
+        if (!$promotor) {
+            return back()->with('error', 'No tienes un perfil de promotor asignado.');
+        }
+
         $data = $request->validate([
             'CURP' => 'required|string|size:18|exists:clientes,CURP',
             'monto' => 'required|numeric|min:0|max:20000',
         ]);
 
-        $cliente = Cliente::where('CURP', $data['CURP'])->first();
+        try {
+            DB::transaction(function () use ($data, $promotor) {
+                $cliente = Cliente::where('CURP', $data['CURP'])->firstOrFail();
 
-        Credito::create([
-            'cliente_id' => $cliente->id,
-            'monto_total' => $data['monto'],
-            'estado' => 'pendiente',
-            'interes' => 0,
-            'periodicidad' => 'semanal',
-            'fecha_inicio' => now(),
-            'fecha_final' => now()->addMonths(12),
-        ]);
+                if ($cliente->promotor_id !== $promotor->id) {
+                    throw new \Exception('No autorizado para dar crédito a este cliente.');
+                }
 
-        return redirect()->route('mobile.promotor.ingresar_cliente');
+                Credito::create([
+                    'cliente_id' => $cliente->id,
+                    'monto_total' => $data['monto'],
+                    'estado' => 'pendiente',
+                    'interes' => 0,
+                    'periodicidad' => 'semanal',
+                    'fecha_inicio' => now(),
+                    'fecha_final' => now()->addMonths(12),
+                ]);
+            });
+
+            return redirect()->route('mobile.promotor.ingresar_cliente')->with('success', 'Re-crédito asignado con éxito.');
+
+        } catch (\Exception $e) {
+            Log::error('Error al asignar re-crédito: ' . $e->getMessage(), ['exception' => $e]);
+            return back()->with('error', 'No se pudo asignar el re-crédito. ' . $e->getMessage());
+        }
     }
 
     public function cartera()
     {
-        return view('mobile.promotor.cartera.cartera');
+        $promotor = Auth::user()->promotor;
+        $clientes = $promotor ? $promotor->clientes()->orderBy('nombre')->get() : collect();
+
+        return view('mobile.promotor.cartera.cartera', compact('clientes'));
     }
 
-    public function cliente_historial()
+    public function cliente_historial(Cliente $cliente)
     {
-        return view('mobile.promotor.cartera.cliente_historial');
+        if ($cliente->promotor_id !== Auth::user()->promotor?->id) {
+            abort(403, 'No autorizado');
+        }
+
+        $cliente->load('creditos');
+
+        return view('mobile.promotor.cartera.cliente_historial', compact('cliente'));
     }
 }
