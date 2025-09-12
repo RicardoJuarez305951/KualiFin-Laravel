@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\ExcelReaderService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ExcelController extends Controller
 {
@@ -79,7 +80,33 @@ class ExcelController extends Controller
         $resultados = null;
         if ($cliente !== null && $cliente !== '') {
             $resultados = $excel->searchDebtors($cliente);
+
+            $normalize = fn (?string $value): string => Str::of($value)->ascii()->lower()->trim()->toString();
+
+            $porClientePromotora = collect($resultados)->groupBy(function ($item) use ($normalize) {
+                return $normalize($item['cliente'] ?? '') . '|' . $normalize($item['promotora'] ?? '');
+            });
+
+            $porCliente = $porClientePromotora->groupBy(function ($group, $key) {
+                return explode('|', $key)[0];
+            });
+
             $resultados = collect($resultados)
+                ->map(function ($item) use ($porClientePromotora, $porCliente, $normalize) {
+                    $clienteNorm = $normalize($item['cliente'] ?? '');
+                    $pairKey = $clienteNorm . '|' . $normalize($item['promotora'] ?? '');
+
+                    $alerta = null;
+                    if (($porClientePromotora[$pairKey] ?? collect())->count() > 1) {
+                        $alerta = 'Cliente y promotora repetidos';
+                    } elseif (($porCliente[$clienteNorm] ?? collect())->count() > 1) {
+                        $alerta = 'Coincidencia de deudor';
+                    }
+
+                    $item['alerta'] = $alerta;
+
+                    return $item;
+                })
                 ->sortBy('cliente', SORT_NATURAL | SORT_FLAG_CASE)
                 ->values()
                 ->all();
