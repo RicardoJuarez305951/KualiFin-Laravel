@@ -32,5 +32,7 @@
                 {{ $slot }}
             </main>
         </div>
+
+        <x-floating-button />
     </body>
 </html>
