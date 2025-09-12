@@ -1,58 +1,7 @@
 {{-- resources/views/mobile/supervisor/venta/venta.blade.php --}}
 @php
-    use Faker\Factory as Faker;
-    $faker = Faker::create('es_MX');
-
-    // Datos generales
-    $clientesProspectados = $faker->numberBetween(10, 50);
-    $clientesPorSupervisar = $faker->numberBetween(1, 10);
-    $montoVenta = $faker->randomFloat(2, 50000, 200000);
-    $inversionRequerida = $faker->randomFloat(2, 20000, 80000);
-    
-    // Objetivos
-    $moneyWeeklyNow = $faker->randomFloat(2, 2000, 10000);
-    $fechaLimite = $faker->dateTimeBetween('now', '+1 week')->format('d/m/Y');
-    $moneyWeeklyTarget = 10000.00;
-    $moneyProgress = min(100, ($moneyWeeklyNow / $moneyWeeklyTarget) * 100);
-
-    // Prospectados generales
-    $prospectosGenerales = collect(range(1, 6))->map(fn() => [
-        'nombre' => $faker->name(),
-        'plaza'  => $faker->city(),
-        'alerta' => $faker->boolean(20) // 20% con alerta
-    ]);
-
-    // Prospectos por promotor
-    $prospectosPorPromotor = collect(range(1, 3))->map(fn($i) => [
-        'promotor' => $faker->name(),
-        'prospectos' => collect(range(1, $faker->numberBetween(2, 5)))->map(fn() => [
-            'nombre' => $faker->name(),
-            'alerta' => $faker->boolean(20)
-        ])
-    ]);
-
-    // Promotores bajo supervisión
-    $promotoresSupervisados = collect(range(1, 3))->map(function () use ($faker) {
-        $debe = $faker->randomFloat(2, 10000, 50000);
-        $falla = $faker->randomFloat(2, 0, $debe);
-        return [
-            'nombre' => $faker->name(),
-            'debe' => $debe,
-            'falla' => $falla,
-            'porcentajeFalla' => $debe > 0 ? ($falla / $debe) * 100 : 0,
-            'ventaRegistrada' => $faker->randomFloat(2, 5000, 30000),
-            'prospectados' => collect(range(1, $faker->numberBetween(2, 5)))->map(fn() => $faker->name()),
-            'porSupervisar' => collect(range(1, $faker->numberBetween(1, 4)))->map(fn() => $faker->name()),
-        ];
-    });
-    
-    // Clientes para supervisión esta semana
-    $paraSupervision = collect(range(1, 4))->map(fn() => [
-        'nombre' => $faker->name(),
-        'direccion' => $faker->streetAddress() . ', ' . $faker->city(),
-        'fecha' => now()->addDays($faker->numberBetween(0, 6))->format('d/m/Y'),
-        'alerta' => $faker->boolean(30)
-    ]);
+    /** @var string $role */
+    $role = isset($role) && $role ? $role : 'supervisor';
 
     function formatCurrency($v) {
         return '$' . number_format($v, 2, '.', ',');

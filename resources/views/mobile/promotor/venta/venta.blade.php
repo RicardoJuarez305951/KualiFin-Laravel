@@ -1,24 +1,7 @@
 {{-- resources/views/mobile/promotor/venta/venta.blade.php --}}
 @php
-    use Faker\Factory as Faker;
-
     /** @var string $role */
     $role = isset($role) && $role ? $role : 'promotor';
-
-    $faker = Faker::create('es_MX');
-
-    // Datos generales
-    $fecha      = now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
-    $supervisor = $faker->name();
-    $ejecutivo  = $faker->name();
-
-    // Lista de clientes con montos
-    $clientes = collect(range(1, 6))->map(fn() => [
-        'nombre' => $faker->name(),
-        'monto'   => $faker->randomFloat(2, 500, 8000),
-    ]);
-
-    $total = $clientes->sum('monto');
 
     function money_mx($v) {
         return '$' . number_format($v, 2, '.', ',');
@@ -30,7 +13,7 @@
         <section class="bg-white/95 backdrop-blur rounded-2xl shadow-lg ring-1 ring-gray-900/5 overflow-hidden">
             {{-- Header --}}
             <div class="p-6">
-                <div class="flex items-start justify-between gap-4">
+                <div class="flex items-start justify-center gap-4">
                     <div>
                         <h1 class="text-lg font-bold text-gray-900">Venta registrada</h1>
                         <p class="mt-1 text-sm text-gray-600 flex items-center gap-2">
@@ -62,7 +45,7 @@
             {{-- Clientes --}}
             <div class="px-4">
                 <div class="hidden sm:grid grid-cols-7 gap-2 text-xs font-semibold text-gray-600 px-2 pb-2">
-                    <div class="col-span-4">Cliente</div>
+                    <div class="col-span-4 text-center">Cliente</div>
                     <div class="col-span-3 text-right">Monto</div>
                 </div>
                 <div class="space-y-2">
@@ -88,22 +71,86 @@
                 <span class="text-xl font-extrabold text-gray-900">{{ money_mx($total) }}</span>
             </div>
 
-            {{-- Botones --}}
-            <div class="p-6 pt-4 flex flex-col sm:flex-row gap-3">
-                <a href="{{ route("mobile.$role.ingresar_cliente") }}"
-                   class="w-full inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-semibold px-4 py-3 shadow-lg hover:from-blue-700 hover:to-blue-600">
-                    <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14" />
-                    </svg>
-                    Agregar cliente
-                </a>
-                <a href="{{ route("mobile.$role.index") }}"
-                   class="w-full inline-flex items-center justify-center rounded-2xl border border-gray-300 text-gray-800 text-sm font-semibold px-4 py-3 hover:bg-gray-50">
-                    <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Regresar
-                </a>
+            <div 
+                x-data="{
+                    showModal: false,
+                    modalSuccess: false,
+                    modalMessage: '',
+                    isLoading: false,
+                    submitVentas() {
+                        this.isLoading = true;
+                        fetch('{{ route("mobile.promotor.enviar_ventas") }}', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            this.modalSuccess = data.success;
+                            this.modalMessage = data.message;
+                            this.showModal = true;
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            this.modalSuccess = false;
+                            this.modalMessage = 'Error de conexión. Inténtalo de nuevo.';
+                            this.showModal = true;
+                        })
+                        .finally(() => {
+                            this.isLoading = false;
+                        });
+                    },
+                    handleModalContinue() {
+                        if (this.modalSuccess) {
+                            window.location.href = '{{ route("mobile.promotor.index") }}';
+                        } else {
+                            this.showModal = false;
+                        }
+                    }
+                }"
+            >
+                
+                {{-- Botones --}}
+
+                <div class="p-3 pt-3 flex flex-col sm:flex-row gap-3">
+                    <a href="{{ route("mobile.$role.ingresar_cliente") }}"
+                    class="w-full inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-semibold px-4 py-3 shadow-lg hover:from-blue-700 hover:to-blue-600">
+                        <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14" />
+                        </svg>
+                        Agregar cliente
+                    </a>
+
+                    <a href="{{ route("mobile.$role.index") }}"
+                    class="w-full inline-flex items-center justify-center rounded-2xl border border-gray-300 text-gray-800 text-sm font-semibold px-4 py-3 hover:bg-gray-50">
+                        <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Regresar
+                    </a>
+                </div>
+
+                {{-- Botón de Enviar Ventas --}}
+                @if(count($clientes) > 0)
+                    <div class="p-3">
+                        <button
+                            type="button"
+                            @click="submitVentas()"
+                            :disabled="isLoading"
+                            class="w-full inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-green-600 to-green-500 text-white text-sm font-semibold px-4 py-3 shadow-lg hover:from-green-700 hover:to-green-600 disabled:opacity-50 disabled:cursor-wait"
+                        >
+                            <span x-show="!isLoading">Enviar mis ventas</span>
+                            <span x-show="isLoading">Enviando...</span>
+                        </button>
+                    </div>
+                @endif
+                
+                {{-- Inclusión del Modal (se queda dentro del div de Alpine para que funcione) --}}
+                @include('mobile.promotor.venta.modal_enviar_clientes')
+
             </div>
         </section>
     </div>
