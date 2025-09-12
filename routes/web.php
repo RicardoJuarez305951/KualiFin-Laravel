@@ -58,6 +58,7 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::post('ingresar-cliente', 'storeCliente')      ->name('store_cliente');
                       Route::post('recredito',        'storeRecredito')    ->name('store_recredito');
                       Route::get('cliente-historial', 'cliente_historial') ->name('cliente_historial');
+                      Route::post('enviar-ventas', 'enviarVentas')          ->name('enviar_ventas');
                   });
 
              Route::prefix('ejecutivo')

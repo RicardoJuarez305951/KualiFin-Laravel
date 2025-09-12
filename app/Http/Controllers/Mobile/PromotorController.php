@@ -8,6 +8,8 @@ use App\Models\Cliente;
 use App\Models\Credito;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PromotorController extends Controller
 {
@@ -21,19 +23,35 @@ class PromotorController extends Controller
         return view('mobile.promotor.objetivo.objetivo');
     }
 
-    public function venta()
+     public function venta()
     {
-        $promotor = Promotor::with(['supervisor.ejecutivo.user', 'supervisor.user', 'clientes.credito'])
-            ->first();
+        $user = Auth::user();
+
+        // ---------- INICIA LA CORRECCIÓN ---------- //
+
+        // La sintaxis correcta es pasar un solo array al método load().
+        $user->load([
+            'promotor.supervisor.ejecutivo.user', 
+            'promotor.clientes' => function ($query) {
+                $query->where('activo', 1)->where('tiene_credito_activo', 1);
+            }
+        ]);
+
+        // ---------- TERMINA LA CORRECCIÓN ---------- //
+
+        $promotor = $user->promotor;
 
         $fecha = now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
-        $supervisor = $promotor?->supervisor?->user?->name;
-        $ejecutivo = $promotor?->supervisor?->ejecutivo?->user?->name;
+        // Usamos el helper optional() para evitar errores si alguna relación es nula.
+        $supervisor = optional(optional($promotor)->supervisor)->user;
+        $ejecutivo = optional(optional(optional($promotor)->supervisor)->ejecutivo)->user;
 
-        $clientes = $promotor?->clientes->map(function ($c) {
-            $monto = $c->credito->monto_total ?? $c->monto_maximo;
+
+        $clientes = $promotor?->clientes->map(function ($cliente) {
+            $cliente->load('credito'); 
+            $monto = $cliente->credito->monto_total ?? $cliente->monto_maximo;
             return [
-                'nombre' => trim($c->nombre . ' ' . $c->apellido_p),
+                'nombre' => trim($cliente->nombre . ' ' . $cliente->apellido_p),
                 'monto' => (float) $monto,
             ];
         }) ?? collect();
@@ -52,6 +70,38 @@ class PromotorController extends Controller
     public function solicitar_venta()
     {
         return view('mobile.promotor.venta.solicitar_venta');
+    }
+
+    public function enviarVentas(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            $promotor = $user->promotor;
+            if (!$promotor) {
+                Log::warning("Usuario sin perfil de promotor intentó enviar ventas.", ['user_id' => $user->id]);
+                return response()->json(['success' => false, 'message' => 'Perfil de promotor no encontrado.'], 404);
+            }
+
+            DB::beginTransaction();
+            
+            Cliente::where('promotora_id', $promotor->id)
+                ->where('activo', 1)
+                ->update([
+                    'tiene_credito_activo' => 0,
+                    'estatus' => 'A supervision',
+                    'activo' => 0,
+                ]);
+            
+            DB::commit();
+
+            return response()->json(['success' => true, 'message' => 'Ventas enviadas a supervisión correctamente.']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al enviar ventas: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Hubo un error al procesar la solicitud.'], 500);
+        }
     }
 
     public function ingresar_cliente()
