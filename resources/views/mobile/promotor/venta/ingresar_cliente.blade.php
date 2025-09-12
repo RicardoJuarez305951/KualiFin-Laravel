@@ -1,5 +1,6 @@
 <x-layouts.mobile.mobile-layout title="Ingresar Cliente">
-  <div x-data="{
+  <div
+    x-data="{
         showCliente: false,
         showRecredito: false,
         showViabilidad: false,
@@ -16,7 +17,6 @@
         avalCompUploaded: false,
         r_newAval: false,
 
-
         // Recrédito (usar flags separados si quieres aislarlos del modal cliente)
         r_clientCurpUploaded: false,
         r_clientDomUploaded: false,
@@ -26,6 +26,11 @@
         r_avalDomUploaded: false,
         r_avalIneUploaded: false,
         r_avalCompUploaded: false,
+
+        // Estado de inserción
+        showResultado: false,
+        resultadoMensaje: '',
+        resultadoExito: false,
 
         resetClienteForm() {
           this.showCliente = false;
@@ -92,7 +97,19 @@
           }
           this.showViabilidad = true;
         }
-      }">
+      }"
+    x-init="
+        @if(session('success'))
+            showResultado = true;
+            resultadoMensaje = @js(session('success'));
+            resultadoExito = true;
+        @elseif(session('error'))
+            showResultado = true;
+            resultadoMensaje = @js(session('error'));
+            resultadoExito = false;
+        @endif
+    "
+  >
 
     <div class="bg-white rounded-2xl shadow-md p-10 w-full max-w-md space-y-4">
       <h2 class="text-center text-lg font-semibold text-gray-900 uppercase">Ingresar Cliente</h2>
@@ -127,6 +144,8 @@
     @include('mobile.promotor.venta.modal_recredito')
 
     @include('mobile.promotor.venta.modal_viabilidad')
+
+    @include('mobile.promotor.venta.modal_resultado')
 
     <div x-show="showError" x-cloak class="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div class="absolute inset-0 bg-black/50" @click="showError = false"></div>
