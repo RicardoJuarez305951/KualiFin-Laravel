@@ -126,9 +126,9 @@ class PromotorController extends Controller
                     'apellido_m' => $data['apellido_m'] ?? '',
                     'fecha_nacimiento' => now()->subYears(18),
                     'tiene_credito_activo' => true,
-                    'estatus' => 'activo',
+                    'estatus' => 'pendiente',
                     'monto_maximo' => $data['monto'],
-                    'activo' => true,
+                    'activo' => false,
                 ]);
 
                 Credito::create([
