@@ -108,7 +108,10 @@ class ExcelController extends Controller
 
         $historial = null;
         if ($cliente !== null && $cliente !== '') {
-            $historial = $excel->searchClientHistory($cliente);
+            $historial = collect($excel->searchClientHistory($cliente))
+                ->sortBy(fn($item) => $item['cliente']['nombre'] ?? '', SORT_NATURAL | SORT_FLAG_CASE)
+                ->values()
+                ->all();
         }
 
         return view('consulta_base_datos_historica', [
