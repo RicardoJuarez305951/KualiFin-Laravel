@@ -5,6 +5,7 @@
         showViabilidad: false,
         viable: false,
         errores: [],
+        showError: false,
         clientCurpUploaded: false,
         clientDomUploaded: false,
         clientIneUploaded: false,
@@ -47,6 +48,34 @@
           this.r_avalDomUploaded = false;
           this.r_avalIneUploaded = false;
           this.r_avalCompUploaded = false;
+        },
+        validateMonto(valor) {
+          const monto = parseFloat(valor);
+          return !(isNaN(monto) || monto < 0 || monto > 3000);
+        },
+        validateNuevoCliente(e) {
+          const f = e.target;
+          const valido =
+            f.nombre.value.trim() &&
+            f.apellido_p.value.trim() &&
+            f.CURP.value.trim().length === 18 &&
+            this.validateMonto(f.monto.value);
+          if (!valido) {
+            this.showError = true;
+            return;
+          }
+          f.submit();
+        },
+        validateRecredito(e) {
+          const f = e.target;
+          const valido =
+            f.CURP.value.trim().length === 18 &&
+            this.validateMonto(f.monto.value);
+          if (!valido) {
+            this.showError = true;
+            return;
+          }
+          f.submit();
         },
         checkViabilidad() {
           const posiblesErrores = [
@@ -98,4 +127,14 @@
     @include('mobile.promotor.venta.modal_recredito')
 
     @include('mobile.promotor.venta.modal_viabilidad')
+
+    <div x-show="showError" x-cloak class="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div class="absolute inset-0 bg-black/50" @click="showError = false"></div>
+      <div @click.stop class="bg-white rounded-2xl shadow-lg w-full max-w-sm p-6 text-center">
+        <p class="text-lg font-semibold mb-4">Datos incorrectos</p>
+        <button @click="showError = false" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-2 rounded-lg">Aceptar</button>
+      </div>
+    </div>
+  </div>
+  
 </x-layouts.mobile.mobile-layout>

@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Mobile;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cliente;
+use App\Models\Ejercicio;
+use App\Models\Promotor;
 
 class SupervisorController extends Controller
 {
@@ -18,7 +21,44 @@ class SupervisorController extends Controller
 
     public function venta()
     {
-        return view('mobile.supervisor.venta.venta');
+        $clientesProspectados = Cliente::count();
+        $clientesPorSupervisar = Cliente::where('estatus', 'inactivo')->count();
+
+        $ejercicio = Ejercicio::latest('fecha_inicio')->first();
+        $moneyWeeklyNow = $ejercicio->dinero_autorizado ?? 0;
+        $moneyWeeklyTarget = $ejercicio->venta_objetivo ?? 0;
+        $fechaLimite = $ejercicio?->fecha_final?->format('d/m/Y');
+        $moneyProgress = $moneyWeeklyTarget > 0
+            ? min(100, ($moneyWeeklyNow / $moneyWeeklyTarget) * 100)
+            : 0;
+
+        $promotoresSupervisados = Promotor::with('clientes')
+            ->get()
+            ->map(function ($p) {
+                $debe = (float) $p->venta_maxima;
+                $falla = max(0, $debe - (float) $p->venta_proyectada_objetivo);
+                return [
+                    'nombre' => trim($p->nombre . ' ' . $p->apellido_p),
+                    'debe' => $debe,
+                    'falla' => $falla,
+                    'porcentajeFalla' => $debe > 0 ? ($falla / $debe) * 100 : 0,
+                    'ventaRegistrada' => (float) $p->venta_proyectada_objetivo,
+                    'prospectados' => $p->clientes->pluck('nombre'),
+                    'porSupervisar' => $p->clientes
+                        ->where('estatus', 'inactivo')
+                        ->pluck('nombre'),
+                ];
+            });
+
+        return view('mobile.supervisor.venta.venta', compact(
+            'clientesProspectados',
+            'clientesPorSupervisar',
+            'moneyWeeklyNow',
+            'moneyWeeklyTarget',
+            'fechaLimite',
+            'moneyProgress',
+            'promotoresSupervisados'
+        ));
     }
 
     public function solicitar_venta()
@@ -92,7 +132,7 @@ class SupervisorController extends Controller
         return view('mobile.supervisor.busqueda.busqueda');
     }
 
-      public function apertura()
+    public function apertura()
     {
         return view('mobile.supervisor.apertura.apertura');
     }
