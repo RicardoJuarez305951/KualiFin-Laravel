@@ -24,24 +24,32 @@ class PromotorSeeder extends Seeder
         for ($i = 1; $i <= 20; $i++) {
             $email = "promotor{$i}@kualifin.com";
 
+            // Generar nombre y apellidos primero
+            $nombre   = fake()->firstName();
+            $apellido_p = fake()->lastName();
+            $apellido_m = fake()->lastName();
+
+            // Crear usuario asociado
             $user = User::factory()->create([
-                'name' => "{$nombre} {$apellido}",
+                'name' => "{$nombre} {$apellido_p} {$apellido_m}",
                 'email' => $email,
                 'password' => Hash::make('password'),
                 'rol' => 'promotor',
             ]);
 
+            // Crear promotor asociado
             Promotor::create([
                 'user_id' => $user->id,
                 'supervisor_id' => $supervisores->random()->id,
-                'nombre' => fake()->firstname(),
-                'apellido_p' => fake()->lastname(),
-                'apellido_m' => fake()->lastName(),
+                'nombre' => $nombre,
+                'apellido_p' => $apellido_p,
+                'apellido_m' => $apellido_m,
                 'venta_maxima' => fake()->randomFloat(2, 1000, 10000),
                 'colonia' => fake()->streetName(),
                 'venta_proyectada_objetivo' => fake()->randomFloat(2, 1000, 10000),
                 'bono' => fake()->randomFloat(2, 100, 1000),
             ]);
+
             $user->assignRole('promotor');
         }
 
