@@ -192,24 +192,76 @@ class PromotorController extends Controller
                 : back()->with('error', $message);
         }
 
-        $data = $request->validate([
+        $rNewAval = $request->boolean('r_newAval');
+
+        $rules = [
             'CURP' => 'required|string|size:18|exists:clientes,CURP',
             'monto' => 'required|numeric|min:0|max:20000',
-            'aval_nombre' => 'required|string|max:100',
-            'aval_apellido_p' => 'required|string|max:100',
-            'aval_apellido_m' => 'nullable|string|max:100',
-            'aval_CURP' => 'required|string|size:18',
-        ]);
+            'r_newAval' => 'required|boolean',
+        ];
+
+        if ($rNewAval) {
+            $rules = array_merge($rules, [
+                'aval_nombre' => 'required|string|max:100',
+                'aval_apellido_p' => 'required|string|max:100',
+                'aval_apellido_m' => 'nullable|string|max:100',
+                'aval_CURP' => 'required|string|size:18',
+            ]);
+        }
+
+        $data = $request->validate($rules);
 
         try {
-            DB::transaction(function () use ($data, $promotor) {
+            DB::transaction(function () use ($data, $promotor, $rNewAval) {
                 $cliente = Cliente::where('CURP', $data['CURP'])->firstOrFail();
 
                 if ($cliente->promotor_id !== $promotor->id) {
                     throw new \Exception('No autorizado para dar crédito a este cliente.');
                 }
 
-                Credito::create([
+                if ($rNewAval) {
+                    $avalCurp = $data['aval_CURP'];
+                    $avalData = [
+                        'CURP' => $data['aval_CURP'],
+                        'nombre' => $data['aval_nombre'],
+                        'apellido_p' => $data['aval_apellido_p'],
+                        'apellido_m' => $data['aval_apellido_m'] ?? '',
+                        'fecha_nacimiento' => now()->subYears(25), // Placeholder
+                        'direccion' => 'Desconocida', // Placeholder
+                        'telefono' => 'N/A', // Placeholder
+                        'parentesco' => 'Desconocido', // Placeholder
+                    ];
+                } else {
+                    $prevAval = Aval::whereHas('credito', function ($q) use ($cliente) {
+                        $q->where('cliente_id', $cliente->id);
+                    })->latest('creado_en')->first();
+
+                    if (!$prevAval) {
+                        throw new \Exception('No se encontró un aval previo para reutilizar.');
+                    }
+
+                    $avalCurp = $prevAval->CURP;
+                    $avalData = [
+                        'CURP' => $prevAval->CURP,
+                        'nombre' => $prevAval->nombre,
+                        'apellido_p' => $prevAval->apellido_p,
+                        'apellido_m' => $prevAval->apellido_m,
+                        'fecha_nacimiento' => $prevAval->fecha_nacimiento,
+                        'direccion' => $prevAval->direccion,
+                        'telefono' => $prevAval->telefono,
+                        'parentesco' => $prevAval->parentesco,
+                    ];
+                }
+
+                $avalActivo = Aval::where('CURP', $avalCurp)
+                    ->whereHas('credito', fn($q) => $q->where('estado', 'activo'))
+                    ->latest('creado_en')
+                    ->exists();
+                if ($avalActivo) {
+                    throw new \Exception('El aval ya está asociado a un crédito activo.');
+                }
+
+                $credito = Credito::create([
                     'cliente_id' => $cliente->id,
                     'monto_total' => $data['monto'],
                     'estado' => 'pendiente',
@@ -219,17 +271,9 @@ class PromotorController extends Controller
                     'fecha_final' => now()->addMonths(12),
                 ]);
 
-                Aval::create([
-                    'CURP' => $data['aval_CURP'],
+                Aval::create(array_merge($avalData, [
                     'credito_id' => $credito->id,
-                    'nombre' => $data['aval_nombre'],
-                    'apellido_p' => $data['aval_apellido_p'],
-                    'apellido_m' => $data['aval_apellido_m'] ?? '',
-                    'fecha_nacimiento' => now()->subYears(25), // Placeholder
-                    'direccion' => 'Desconocida', // Placeholder
-                    'telefono' => 'N/A', // Placeholder
-                    'parentesco' => 'Desconocido', // Placeholder
-                ]);
+                ]));
             });
 
             $message = 'Re-crédito asignado con éxito.';
