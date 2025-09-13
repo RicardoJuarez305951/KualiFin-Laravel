@@ -61,7 +61,7 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('ingresar-cliente',  'ingresar_cliente')  ->name('ingresar_cliente');
                       Route::post('ingresar-cliente', 'storeCliente')      ->name('store_cliente');
                       Route::post('recredito',        'storeRecredito')    ->name('store_recredito');
-                      Route::get('cliente-historial', 'cliente_historial') ->name('cliente_historial');
+                      Route::get('cliente-historial/{cliente}', 'cliente_historial') ->name('cliente_historial');
                       Route::post('enviar-ventas',    'enviarVentas')      ->name('enviar_ventas');
                   });
 
@@ -75,7 +75,7 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('objetivo',          'objetivo')          ->name('objetivo');
                       Route::get('solicitar-venta',   'solicitar_venta')   ->name('solicitar_venta');
                       Route::get('ingresar-cliente',  'ingresar_cliente')  ->name('ingresar_cliente');
-                      Route::get('cliente-historial', 'cliente_historial') ->name('cliente_historial');
+                      Route::get('cliente-historial/{cliente}', 'cliente_historial') ->name('cliente_historial');
                   });
 
              Route::prefix('supervisor')
@@ -89,7 +89,7 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('reporte',           'reporte')           ->name('reporte');
                       Route::get('solicitar-venta',   'solicitar_venta')   ->name('solicitar_venta');
                       Route::get('ingresar-cliente',  'ingresar_cliente')  ->name('ingresar_cliente');
-                      Route::get('cliente-historial', 'cliente_historial') ->name('cliente_historial');
+                      Route::get('cliente-historial/{cliente}', 'cliente_historial') ->name('cliente_historial');
                       Route::get('cartera-activa',    'cartera_activa')    ->name('cartera_activa');
                       Route::get('cartera-vencida',   'cartera_vencida')   ->name('cartera_vencida');
                       Route::get('cartera-inactiva',  'cartera_inactiva')  ->name('cartera_inactiva');
