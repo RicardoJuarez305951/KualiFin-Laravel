@@ -356,33 +356,76 @@ class PromotorController extends Controller
                 ->get()
             : collect();
 
+    // Si no hay promotor, regresa colecciones vacías
+    if (!$promotor) {
         $activos = collect();
         $vencidos = collect();
         $inactivos = collect();
 
-        foreach ($clientes as $cliente) {
-            $credito = $cliente->credito;
+        return view('mobile.promotor.cartera.cartera', compact('activos', 'vencidos', 'inactivos'));
+    }
 
-            if ($credito && $credito->estado === 'activo') {
-                $pagoPendiente = $credito->pagosProyectados->firstWhere('estado', 'pendiente');
+    // Cargamos clientes con su crédito y pagos proyectados ordenados por semana
+    $clientes = $promotor->clientes()
+        ->with([
+            'credito.pagosProyectados' => fn ($q) => $q->orderBy('semana'),
+        ])
+        ->orderBy('nombre')
+        ->get();
+
+    $activos = collect();
+    $vencidos = collect();
+    $inactivos = collect();
+
+    foreach ($clientes as $cliente) {
+        $credito = $cliente->credito;
+
+        // Default/compatibilidad con vistas que usan flags
+        $cliente->tiene_credito_activo = false;
+        $cliente->estatus = 'inactivo';
+        unset($cliente->semana_credito, $cliente->monto_semanal);
+
+        if ($credito) {
+            // Normalizamos estatus a partir del crédito
+            // estados esperados: 'activo', 'mora', otros -> 'inactivo'
+            $estado = $credito->estado;
+
+            if ($estado === 'activo') {
+                $pagoPendiente = $credito->pagosProyectados
+                    ? $credito->pagosProyectados->firstWhere('estado', 'pendiente')
+                    : null;
 
                 if ($pagoPendiente) {
+                    // Datos útiles para la vista
                     $cliente->semana_credito = $pagoPendiente->semana;
-                    $cliente->monto_semanal = $pagoPendiente->monto_proyectado;
-                    $activos->push($cliente);
-                    continue;
+                    $cliente->monto_semanal  = $pagoPendiente->monto_proyectado;
                 }
+
+                $cliente->tiene_credito_activo = true;
+                $cliente->estatus = 'activo';
+                $activos->push($cliente);
+                continue;
             }
 
-            if ($credito && $credito->estado === 'mora') {
+            if ($estado === 'mora') {
+                $cliente->tiene_credito_activo = true; // sigue teniendo crédito, solo que vencido
+                $cliente->estatus = 'vencido';
                 $vencidos->push($cliente);
-            } else {
-                $inactivos->push($cliente);
+                continue;
             }
         }
 
       return view('mobile.promotor.cartera.cartera', compact('activos', 'vencidos', 'inactivos'));
     }
+
+    // Opcional: reindexar
+    $activos   = $activos->values();
+    $vencidos  = $vencidos->values();
+    $inactivos = $inactivos->values();
+
+    return view('mobile.promotor.cartera.cartera', compact('activos', 'vencidos', 'inactivos'));
+}
+
 
     public function cliente_historial(Cliente $cliente)
     {
