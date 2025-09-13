@@ -11,6 +11,7 @@
         $clientes = collect(range(1, rand(4, 7)))->map(function () use ($faker, $estatusFalla) {
             $estatus = collect($estatusFalla)->random();
             return [
+                'id'      => $faker->unique()->numberBetween(1, 1000),
                 'nombre'  => $faker->firstName . ' ' . $faker->lastName,
                 'monto'   => $faker->numberBetween(500, 8000),
                 'estatus' => $estatus,
@@ -82,7 +83,7 @@
                                 </button>
 
                                 {{-- Botón Historial --}}
-                                <a href='{{ route("mobile.$role.cliente_historial") }}'
+                                <a href='{{ route("mobile.$role.cliente_historial", $cliente["id"]) }}'
                                    class="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500 text-white font-bold hover:bg-amber-600 shadow-sm">
                                     H
                                 </a>

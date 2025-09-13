@@ -92,9 +92,9 @@ class SupervisorController extends Controller
         return view('mobile.supervisor.cartera.reporte');
     }
 
-    public function cliente_historial()
+    public function cliente_historial(Cliente $cliente)
     {
-        return view('mobile.supervisor.cartera.cliente_historial');
+        return view('mobile.supervisor.cartera.cliente_historial', compact('cliente'));
     }
 
     public function cartera_activa()
