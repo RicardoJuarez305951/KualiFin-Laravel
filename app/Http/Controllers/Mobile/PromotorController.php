@@ -103,23 +103,17 @@ class PromotorController extends Controller
 
     public function storeCliente(Request $request)
     {
-        $promotor = Auth::user()->promotor;
-        if (!$promotor) {
-            $message = 'No tienes un perfil de promotor asignado.';
-            return $request->expectsJson()
-                ? response()->json(['success' => false, 'message' => $message], 403)
-                : back()->with('error', $message);
-        }
-
-        $data = $request->validate([
-            'nombre' => 'required|string|max:100',
-            'apellido_p' => 'required|string|max:100',
-            'apellido_m' => 'nullable|string|max:100',
-            'CURP' => 'required|string|size:18|unique:clientes,CURP',
-            'monto' => 'required|numeric|min:0|max:3000'
-        ]);
-
         try {
+            $promotor = Promotor::where('user_id', Auth::id())->firstOrFail();
+
+            $data = $request->validate([
+                'nombre' => 'required|string|max:100',
+                'apellido_p' => 'required|string|max:100',
+                'apellido_m' => 'nullable|string|max:100',
+                'CURP' => 'required|string|size:18|unique:clientes,CURP',
+                'monto' => 'required|numeric|min:0|max:3000'
+            ]);
+
             DB::transaction(function () use ($data, $promotor) {
                 $cliente = Cliente::create([
                     'promotor_id' => $promotor->id,
@@ -150,6 +144,18 @@ class PromotorController extends Controller
                 ? response()->json(['success' => true, 'message' => $message])
                 : redirect()->route('mobile.promotor.ingresar_cliente')->with('success', $message);
 
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::warning('Intento de creación de cliente por usuario sin perfil de promotor.', ['user_id' => Auth::id()]);
+            $message = 'No tienes un perfil de promotor asignado.';
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => $message], 403)
+                : back()->with('error', $message);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::warning('Error de validación al crear cliente.', ['errors' => $e->errors(), 'user_id' => Auth::id()]);
+            $message = 'Datos inválidos: ' . collect($e->errors())->flatten()->implode(' ');
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => $message], 422)
+                : back()->with('error', $message);
         } catch (\Exception $e) {
             Log::error('Error al crear cliente: ' . $e->getMessage(), ['exception' => $e]);
             $message = 'No se pudo crear el cliente. Inténtalo de nuevo.';
