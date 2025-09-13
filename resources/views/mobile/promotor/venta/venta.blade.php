@@ -44,16 +44,17 @@
 
             {{-- Clientes --}}
             <div class="px-4">
-                <div class="hidden sm:grid grid-cols-7 gap-2 text-xs font-semibold text-gray-600 px-2 pb-2">
+                <div class="hidden sm:grid grid-cols-8 gap-2 text-xs font-semibold text-gray-600 px-2 pb-2">
                     <div class="col-span-4 text-center">Cliente</div>
                     <div class="col-span-3 text-right">Monto</div>
+                    <div class="col-span-1 text-center">Búsqueda</div>
                 </div>
                 <div class="space-y-2">
                     @foreach ($clientes as $cliente)
                         @php
                             $nombreCompleto = trim("{$cliente->nombre} {$cliente->apellido_p} {$cliente->apellido_m}");
                         @endphp
-                        <div class="grid grid-cols-7 items-center gap-2 bg-white rounded-xl border border-gray-100 px-3 py-2.5 shadow-sm">
+                        <div class="grid grid-cols-8 items-center gap-2 bg-white rounded-xl border border-gray-100 px-3 py-2.5 shadow-sm">
                             <div class="col-span-4 flex items-center gap-2">
                                 <span class="inline-flex shrink-0 w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 items-center justify-center text-[11px] font-bold">
                                     {{ $loop->iteration }}
@@ -62,6 +63,17 @@
                             </div>
                             <div class="col-span-3 text-right">
                                 <p class="text-sm font-semibold text-gray-900">{{ money_mx($cliente->credito->monto_total ?? $cliente->monto_maximo) }}</p>
+                            </div>
+                            <div class="col-span-1">
+                                <a href="{{ route('consulta.deudores', ['cliente' => $nombreCompleto]) }}"
+                                   target="_blank"
+                                   class="text-blue-600 hover:text-blue-800 flex items-center justify-center"
+                                   title="Búsqueda">
+                                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                                              d="M10 4a6 6 0 104.472 10.028l4.25 4.25a1 1 0 101.415-1.415l-4.25-4.25A6 6 0 0010 4z"/>
+                                    </svg>
+                                </a>
                             </div>
                         </div>
                     @endforeach
