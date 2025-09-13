@@ -3,7 +3,7 @@
         <li class="flex items-center justify-between py-2">
             <div class="flex-1">
                 <p class="text-base font-semibold text-gray-800">
-                    {{ $c['apellido'] ?? $c->apellido ?? '' }} {{ $c['nombre'] ?? $c->nombre ?? '' }}
+                    {{ ($c['apellido_p'] ?? $c->apellido_p ?? '') }} {{ ($c['apellido_m'] ?? $c->apellido_m ?? '') }} {{ ($c['nombre'] ?? $c->nombre ?? '') }}
                 </p>
             </div>
 

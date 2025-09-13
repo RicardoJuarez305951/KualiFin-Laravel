@@ -17,7 +17,7 @@
                 >
                 <div>
                     <p class="text-base font-semibold text-gray-800">
-                        {{ ($c['apellido'] ?? $c->apellido ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '') }}
+                        {{ ($c['apellido_p'] ?? $c->apellido_p ?? '') }} {{ ($c['apellido_m'] ?? $c->apellido_m ?? '') }} {{ ($c['nombre'] ?? $c->nombre ?? '') }}
                     </p>
                 </div>
             </div>
@@ -32,10 +32,17 @@
                 <button
                     class="w-8 h-8 border-2 border-green-500 text-green-500 rounded-full flex items-center justify-center"
                     title="Registrar pago"
-                    @click="$store.calc.open(@js(($c['apellido'] ?? $c->apellido ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '')))"
+                    @click="$store.calc.open(@js(($c['apellido_p'] ?? $c->apellido_p ?? '') . ' ' . ($c['apellido_m'] ?? $c->apellido_m ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '')))"
                 >
                     $
                 </button>
+
+                <a href="{{ route('mobile.' . $role . '.cliente_historial', $c['id'] ?? $c->id) }}"
+                   class="w-8 h-8 border-2 border-yellow-500 text-yellow-500 rounded-full flex items-center justify-center"
+                   title="Historial"
+                >
+                    H
+                </a>
 
                 <button
                    class="w-8 h-8 border-2 border-blue-500 text-blue-500 rounded-full flex items-center justify-center"
