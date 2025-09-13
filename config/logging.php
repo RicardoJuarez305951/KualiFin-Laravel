@@ -130,7 +130,7 @@ return [
         'excel' => [
             'driver' => 'single',
             'path' => storage_path('logs/excel.log'),
-            'level' => 'info',
+            'level' => 'debug',
             'replace_placeholders' => true,
         ],
 

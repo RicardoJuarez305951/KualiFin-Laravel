@@ -48,6 +48,6 @@
   <div class="relative z-10 text-center">
     {{ $slot }}
   </div>
-
+  <x-floating-button />
 </body>
 </html>
