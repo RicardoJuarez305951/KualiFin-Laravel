@@ -5,10 +5,10 @@
 <div x-show="showCliente" x-cloak class="fixed inset-0 z-40 flex items-center justify-center px-4">
   <div class="absolute inset-0 bg-black/50" @click="resetClienteForm()"></div>
 
-  <div @click.stop class="bg-white rounded-2xl shadow-lg w-full max-w-md p-6 relative text-gray-900">
+<div @click.stop class="bg-white rounded-2xl shadow-lg w-full max-w-md p-6 relative z-50 text-gray-900">
     <h3 class="text-xl font-semibold uppercase text-center mb-4">Ingresar Datos (Crédito)</h3>
 
-    <form method="POST" action="{{ route('mobile.promotor.store_cliente') }}" class="space-y-4">
+    <form method="POST" action="{{ route('mobile.promotor.store_cliente') }}" @submit.prevent="submitNuevoCliente($event)" class="space-y-4">
       @csrf
       {{-- div1: Cliente --}}
       <div class="space-y-3 border rounded-xl p-4">   
@@ -51,13 +51,13 @@
       <div class="space-y-3 border rounded-xl p-4">
         <p class="font-semibold">Nombre del aval:</p>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <input type="text" placeholder="Nombre" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
-          <input type="text" placeholder="Apellido Paterno" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
-          <input type="text" placeholder="Apellido Materno" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+          <input name="aval_nombre" type="text" placeholder="Nombre" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+          <input name="aval_apellido_p" type="text" placeholder="Apellido Paterno" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+          <input name="aval_apellido_m" type="text" placeholder="Apellido Materno" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
         </div>
 
         <p class="font-semibold mt-2">CURP:</p>
-        <input type="text" placeholder="CURP" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+        <input name="aval_CURP" type="text" placeholder="CURP" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
           {{-- INE Aval --}}

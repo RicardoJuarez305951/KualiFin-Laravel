@@ -62,7 +62,7 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::post('ingresar-cliente', 'storeCliente')      ->name('store_cliente');
                       Route::post('recredito',        'storeRecredito')    ->name('store_recredito');
                       Route::get('cliente-historial', 'cliente_historial') ->name('cliente_historial');
-                      Route::post('enviar-ventas', 'enviarVentas')          ->name('enviar_ventas');
+                      Route::post('enviar-ventas',    'enviarVentas')      ->name('enviar_ventas');
                   });
 
              Route::prefix('ejecutivo')
@@ -93,7 +93,7 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('cartera-activa',    'cartera_activa')    ->name('cartera_activa');
                       Route::get('cartera-vencida',   'cartera_vencida')   ->name('cartera_vencida');
                       Route::get('cartera-inactiva',  'cartera_inactiva')  ->name('cartera_inactiva');
-                      Route::get('cartera-falla',     'cartera_falla')  ->name('cartera_falla');
+                      Route::get('cartera-falla',     'cartera_falla')     ->name('cartera_falla');
                       Route::get('historial-promotor','historial_promotor')->name('historial_promotor');
                       Route::get('reacreditacion',    'reacreditacion')    ->name('reacreditacion');
                       Route::get('clientes-prospectados',    'clientes_prospectados')    ->name('clientes_prospectados');

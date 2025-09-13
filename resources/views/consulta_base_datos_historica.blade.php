@@ -227,6 +227,7 @@
                                         <th class="kf-th">Fecha Préstamo</th>
                                         <th class="kf-th">Cliente</th>
                                         <th class="kf-th">Promotora</th>
+                                        <th class="kf-th">Alerta</th>
                                         <th class="kf-th" style="text-align:right">Deuda</th>
                                     </tr>
                                 </thead>
@@ -236,6 +237,7 @@
                                             <td class="kf-td mono">{{ $formatDate($deudor['fecha_prestamo'] ?? null) }}</td>
                                             <td class="kf-td font-semibold">{{ (string) ($deudor['cliente'] ?? '') }}</td>
                                             <td class="kf-td">{{ (string) ($deudor['promotora'] ?? '') }}</td>
+                                            <td class="kf-td">{{ (string) ($deudor['alerta'] ?? '') }}</td>
                                             <td class="kf-td money">{{ $formatMoney($deudor['deuda'] ?? null) }}</td>
                                         </tr>
                                     @endforeach
