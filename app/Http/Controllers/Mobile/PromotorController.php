@@ -280,9 +280,40 @@ class PromotorController extends Controller
     public function cartera()
     {
         $promotor = Auth::user()->promotor;
-        $clientes = $promotor ? $promotor->clientes()->orderBy('nombre')->get() : collect();
 
-        return view('mobile.promotor.cartera.cartera', compact('clientes'));
+        $clientes = $promotor
+            ? $promotor->clientes()
+                ->with(['credito.pagosProyectados' => fn ($q) => $q->orderBy('semana')])
+                ->orderBy('nombre')
+                ->get()
+            : collect();
+
+        $activos = collect();
+        $vencidos = collect();
+        $inactivos = collect();
+
+        foreach ($clientes as $cliente) {
+            $credito = $cliente->credito;
+
+            if ($credito && $credito->estado === 'activo') {
+                $pagoPendiente = $credito->pagosProyectados->firstWhere('estado', 'pendiente');
+
+                if ($pagoPendiente) {
+                    $cliente->semana_credito = $pagoPendiente->semana;
+                    $cliente->monto_semanal = $pagoPendiente->monto_proyectado;
+                    $activos->push($cliente);
+                    continue;
+                }
+            }
+
+            if ($credito && $credito->estado === 'mora') {
+                $vencidos->push($cliente);
+            } else {
+                $inactivos->push($cliente);
+            }
+        }
+
+        return view('mobile.promotor.cartera.cartera', compact('activos', 'vencidos', 'inactivos'));
     }
 
     public function cliente_historial(Cliente $cliente)

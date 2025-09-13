@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Mobile;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cliente;
 
 class EjecutivoController extends Controller
 {
@@ -36,8 +37,8 @@ class EjecutivoController extends Controller
         return view('mobile.ejecutivo.cartera.cartera');
     }
 
-    public function cliente_historial()
+    public function cliente_historial(Cliente $cliente)
     {
-        return view('mobile.ejecutivo.cartera.cliente_historial');
+        return view('mobile.ejecutivo.cartera.cliente_historial', compact('cliente'));
     }
 }
