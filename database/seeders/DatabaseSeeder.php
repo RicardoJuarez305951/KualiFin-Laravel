@@ -3,6 +3,9 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Models\Ejecutivo;
+use App\Models\Supervisor;
+use App\Models\Promotor;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -62,15 +65,6 @@ class DatabaseSeeder extends Seeder
         $user->assignRole('administrador');
 
         $user = User::factory()->create([
-            'name' => 'Supervisor User',
-            'email' => 'supervisor@example.com',
-            'password' => Hash::make('12345'),
-            'telefono' => '0987654321',
-            'rol' => 'supervisor',
-        ]);
-        $user->assignRole('supervisor');
-
-        $user = User::factory()->create([
             'name' => 'Ejecutivo User',
             'email' => 'ejecutivo@example.com',
             'password' => Hash::make('12345'),
@@ -78,6 +72,28 @@ class DatabaseSeeder extends Seeder
             'rol' => 'ejecutivo',
         ]);
         $user->assignRole('ejecutivo');
+        $ejecutivo = Ejecutivo::create([
+            'user_id' => $user->id,
+            'nombre' => 'Ejecutivo',
+            'apellido_p' => 'User',
+            'apellido_m' => 'Demo',
+        ]);
+
+        $user = User::factory()->create([
+            'name' => 'Supervisor User',
+            'email' => 'supervisor@example.com',
+            'password' => Hash::make('12345'),
+            'telefono' => '0987654321',
+            'rol' => 'supervisor',
+        ]);
+        $user->assignRole('supervisor');
+        $supervisor = Supervisor::create([
+            'user_id' => $user->id,
+            'ejecutivo_id' => $ejecutivo->id,
+            'nombre' => 'Supervisor',
+            'apellido_p' => 'User',
+            'apellido_m' => 'Demo',
+        ]);
 
         $user = User::factory()->create([
             'name' => 'Promotor User',
@@ -87,5 +103,16 @@ class DatabaseSeeder extends Seeder
             'rol' => 'promotor',
         ]);
         $user->assignRole('promotor');
+        Promotor::create([
+            'user_id' => $user->id,
+            'supervisor_id' => $supervisor->id,
+            'nombre' => 'Promotor',
+            'apellido_p' => 'User',
+            'apellido_m' => 'Demo',
+            'venta_maxima' => 10000,
+            'colonia' => 'Centro',
+            'venta_proyectada_objetivo' => 5000,
+            'bono' => 500,
+        ]);
     }
 }

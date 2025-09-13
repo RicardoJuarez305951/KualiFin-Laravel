@@ -30,7 +30,7 @@
           <div>
             <label class="text-sm font-medium block mb-1">INE</label>
             <input type="file" accept="image/*,application/pdf" class="hidden" x-ref="r_cliIne" @change="r_clientIneUploaded = true">
-            <button @click="$refs.r_cliIne.click()" :class="r_clientIneUploaded ? 'bg-green-600 text-white' : 'bg-yellow-400 text-black hover:bg-yellow-500'" class="w-full rounded-lg px-3 py-2 font-medium transition">
+            <button type="button" @click="$refs.r_cliIne.click()" :class="r_clientIneUploaded ? 'bg-green-600 text-white' : 'bg-yellow-400 text-black hover:bg-yellow-500'" class="w-full rounded-lg px-3 py-2 font-medium transition">
               <span x-text="r_clientIneUploaded ? '✔ INE cargado' : 'Subir INE'"></span>
             </button>
           </div>
@@ -39,7 +39,7 @@
           <div>
             <label class="text-sm font-medium block mb-1">Comprobante Domicilio</label>
             <input type="file" accept="image/*,application/pdf" class="hidden" x-ref="r_cliComp" @change="r_clientCompUploaded = true">
-            <button @click="$refs.r_cliComp.click()" :class="r_clientCompUploaded ? 'bg-green-600 text-white' : 'bg-yellow-400 text-black hover:bg-yellow-500'" class="w-full rounded-lg px-3 py-2 font-medium transition">
+            <button type="button" @click="$refs.r_cliComp.click()" :class="r_clientCompUploaded ? 'bg-green-600 text-white' : 'bg-yellow-400 text-black hover:bg-yellow-500'" class="w-full rounded-lg px-3 py-2 font-medium transition">
               <span x-text="r_clientCompUploaded ? '✔ Comprobante cargado' : 'Subir Comprobante'"></span>
             </button>
           </div>
@@ -77,7 +77,7 @@
           <div>
             <label class="text-sm font-medium block mb-1">INE</label>
             <input type="file" accept="image/*,application/pdf" class="hidden" x-ref="r_avalIne" @change="r_avalIneUploaded = true">
-            <button @click="$refs.r_avalIne.click()" :class="r_avalIneUploaded ? 'bg-green-600 text-white' : 'bg-yellow-400 text-black hover:bg-yellow-500'" class="w-full rounded-lg px-3 py-2 font-medium transition">
+            <button type="button" @click="$refs.r_avalIne.click()" :class="r_avalIneUploaded ? 'bg-green-600 text-white' : 'bg-yellow-400 text-black hover:bg-yellow-500'" class="w-full rounded-lg px-3 py-2 font-medium transition">
               <span x-text="r_avalIneUploaded ? '✔ INE cargado' : 'Subir INE'"></span>
             </button>
           </div>
@@ -86,7 +86,7 @@
           <div>
             <label class="text-sm font-medium block mb-1">Comprobante Domicilio</label>
             <input type="file" accept="image/*,application/pdf" class="hidden" x-ref="r_avalComp" @change="r_avalCompUploaded = true">
-            <button @click="$refs.r_avalComp.click()" :class="r_avalCompUploaded ? 'bg-green-600 text-white' : 'bg-yellow-400 text-black hover:bg-yellow-500'" class="w-full rounded-lg px-3 py-2 font-medium transition">
+            <button type="button" @click="$refs.r_avalComp.click()" :class="r_avalCompUploaded ? 'bg-green-600 text-white' : 'bg-yellow-400 text-black hover:bg-yellow-500'" class="w-full rounded-lg px-3 py-2 font-medium transition">
               <span x-text="r_avalCompUploaded ? '✔ Comprobante cargado' : 'Subir Comprobante'"></span>
             </button>
           </div>

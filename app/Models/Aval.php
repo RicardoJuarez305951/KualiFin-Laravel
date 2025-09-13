@@ -21,4 +21,12 @@ class Aval extends Model
     {
         return $this->hasMany(DocumentoAval::class);
     }
+
+    public static function ultimoCreditoActivo(string $curp)
+    {
+        return static::where('CURP', $curp)
+            ->with('credito')
+            ->latest('creado_en')
+            ->first();
+    }
 }
