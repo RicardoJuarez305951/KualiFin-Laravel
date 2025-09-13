@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Promotor;
 use App\Models\Cliente;
 use App\Models\Credito;
-use Illuminate\Http\Request;
+use Illuminate\Http\Request;    
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -127,7 +127,7 @@ class PromotorController extends Controller
                     'apellido_p' => $data['apellido_p'],
                     'apellido_m' => $data['apellido_m'] ?? '',
                     'fecha_nacimiento' => now()->subYears(18),
-                    'tiene_credito_activo' => true,
+                    'tiene_credito_activo' => false,
                     'estatus' => 'pendiente',
                     'monto_maximo' => $data['monto'],
                     'activo' => false,
@@ -195,6 +195,10 @@ class PromotorController extends Controller
         $data = $request->validate([
             'CURP' => 'required|string|size:18|exists:clientes,CURP',
             'monto' => 'required|numeric|min:0|max:20000',
+            'aval_nombre' => 'required|string|max:100',
+            'aval_apellido_p' => 'required|string|max:100',
+            'aval_apellido_m' => 'nullable|string|max:100',
+            'aval_CURP' => 'required|string|size:18',
         ]);
 
         try {
@@ -213,6 +217,18 @@ class PromotorController extends Controller
                     'periodicidad' => 'semanal',
                     'fecha_inicio' => now(),
                     'fecha_final' => now()->addMonths(12),
+                ]);
+
+                Aval::create([
+                    'CURP' => $data['aval_CURP'],
+                    'credito_id' => $credito->id,
+                    'nombre' => $data['aval_nombre'],
+                    'apellido_p' => $data['aval_apellido_p'],
+                    'apellido_m' => $data['aval_apellido_m'] ?? '',
+                    'fecha_nacimiento' => now()->subYears(25), // Placeholder
+                    'direccion' => 'Desconocida', // Placeholder
+                    'telefono' => 'N/A', // Placeholder
+                    'parentesco' => 'Desconocido', // Placeholder
                 ]);
             });
 
