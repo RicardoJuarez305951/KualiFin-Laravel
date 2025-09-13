@@ -253,11 +253,8 @@ class PromotorController extends Controller
                     ];
                 }
 
-                $avalActivo = Aval::where('CURP', $avalCurp)
-                    ->whereHas('credito', fn($q) => $q->where('estado', 'activo'))
-                    ->latest('creado_en')
-                    ->exists();
-                if ($avalActivo) {
+                $aval = Aval::ultimoCreditoActivo($avalCurp);
+                if ($aval && $aval->credito && in_array($aval->credito->estado, ['activo', 'vigente'])) {
                     throw new \Exception('El aval ya está asociado a un crédito activo.');
                 }
 
