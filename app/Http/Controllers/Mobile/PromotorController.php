@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Gate;
+use App\Models\Aval;
 
 class PromotorController extends Controller
 {
@@ -111,7 +112,11 @@ class PromotorController extends Controller
                 'apellido_p' => 'required|string|max:100',
                 'apellido_m' => 'nullable|string|max:100',
                 'CURP' => 'required|string|size:18|unique:clientes,CURP',
-                'monto' => 'required|numeric|min:0|max:3000'
+                'monto' => 'required|numeric|min:0|max:3000',
+                'aval_nombre' => 'required|string|max:100',
+                'aval_apellido_p' => 'required|string|max:100',
+                'aval_apellido_m' => 'nullable|string|max:100',
+                'aval_CURP' => 'required|string|size:18',
             ]);
 
             DB::transaction(function () use ($data, $promotor) {
@@ -128,7 +133,7 @@ class PromotorController extends Controller
                     'activo' => false,
                 ]);
 
-                Credito::create([
+                $credito = Credito::create([
                     'cliente_id' => $cliente->id,
                     'monto_total' => $data['monto'],
                     'estado' => 'pendiente',
@@ -136,6 +141,18 @@ class PromotorController extends Controller
                     'periodicidad' => 'semanal',
                     'fecha_inicio' => now(),
                     'fecha_final' => now()->addMonths(12),
+                ]);
+
+                Aval::create([
+                    'CURP' => $data['aval_CURP'],
+                    'credito_id' => $credito->id,
+                    'nombre' => $data['aval_nombre'],
+                    'apellido_p' => $data['aval_apellido_p'],
+                    'apellido_m' => $data['aval_apellido_m'] ?? '',
+                    'fecha_nacimiento' => now()->subYears(25), // Placeholder
+                    'direccion' => 'Desconocida', // Placeholder
+                    'telefono' => 'N/A', // Placeholder
+                    'parentesco' => 'Desconocido', // Placeholder
                 ]);
             });
 

@@ -51,13 +51,13 @@
       <div class="space-y-3 border rounded-xl p-4">
         <p class="font-semibold">Nombre del aval:</p>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <input type="text" placeholder="Nombre" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
-          <input type="text" placeholder="Apellido Paterno" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
-          <input type="text" placeholder="Apellido Materno" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+          <input name="aval_nombre" type="text" placeholder="Nombre" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+          <input name="aval_apellido_p" type="text" placeholder="Apellido Paterno" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+          <input name="aval_apellido_m" type="text" placeholder="Apellido Materno" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
         </div>
 
         <p class="font-semibold mt-2">CURP:</p>
-        <input type="text" placeholder="CURP" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+        <input name="aval_CURP" type="text" placeholder="CURP" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
           {{-- INE Aval --}}

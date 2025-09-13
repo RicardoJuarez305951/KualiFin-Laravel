@@ -66,7 +66,9 @@
             f['CURP'].value.trim().length === 18 &&
             this.validateMonto(f.monto.value);
           if (!valido) {
-            this.showError = true;
+            this.resultadoExito = false;
+            this.resultadoMensaje = 'Datos incorrectos o incompletos. Por favor, verifica el formulario.';
+            this.showResultado = true;
             return;
           }
 
@@ -185,17 +187,8 @@
 
     @include('mobile.promotor.venta.modal_recredito')
 
-    @include('mobile.promotor.venta.modal_viabilidad')
-
     @include('mobile.promotor.venta.modal_resultado')
 
-    <div x-show="showError" x-cloak class="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div class="absolute inset-0 bg-black/50" @click="showError = false"></div>
-      <div @click.stop class="bg-white rounded-2xl shadow-lg w-full max-w-sm p-6 text-center">
-        <p class="text-lg font-semibold mb-4">Datos incorrectos</p>
-        <button @click="showError = false" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-2 rounded-lg">Aceptar</button>
-      </div>
-    </div>
   </div>
   
 </x-layouts.mobile.mobile-layout>

@@ -1,10 +1,7 @@
 {{-- =========================
      MODAL: RESULTADO DE INSERCIÓN
    ========================= --}}
-<div x-show="showResultado" x-cloak class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
-
-  {{-- Backdrop --}}
-  <div class="absolute inset-0 bg-black/50" @click="showResultado = false"></div>
+<div x-show="showResultado" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/75 px-4 py-6">
 
   {{-- Panel de Notificación --}}
   <div @click.stop class="bg-white rounded-2xl shadow-lg w-full max-w-sm p-6 relative text-center">
@@ -34,7 +31,7 @@
             <p class="text-xl font-semibold text-gray-800">Error en la operación</p>
             <p class="mt-1 text-gray-600" x-text="resultadoMensaje"></p>
         </div>
-        <button @click="showR sultado = false" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-2.5 rounded-lg transition-colors">
+        <button @click="showResultado = false" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-2.5 rounded-lg transition-colors">
           Aceptar
         </button>
       </div>
