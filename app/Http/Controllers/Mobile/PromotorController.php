@@ -31,11 +31,7 @@ class PromotorController extends Controller
 
         $user->load([
             'promotor.supervisor.ejecutivo.user',
-            'promotor.clientes' => function ($query) {
-                $query->where('activo', 1)
-                      ->where('tiene_credito_activo', 1)
-                      ->with('credito');
-            }
+            'promotor.clientes' => fn ($q) => $q->with('credito'),
         ]);
 
         $promotor = $user->promotor;
@@ -43,15 +39,9 @@ class PromotorController extends Controller
         $supervisor = $promotor?->supervisor?->user?->name;
         $ejecutivo = $promotor?->supervisor?->ejecutivo?->user?->name;
 
-        $clientes = $promotor?->clientes->map(function ($cliente) {
-            $monto = $cliente->credito->monto_total ?? $cliente->monto_maximo;
-            return [
-                'nombre' => trim($cliente->nombre . ' ' . $cliente->apellido_p),
-                'monto' => (float) $monto,
-            ];
-        }) ?? collect();
+        $clientes = $promotor?->clientes ?? collect();
 
-        $total = $clientes->sum('monto');
+        $total = $clientes->sum(fn ($c) => $c->credito->monto_total ?? $c->monto_maximo);
 
         return view('mobile.promotor.venta.venta', compact(
             'fecha',
