@@ -282,7 +282,11 @@ class PromotorController extends Controller
         $promotor = Auth::user()->promotor;
         $clientes = $promotor ? $promotor->clientes()->orderBy('nombre')->get() : collect();
 
-        return view('mobile.promotor.cartera.cartera', compact('clientes'));
+        $activos = $clientes->where('tiene_credito_activo', true);
+        $vencidos = $clientes->where('estatus', 'vencido');
+        $inactivos = $clientes->where('activo', false);
+
+        return view('mobile.promotor.cartera.cartera', compact('activos', 'vencidos', 'inactivos'));
     }
 
     public function cliente_historial(Cliente $cliente)

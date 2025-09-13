@@ -39,7 +39,7 @@
                 >
                     $
                 </button>
-                <a href="{{route("mobile.$role.cliente_historial")}}"
+                <a href="{{ route('mobile.promotor.cliente_historial') }}"
                    class="w-8 h-8 border-2 border-yellow-500 text-yellow-500 rounded-full flex items-center justify-center"
                    title="Historial"
                 >
