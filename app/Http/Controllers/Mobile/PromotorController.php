@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Gate;
 use App\Models\Aval;
+use Illuminate\Validation\ValidationException;
 
 class PromotorController extends Controller
 {
@@ -71,9 +72,9 @@ class PromotorController extends Controller
             Cliente::where('promotor_id', $promotor->id)
                 ->where('activo', 1)
                 ->update([
-                    'tiene_credito_activo' => 0,
-                    'estatus' => 'A supervision',
-                    'activo' => 0,
+                    'tiene_credito_activo' => false,
+                    'estatus' => 'a_supervision',
+                    'activo' => false,
                 ]);
             
             DB::commit();
@@ -97,17 +98,40 @@ class PromotorController extends Controller
         try {
             $promotor = Promotor::where('user_id', Auth::id())->firstOrFail();
 
+            // --- INICIO DE VALIDACIONES ---
             $data = $request->validate([
                 'nombre' => 'required|string|max:100',
                 'apellido_p' => 'required|string|max:100',
                 'apellido_m' => 'nullable|string|max:100',
-                'CURP' => 'required|string|size:18|unique:clientes,CURP',
+                // Se quita la regla 'unique' para personalizar el mensaje de error.
+                'CURP' => 'required|string|size:18',
                 'monto' => 'required|numeric|min:0|max:3000',
                 'aval_nombre' => 'required|string|max:100',
                 'aval_apellido_p' => 'required|string|max:100',
                 'aval_apellido_m' => 'nullable|string|max:100',
                 'aval_CURP' => 'required|string|size:18',
             ]);
+
+            // 1. Validación manual para CURP de cliente duplicado.
+            $clienteExistente = Cliente::where('CURP', $data['CURP'])->first();
+            if ($clienteExistente) {
+                throw ValidationException::withMessages([
+                    'CURP' => 'La CURP ingresada ya está registrada para otro cliente.',
+                ]);
+            }
+
+            // 2. Validación manual para el CURP del aval.
+            $avalComoCliente = Cliente::where('CURP', $data['aval_CURP'])->first();
+            if ($avalComoCliente) {
+                // Un cliente no puede ser aval si tiene un crédito activo O una solicitud en proceso.
+                $estatusNoPermitidos = ['pendiente', 'a_supervision', 'pendiente_recredito', 'activo', 'vencido'];
+                if ($avalComoCliente->tiene_credito_activo || in_array($avalComoCliente->estatus, $estatusNoPermitidos)) {
+                    throw ValidationException::withMessages([
+                        'aval_CURP' => 'El aval es un cliente con un crédito activo o en proceso y no puede ser garante.',
+                    ]);
+                }
+            }
+            // --- FIN DE VALIDACIONES ---
 
             DB::transaction(function () use ($data, $promotor) {
                 $cliente = Cliente::create([
@@ -157,12 +181,17 @@ class PromotorController extends Controller
             return $request->expectsJson()
                 ? response()->json(['success' => false, 'message' => $message], 403)
                 : back()->with('error', $message);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             Log::warning('Error de validación al crear cliente.', ['errors' => $e->errors(), 'user_id' => Auth::id()]);
-            $message = 'Datos inválidos: ' . collect($e->errors())->flatten()->implode(' ');
+            
+            // Se prioriza mostrar los mensajes de error personalizados para CURP y aval_CURP.
+            $customMessage = $e->validator->errors()->first('CURP') 
+                ?: $e->validator->errors()->first('aval_CURP') 
+                ?: 'Datos inválidos: ' . collect($e->errors())->flatten()->implode(' ');
+
             return $request->expectsJson()
-                ? response()->json(['success' => false, 'message' => $message], 422)
-                : back()->with('error', $message);
+                ? response()->json(['success' => false, 'message' => $customMessage], 422)
+                : back()->with('error', $customMessage)->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             Log::error('Error al crear cliente: ' . $e->getMessage(), ['exception' => $e]);
             $message = 'No se pudo crear el cliente. Inténtalo de nuevo.';
@@ -181,106 +210,145 @@ class PromotorController extends Controller
                 ? response()->json(['success' => false, 'message' => $message], 403)
                 : back()->with('error', $message);
         }
-
-        $rNewAval = $request->boolean('r_newAval');
-
+    
+        $isNewAval = $request->boolean('r_newAval');
+    
+        // --- INICIO DE VALIDACIONES ---
         $rules = [
+            // 1. Se mantiene la validación para asegurar que el cliente exista.
             'CURP' => 'required|string|size:18|exists:clientes,CURP',
             'monto' => 'required|numeric|min:0|max:20000',
             'r_newAval' => 'required|boolean',
         ];
-
-        if ($rNewAval) {
+    
+        if ($isNewAval) {
             $rules = array_merge($rules, [
                 'aval_nombre' => 'required|string|max:100',
                 'aval_apellido_p' => 'required|string|max:100',
                 'aval_apellido_m' => 'nullable|string|max:100',
+                // 1. El CURP del nuevo aval no debe existir como cliente.
                 'aval_CURP' => 'required|string|size:18',
             ]);
         }
-
-        $data = $request->validate($rules);
-
+        
         try {
-            DB::transaction(function () use ($data, $promotor, $rNewAval) {
-                $cliente = Cliente::where('CURP', $data['CURP'])->firstOrFail();
+            $data = $request->validate($rules);
 
-                if ($cliente->promotor_id !== $promotor->id) {
-                    throw new \Exception('No autorizado para dar crédito a este cliente.');
+            // 2. Validación manual para el aval (nuevo o existente).
+            $avalCurp = null;
+            if ($isNewAval) {
+                $avalCurp = $data['aval_CURP'];
+            } else {
+                $cliente = Cliente::where('CURP', $data['CURP'])->first();
+                if ($cliente) {
+                    $prevAval = Aval::whereHas('credito', fn($q) => $q->where('cliente_id', $cliente->id))
+                                    ->latest('creado_en')->first();
+                    if ($prevAval) {
+                        $avalCurp = $prevAval->CURP;
+                    }
                 }
+            }
 
-                if ($rNewAval) {
-                    $avalCurp = $data['aval_CURP'];
-                    $avalData = [
+            if ($avalCurp) {
+                $avalComoCliente = Cliente::where('CURP', $avalCurp)->first();
+                if ($avalComoCliente) {
+                    // Un cliente no puede ser aval si tiene un crédito activo O una solicitud en proceso.
+                    $estatusNoPermitidos = ['pendiente', 'a_supervision', 'pendiente_recredito', 'activo', 'vencido'];
+                    if ($avalComoCliente->tiene_credito_activo || in_array($avalComoCliente->estatus, $estatusNoPermitidos)) {
+                        throw ValidationException::withMessages([
+                            'aval_CURP' => 'El aval es un cliente con un crédito activo o en proceso y no puede ser garante.',
+                        ]);
+                    }
+                }
+            }
+            // --- FIN DE VALIDACIONES ---
+
+        } catch (ValidationException $e) {
+            $customMessage = $e->validator->errors()->first('aval_CURP') ?: 'Datos inválidos: ' . collect($e->errors())->flatten()->implode(' ');
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => $customMessage], 422)
+                : back()->withErrors($e->errors())->withInput()->with('error', $customMessage);
+        }
+    
+        try {
+            DB::transaction(function () use ($data, $promotor, $isNewAval) {
+                $cliente = Cliente::where('CURP', $data['CURP'])->firstOrFail();
+    
+                if ($cliente->promotor_id !== $promotor->id) {
+                    throw new \Exception('No estás autorizado para otorgar un recrédito a este cliente.');
+                }
+    
+                if ($cliente->tiene_credito_activo) {
+                     throw new \Exception('El cliente ya tiene un crédito activo o en proceso.');
+                }
+    
+                $avalDataForCreation = [];
+    
+                if ($isNewAval) {
+                    $avalDataForCreation = [
                         'CURP' => $data['aval_CURP'],
                         'nombre' => $data['aval_nombre'],
                         'apellido_p' => $data['aval_apellido_p'],
-                        'apellido_m' => $data['aval_apellido_m'] ?? '',
+                        'apellido_m' => $data['aval_apellido_m'] ?? null,
                         'fecha_nacimiento' => now()->subYears(25), // Placeholder
                         'direccion' => 'Desconocida', // Placeholder
                         'telefono' => 'N/A', // Placeholder
                         'parentesco' => 'Desconocido', // Placeholder
                     ];
                 } else {
-                    $prevAval = Aval::whereHas('credito', function ($q) use ($cliente) {
-                        $q->where('cliente_id', $cliente->id);
-                    })->latest('creado_en')->first();
-
+                    $prevAval = Aval::whereHas('credito', fn($q) => $q->where('cliente_id', $cliente->id))
+                                    ->latest('creado_en')->first();
+    
                     if (!$prevAval) {
-                        throw new \Exception('No se encontró un aval previo para reutilizar.');
+                        throw new \Exception('No se encontró un aval previo para este cliente. Debe registrar uno nuevo.');
                     }
-
-                    $avalCurp = $prevAval->CURP;
-                    $avalData = [
-                        'CURP' => $prevAval->CURP,
-                        'nombre' => $prevAval->nombre,
-                        'apellido_p' => $prevAval->apellido_p,
-                        'apellido_m' => $prevAval->apellido_m,
-                        'fecha_nacimiento' => $prevAval->fecha_nacimiento,
-                        'direccion' => $prevAval->direccion,
-                        'telefono' => $prevAval->telefono,
-                        'parentesco' => $prevAval->parentesco,
-                    ];
+                    
+                    $avalDataForCreation = $prevAval->only([
+                        'CURP', 'nombre', 'apellido_p', 'apellido_m', 'fecha_nacimiento', 
+                        'direccion', 'telefono', 'parentesco'
+                    ]);
                 }
-
-                $aval = Aval::ultimoCreditoActivo($avalCurp);
-                if ($aval && $aval->credito && in_array($aval->credito->estado, ['activo', 'vigente'])) {
-                    throw new \Exception('El aval ya está asociado a un crédito activo.');
-                }
-
+                
                 $credito = Credito::create([
                     'cliente_id' => $cliente->id,
                     'monto_total' => $data['monto'],
                     'estado' => 'pendiente',
                     'interes' => 0,
-                    'periodicidad' => 'semanal',
+                    'periodicidad' => 'mensual',
                     'fecha_inicio' => now(),
-                    'fecha_final' => now()->addMonths(12),
+                    'fecha_final' => now()->addWeeks(16),
                 ]);
-
-                Aval::create(array_merge($avalData, [
-                    'credito_id' => $credito->id,
-                ]));
+    
+                Aval::create(array_merge($avalDataForCreation, ['credito_id' => $credito->id]));
+                
+                $cliente->update([
+                    'tiene_credito_activo' => false,
+                    'estatus' => 'pendiente_recredito',
+                    'activo' => false,
+                ]);
             });
-
-            $message = 'Re-crédito asignado con éxito.';
+    
+            $message = 'Recrédito solicitado con éxito.';
             return $request->expectsJson()
                 ? response()->json(['success' => true, 'message' => $message])
                 : redirect()->route('mobile.promotor.ingresar_cliente')->with('success', $message);
-
+    
         } catch (\Exception $e) {
-            Log::error('Error al asignar re-crédito: ' . $e->getMessage(), ['exception' => $e]);
-            $message = 'No se pudo asignar el re-crédito. ' . $e->getMessage();
+            Log::error('Error al procesar recrédito: ' . $e->getMessage(), [
+                'user_id' => Auth::id(), 'request' => $request->all(), 'exception' => $e
+            ]);
+            
+            $userMessage = 'No se pudo procesar el recrédito. ' . $e->getMessage();
+            
             return $request->expectsJson()
-                ? response()->json(['success' => false, 'message' => $message], 500)
-                : back()->with('error', $message);
+                ? response()->json(['success' => false, 'message' => $userMessage], 500)
+                : back()->with('error', $userMessage)->withInput();
         }
     }
 
     public function cartera()
     {
         $promotor = Auth::user()->promotor;
-
         $clientes = $promotor
             ? $promotor->clientes()
                 ->with(['credito.pagosProyectados' => fn ($q) => $q->orderBy('semana')])
@@ -313,7 +381,7 @@ class PromotorController extends Controller
             }
         }
 
-        return view('mobile.promotor.cartera.cartera', compact('activos', 'vencidos', 'inactivos'));
+      return view('mobile.promotor.cartera.cartera', compact('activos', 'vencidos', 'inactivos'));
     }
 
     public function cliente_historial(Cliente $cliente)
@@ -322,8 +390,9 @@ class PromotorController extends Controller
             abort(403, 'No autorizado');
         }
 
-        $cliente->load('creditos');
+        $cliente->load('credito.pagosProyectados');
 
         return view('mobile.promotor.cartera.cliente_historial', compact('cliente'));
     }
 }
+
