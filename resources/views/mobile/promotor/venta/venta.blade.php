@@ -55,10 +55,10 @@
                                 <span class="inline-flex shrink-0 w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 items-center justify-center text-[11px] font-bold">
                                     {{ $loop->iteration }}
                                 </span>
-                                <p class="text-sm font-medium text-gray-900 truncate">{{ $cliente['nombre'] }}</p>
+                                <p class="text-sm font-medium text-gray-900 truncate">{{ $cliente->nombre }}</p>
                             </div>
                             <div class="col-span-3 text-right">
-                                <p class="text-sm font-semibold text-gray-900">{{ money_mx($cliente['monto']) }}</p>
+                                <p class="text-sm font-semibold text-gray-900">{{ money_mx($cliente->credito->monto_total ?? $cliente->monto_maximo) }}</p>
                             </div>
                         </div>
                     @endforeach
