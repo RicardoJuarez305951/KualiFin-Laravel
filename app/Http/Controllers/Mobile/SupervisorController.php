@@ -101,7 +101,9 @@ class SupervisorController extends Controller
     {
         $supervisor = auth()->user()->supervisor;
 
-        abort_unless($supervisor && $promotor->supervisor_id === $supervisor->id, 403);
+        abort_if(!$supervisor, 403);
+
+        abort_unless($promotor->supervisor_id === $supervisor->id, 403);
 
         $clientes = Cliente::where('promotor_id', $promotor->id)
             ->with('credito')
