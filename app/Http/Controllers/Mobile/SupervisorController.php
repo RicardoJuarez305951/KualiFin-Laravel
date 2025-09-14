@@ -84,7 +84,25 @@ class SupervisorController extends Controller
 
     public function cartera()
     {
-        return view('mobile.supervisor.cartera.cartera');
+        $supervisor = auth()->user()->supervisor;
+        $promotores = $supervisor?->promotores()
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+            ->get();
+
+        return view('mobile.supervisor.cartera.cartera', compact('promotores'));
+    }
+
+    public function carteraPromotor(Promotor $promotor)
+    {
+        $supervisor = auth()->user()->supervisor;
+
+        abort_unless($promotor->supervisor_id === $supervisor->id, 403);
+
+        $clientes = Cliente::where('promotor_id', $promotor->id)
+            ->with('credito')
+            ->get();
+
+        return view('mobile.supervisor.cartera.promotor', compact('promotor', 'clientes'));
     }
     
     public function reporte()
