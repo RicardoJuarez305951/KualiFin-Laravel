@@ -85,9 +85,14 @@ class SupervisorController extends Controller
     public function cartera()
     {
         $supervisor = auth()->user()->supervisor;
-        $promotores = $supervisor?->promotores()
-            ->select('id', 'nombre', 'apellido_p', 'apellido_m')
-            ->get();
+
+        if (!$supervisor) {
+            $promotores = collect();
+        } else {
+            $promotores = $supervisor->promotores()
+                ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+                ->get();
+        }
 
         return view('mobile.supervisor.cartera.cartera', compact('promotores'));
     }
@@ -96,7 +101,7 @@ class SupervisorController extends Controller
     {
         $supervisor = auth()->user()->supervisor;
 
-        abort_unless($promotor->supervisor_id === $supervisor->id, 403);
+        abort_unless($supervisor && $promotor->supervisor_id === $supervisor->id, 403);
 
         $clientes = Cliente::where('promotor_id', $promotor->id)
             ->with('credito')
