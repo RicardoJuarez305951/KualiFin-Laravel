@@ -55,8 +55,8 @@ Route::middleware(['auth','verified'])->group(function () {
                   ->group(function () {
                       Route::get('/',                 'index')             ->name('index');
                       Route::get('venta',             'venta')             ->name('venta');
-                      Route::get('cartera',           'cartera')           ->name('cartera');
-                      Route::get('objetivo',          'objetivo')          ->name('objetivo');
+                        Route::get('cartera',           'cartera')           ->name('cartera');
+                        Route::get('objetivo',          'objetivo')          ->name('objetivo');
                       Route::get('solicitar-venta',   'solicitar_venta')   ->name('solicitar_venta');
                       Route::get('ingresar-cliente',  'ingresar_cliente')  ->name('ingresar_cliente');
                       Route::post('ingresar-cliente', 'storeCliente')      ->name('store_cliente');
@@ -71,21 +71,22 @@ Route::middleware(['auth','verified'])->group(function () {
                   ->group(function () {
                       Route::get('/',                 'index')             ->name('index');
                       Route::get('venta',             'venta')             ->name('venta');
-                      Route::get('cartera',           'cartera')           ->name('cartera');
-                      Route::get('objetivo',          'objetivo')          ->name('objetivo');
+                        Route::get('cartera',           'cartera')           ->name('cartera');
+                        Route::get('objetivo',          'objetivo')          ->name('objetivo');
                       Route::get('solicitar-venta',   'solicitar_venta')   ->name('solicitar_venta');
                       Route::get('ingresar-cliente',  'ingresar_cliente')  ->name('ingresar_cliente');
                       Route::get('cliente-historial/{cliente}', 'cliente_historial') ->name('cliente_historial');
                   });
 
-             Route::prefix('supervisor')
-                  ->name('supervisor.')
-                  ->controller(SupervisorController::class)
-                  ->group(function () {
-                      Route::get('/',                 'index')             ->name('index');
-                      Route::get('venta',             'venta')             ->name('venta');
-                      Route::get('cartera',           'cartera')           ->name('cartera');
-                      Route::get('objetivo',          'objetivo')          ->name('objetivo');
+               Route::prefix('supervisor')
+                    ->name('supervisor.')
+                    ->controller(SupervisorController::class)
+                    ->group(function () {
+                        Route::get('/',                 'index')             ->name('index');
+                        Route::get('venta',             'venta')             ->name('venta');
+                        Route::get('cartera',           'cartera')           ->name('cartera');
+                        Route::get('cartera/promotor/{promotor}', 'carteraPromotor')->name('cartera_promotor');
+                        Route::get('objetivo',          'objetivo')          ->name('objetivo');
                       Route::get('reporte',           'reporte')           ->name('reporte');
                       Route::get('solicitar-venta',   'solicitar_venta')   ->name('solicitar_venta');
                       Route::get('ingresar-cliente',  'ingresar_cliente')  ->name('ingresar_cliente');
