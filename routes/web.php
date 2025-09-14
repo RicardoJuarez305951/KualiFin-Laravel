@@ -6,7 +6,7 @@ use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DocumentoClienteController;
 use App\Http\Controllers\SolicitudCreditoController;
-use App\Http\Controllers\Mobile\PromotorController;
+use App\Http\Controllers\PromotorController;
 use App\Http\Controllers\Mobile\EjecutivoController;
 use App\Http\Controllers\Mobile\SupervisorController;
 use App\Http\Controllers\PagoRealController;
