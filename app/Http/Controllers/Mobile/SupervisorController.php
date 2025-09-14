@@ -21,13 +21,14 @@ class SupervisorController extends Controller
 
     public function venta()
     {
-        $clientesProspectados = Cliente::count();
-        $clientesPorSupervisar = Cliente::where('estatus', 'inactivo')->count();
+        $clientesProspectados   = Cliente::count();
+        $clientesPorSupervisar  = Cliente::where('estatus', 'inactivo')->count();
 
-        $ejercicio = Ejercicio::latest('fecha_inicio')->first();
-        $moneyWeeklyNow = $ejercicio->dinero_autorizado ?? 0;
-        $moneyWeeklyTarget = $ejercicio->venta_objetivo ?? 0;
-        $fechaLimite = $ejercicio?->fecha_final?->format('d/m/Y');
+        $ejercicio        = Ejercicio::latest('fecha_inicio')->first();
+        $moneyWeeklyNow   = $ejercicio?->dinero_autorizado ?? 0;   // <- null-safe
+        $moneyWeeklyTarget= $ejercicio?->venta_objetivo ?? 0;      // <- null-safe
+        $fechaLimite      = $ejercicio?->fecha_final?->format('d/m/Y');
+
         $moneyProgress = $moneyWeeklyTarget > 0
             ? min(100, ($moneyWeeklyNow / $moneyWeeklyTarget) * 100)
             : 0;
@@ -35,16 +36,17 @@ class SupervisorController extends Controller
         $promotoresSupervisados = Promotor::with('clientes')
             ->get()
             ->map(function ($p) {
-                $debe = (float) $p->venta_maxima;
+                $debe  = (float) $p->venta_maxima;
                 $falla = max(0, $debe - (float) $p->venta_proyectada_objetivo);
+
                 return [
-                    'nombre' => trim($p->nombre . ' ' . $p->apellido_p),
-                    'debe' => $debe,
-                    'falla' => $falla,
+                    'nombre'          => trim($p->nombre . ' ' . $p->apellido_p),
+                    'debe'            => $debe,
+                    'falla'           => $falla,
                     'porcentajeFalla' => $debe > 0 ? ($falla / $debe) * 100 : 0,
                     'ventaRegistrada' => (float) $p->venta_proyectada_objetivo,
-                    'prospectados' => $p->clientes->pluck('nombre'),
-                    'porSupervisar' => $p->clientes
+                    'prospectados'    => $p->clientes->pluck('nombre'),
+                    'porSupervisar'   => $p->clientes
                         ->where('estatus', 'inactivo')
                         ->pluck('nombre'),
                 ];
@@ -71,7 +73,6 @@ class SupervisorController extends Controller
         return view('mobile.supervisor.venta.ingresar_cliente');
     }
 
-    
     public function clientes_prospectados()
     {
         return view('mobile.supervisor.venta.clientes_prospectados');
@@ -85,17 +86,22 @@ class SupervisorController extends Controller
     public function cartera()
     {
         $supervisor = auth()->user()->supervisor;
-        $promotores = $supervisor?->promotores()
-            ->select('id', 'nombre', 'apellido_p', 'apellido_m')
-            ->get();
 
+        $promotores = $supervisor
+            ? Promotor::where('supervisor_id', $supervisor->id)
+                ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+                ->get()
+            : collect();
         return view('mobile.supervisor.cartera.cartera', compact('promotores'));
     }
+
 
     public function carteraPromotor(Promotor $promotor)
     {
         $supervisor = auth()->user()->supervisor;
 
+        // Asegura supervisor autenticado y relación correcta
+        abort_if(!$supervisor, 403);
         abort_unless($promotor->supervisor_id === $supervisor->id, 403);
 
         $clientes = Cliente::where('promotor_id', $promotor->id)
@@ -104,7 +110,7 @@ class SupervisorController extends Controller
 
         return view('mobile.supervisor.cartera.promotor', compact('promotor', 'clientes'));
     }
-    
+
     public function reporte()
     {
         return view('mobile.supervisor.cartera.reporte');
@@ -154,5 +160,4 @@ class SupervisorController extends Controller
     {
         return view('mobile.supervisor.apertura.apertura');
     }
-
 }
