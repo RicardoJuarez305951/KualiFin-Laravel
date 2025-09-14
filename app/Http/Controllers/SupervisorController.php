@@ -149,21 +149,28 @@ class SupervisorController extends Controller
 
     public function cartera()
     {
-        $supervisor = auth()->user()->supervisor;
+        $user = auth()->user();
 
+        // Busca el perfil de supervisor por user_id
+        $supervisor = Supervisor::firstWhere('user_id', $user->id);
+
+        // Si no hay perfil de supervisor, devuelve colección vacía
         $promotores = $supervisor
             ? Promotor::where('supervisor_id', $supervisor->id)
                 ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+                ->orderBy('nombre')
                 ->get()
             : collect();
+
         return view('mobile.supervisor.cartera.cartera', compact('promotores'));
     }
 
     public function carteraPromotor(Promotor $promotor)
     {
-        $supervisor = auth()->user()->supervisor;
+        $user = auth()->user();
+        $supervisor = Supervisor::firstWhere('user_id', $user->id);
 
-        abort_if(!$supervisor, 403);
+        abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
         abort_unless($promotor->supervisor_id === $supervisor->id, 403);
 
         $clientes = Cliente::where('promotor_id', $promotor->id)
