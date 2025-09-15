@@ -80,6 +80,7 @@ Route::middleware(['auth','verified'])->group(function () {
 
                Route::prefix('supervisor')
                     ->name('supervisor.')
+                    ->middleware('role:supervisor')
                     ->controller(SupervisorController::class)
                     ->group(function () {
                         Route::get('/',                 'index')             ->name('index');

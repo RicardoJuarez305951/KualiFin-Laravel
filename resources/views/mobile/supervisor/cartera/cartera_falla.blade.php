@@ -1,47 +1,12 @@
 {{-- resources/views/mobile/supervisor/cartera/cartera_falla.blade.php --}}
 
-@php
-    use Faker\Factory as Faker;
-    $faker = Faker::create('es_MX');
-
-    // Estatus de falla para clientes
-    $estatusFalla = ['total', 'parcial', 'tiempo'];
-
-    $promotores = collect(range(1, 3))->map(function ($i) use ($faker, $estatusFalla) {
-        $clientes = collect(range(1, rand(4, 7)))->map(function () use ($faker, $estatusFalla) {
-            $estatus = collect($estatusFalla)->random();
-            return [
-                'id'      => $faker->unique()->numberBetween(1, 1000),
-                'nombre'  => $faker->firstName . ' ' . $faker->lastName,
-                'monto'   => $faker->numberBetween(500, 8000),
-                'estatus' => $estatus,
-            ];
-        });
-
-        // total de fallas
-        $totalFallado = $clientes->sum('monto');
-        $porcentajeFalla = $faker->numberBetween(10, 60); // simulado %
-
-        // ordenar clientes por prioridad de estatus
-        $ordenPrioridad = ['total' => 1, 'parcial' => 2, 'tiempo' => 3];
-        $clientesOrdenados = $clientes->sortBy(fn($c) => $ordenPrioridad[$c['estatus']])->values();
-
-        return [
-            'nombre'     => $faker->name,
-            'dinero'     => $totalFallado,
-            'falla'      => $porcentajeFalla,
-            'clientes'   => $clientesOrdenados,
-        ];
-    });
-@endphp
-
 <x-layouts.mobile.mobile-layout>
     
     <div x-data class="p-4 space-y-5">
         @include('mobile.modals.calculadora')
         @include('mobile.modals.detalle')
         <h1 class="text-xl font-bold text-gray-900">Cartera Falla</h1>
-        @foreach($promotores as $promotor)
+        @foreach($blocks as $promotor)
             <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
                 {{-- Header Promotor --}}
                 <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -93,6 +58,10 @@
                 </div>
             </div>
         @endforeach
+
+        <div class="mt-4">
+            {{ $promotoresPaginator->withQueryString()->links() }}
+        </div>
 
         <a href="{{ url()->previous() }}"
           class="flex items-center justify-center rounded-xl border border-gray-300 text-white text-sm font-semibold px-3 py-2 bg-blue-600 hover:bg-blue-700 shadow-sm">

@@ -2,11 +2,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cliente;
+use App\Models\Credito;
 use App\Models\Ejercicio;
 use App\Models\Promotor;
 use App\Models\Supervisor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class SupervisorController extends Controller
@@ -164,7 +166,79 @@ class SupervisorController extends Controller
                 ->get()
             : collect();
 
-        return view('mobile.supervisor.cartera.cartera', compact('promotores'));
+        // Métricas de cartera (valores por defecto)
+        $cartera_activa     = 0.0;
+        $cartera_vencida    = 0.0;
+        $cartera_falla      = 0.0;
+        $cartera_inactivaP  = 0.0;
+        $nombre_supervisor  = $user?->name ?? 'Supervisor';
+
+        if ($supervisor) {
+            // Nombre amigable del supervisor
+            $nombre_supervisor = collect([
+                $supervisor->nombre,
+                $supervisor->apellido_p,
+                $supervisor->apellido_m,
+            ])->filter()->implode(' ');
+
+            // Alcance de clientes bajo este supervisor
+            $promotorIds = $promotores->pluck('id');
+            $clienteIds  = Cliente::whereIn('promotor_id', $promotorIds)->pluck('id');
+
+            // % de inactivos
+            $totalClientes = $clienteIds->count();
+            $inactivos = $totalClientes > 0
+                ? Cliente::whereIn('id', $clienteIds)
+                    ->where(function ($q) {
+                        $q->where('activo', false)->orWhereNull('activo');
+                    })
+                    ->count()
+                : 0;
+            $cartera_inactivaP = $totalClientes > 0
+                ? round(($inactivos / max(1, (float) $totalClientes)) * 100, 2)
+                : 0.0;
+
+            // Cartera activa (créditos activos)
+            $cartera_activa = (float) Credito::whereIn('cliente_id', $clienteIds)
+                ->where('estado', 'activo')
+                ->sum('monto_total');
+
+            // Cartera vencida (créditos marcados como vencidos)
+            $cartera_vencida = (float) Credito::whereIn('cliente_id', $clienteIds)
+                ->where('estado', 'vencido')
+                ->sum('monto_total');
+
+            // Falla actual (semanas vencidas con saldo pendiente)
+            if ($clienteIds->isNotEmpty()) {
+                $creditos = Credito::whereIn('cliente_id', $clienteIds)
+                    ->with(['pagosProyectados' => function ($q) {
+                        $q->where('fecha_limite', '<', now())
+                          ->with(['pagosReales.pagoCompleto', 'pagosReales.pagoAnticipo', 'pagosReales.pagoDiferido']);
+                    }])
+                    ->get();
+
+                $cartera_falla = 0.0;
+                foreach ($creditos as $cr) {
+                    foreach ($cr->pagosProyectados as $pp) {
+                        $proyectado = (float) $pp->monto_proyectado;
+                        $pagado = (float) $pp->pagosReales->sum(function ($pr) {
+                            return (float) ($pr->monto ?? 0);
+                        });
+                        $deficit = max(0, $proyectado - $pagado);
+                        $cartera_falla += $deficit;
+                    }
+                }
+            }
+        }
+
+        return view('mobile.supervisor.cartera.cartera', compact(
+            'promotores',
+            'cartera_activa',
+            'cartera_vencida',
+            'cartera_falla',
+            'cartera_inactivaP',
+            'nombre_supervisor'
+        ));
     }
 
     public function carteraPromotor(Promotor $promotor)
@@ -390,22 +464,257 @@ class SupervisorController extends Controller
 
     public function cartera_activa()
     {
-        return view('mobile.supervisor.cartera.cartera_activa');
+        $user = auth()->user();
+        $supervisor = Supervisor::firstWhere('user_id', $user?->id);
+
+        abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
+
+        $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+            ->orderBy('nombre')
+            ->paginate(5);
+
+        $blocks = collect($promotoresPaginator->items())->map(function ($p) {
+            $clientes = Cliente::where('promotor_id', $p->id)
+                ->whereHas('credito', fn($q) => $q->where('estado', 'activo'))
+                ->with(['credito.pagosProyectados.pagosReales.pagoCompleto', 'credito.pagosProyectados.pagosReales.pagoAnticipo', 'credito.pagosProyectados.pagosReales.pagoDiferido'])
+                ->get();
+
+            $dinero = 0.0;
+            $items = $clientes->map(function ($c) use (&$dinero) {
+                $credito = $c->credito;
+                if (!$credito) return null;
+                $dinero += (float) $credito->monto_total;
+
+                $totalWeeks  = $credito->pagosProyectados->count();
+                $fechaInicio = $credito->fecha_inicio ? Carbon::parse($credito->fecha_inicio) : null;
+                $currentWeek = ($totalWeeks > 0 && $fechaInicio)
+                    ? min(now()->diffInWeeks($fechaInicio) + 1, $totalWeeks)
+                    : 0;
+
+                $pago = $credito->pagosProyectados->firstWhere('semana', $currentWeek);
+                $pagoSemanal = (float) ($pago->monto_proyectado ?? 0);
+                $status = '!';
+
+                if ($pago) {
+                    $fechaLimite = $pago->fecha_limite ? Carbon::parse($pago->fecha_limite) : null;
+                    $primerPago = $pago->pagosReales->sortBy('fecha_pago')->first();
+                    if ($primerPago && $fechaLimite) {
+                        $fechaPago = Carbon::parse($primerPago->fecha_pago);
+                        if ($fechaPago->lt($fechaLimite)) {
+                            $status = 'Ad';
+                        } elseif ($fechaPago->equalTo($fechaLimite)) {
+                            $status = 'V';
+                        } else {
+                            $status = 'F';
+                        }
+                    } elseif ($fechaLimite) {
+                        $status = $fechaLimite->isPast() ? 'F' : '!';
+                    }
+                }
+
+                return [
+                    'id'           => $c->id,
+                    'nombre'       => trim($c->nombre . ' ' . $c->apellido_p . ' ' . ($c->apellido_m ?? '')),
+                    'monto'        => (float) $credito->monto_total,
+                    'semana'       => $currentWeek,
+                    'pago_semanal' => $pagoSemanal,
+                    'status'       => $status,
+                ];
+            })->filter()->values();
+
+            return [
+                'nombre'   => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
+                'dinero'   => $dinero,
+                'clientes' => $items,
+            ];
+        });
+
+        return view('mobile.supervisor.cartera.cartera_activa', [
+            'blocks' => $blocks,
+            'promotoresPaginator' => $promotoresPaginator,
+        ]);
     }
 
     public function cartera_vencida()
     {
-        return view('mobile.supervisor.cartera.cartera_vencida');
+        $user = auth()->user();
+        $supervisor = Supervisor::firstWhere('user_id', $user?->id);
+        abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
+
+        $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+            ->orderBy('nombre')
+            ->paginate(5);
+
+        $blocks = collect($promotoresPaginator->items())->map(function ($p) {
+            $clientes = Cliente::where('promotor_id', $p->id)
+                ->with(['credito.pagosProyectados.pagosReales.pagoCompleto', 'credito.pagosProyectados.pagosReales.pagoAnticipo', 'credito.pagosProyectados.pagosReales.pagoDiferido'])
+                ->get();
+
+            $items = collect();
+            $dineroVencido = 0.0;
+            $baseCreditos = 0.0;
+
+            foreach ($clientes as $c) {
+                $credito = $c->credito;
+                if (!$credito) continue;
+                $baseCreditos += (float) $credito->monto_total;
+
+                $vencidos = $credito->pagosProyectados
+                    ->filter(fn($pp) => $pp->fecha_limite && Carbon::parse($pp->fecha_limite)->isPast());
+
+                if ($vencidos->isEmpty()) continue;
+
+                $proyectado = (float) $vencidos->sum('monto_proyectado');
+                $pagado = (float) $vencidos->flatMap->pagosReales->sum('monto');
+                $deficit = max(0, $proyectado - $pagado);
+
+                if ($deficit > 0) {
+                    $dineroVencido += $deficit;
+                    $estatus = $pagado <= 0 ? 'total' : 'parcial';
+                    $items->push([
+                        'id'     => $c->id,
+                        'nombre' => trim($c->nombre . ' ' . $c->apellido_p . ' ' . ($c->apellido_m ?? '')),
+                        'monto'  => $deficit,
+                        'estatus'=> $estatus,
+                    ]);
+                }
+            }
+
+            $porcentajeVencido = $baseCreditos > 0 ? round(($dineroVencido / $baseCreditos) * 100) : 0;
+
+            return [
+                'nombre'   => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
+                'dinero'   => $dineroVencido,
+                'vencido'  => $porcentajeVencido,
+                'clientes' => $items->values(),
+            ];
+        });
+
+        return view('mobile.supervisor.cartera.cartera_vencida', [
+            'blocks' => $blocks,
+            'promotoresPaginator' => $promotoresPaginator,
+        ]);
     }
 
     public function cartera_inactiva()
     {
-        return view('mobile.supervisor.cartera.cartera_inactiva');
+        $user = auth()->user();
+        $supervisor = Supervisor::firstWhere('user_id', $user?->id);
+        abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
+
+        $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+            ->orderBy('nombre')
+            ->paginate(5);
+
+        $blocks = collect($promotoresPaginator->items())->map(function ($p) {
+            $clientes = Cliente::where('promotor_id', $p->id)
+                ->where(function ($q) { $q->where('activo', false)->orWhereNull('activo'); })
+                ->with(['credito.pagosProyectados.pagosReales.pagoCompleto', 'credito.pagosProyectados.pagosReales.pagoAnticipo', 'credito.pagosProyectados.pagosReales.pagoDiferido', 'credito.datoContacto'])
+                ->get();
+
+            $items = $clientes->map(function ($c, $idx) {
+                $credito = $c->credito; // puede ser null
+                $dato = $credito?->datoContacto;
+                $vencidos = $credito?->pagosProyectados?->filter(fn($pp) => $pp->fecha_limite && Carbon::parse($pp->fecha_limite)->isPast()) ?? collect();
+                $proyectado = (float) $vencidos->sum('monto_proyectado');
+                $pagado = (float) $vencidos->flatMap->pagosReales->sum('monto');
+                $fallas = $vencidos->count();
+
+                $direccion = $dato ? collect([
+                    trim(($dato->calle ?? '') . ' ' . ($dato->numero_ext ?? '')),
+                    $dato->numero_int ? 'Int. ' . $dato->numero_int : null,
+                    $dato->colonia ?? null,
+                    $dato->municipio ?? null,
+                    $dato->estado ?? null,
+                    $dato->cp ? 'CP ' . $dato->cp : null,
+                ])->filter()->implode(', ') : null;
+
+                return [
+                    'nombre'         => trim($c->nombre . ' ' . $c->apellido_p . ' ' . ($c->apellido_m ?? '')),
+                    'curp'           => $c->CURP,
+                    'fecha_nac'      => $c->fecha_nacimiento?->format('Y-m-d'),
+                    'direccion'      => $direccion,
+                    'ultimo_credito' => $credito?->fecha_inicio ? Carbon::parse($credito->fecha_inicio)->format('Y-m-d') : null,
+                    'monto_credito'  => $credito?->monto_total ? (float) $credito->monto_total : 0,
+                    'telefono'       => $dato->tel_cel ?? $dato->tel_fijo ?? null,
+                    'fallas'         => $fallas,
+                ];
+            })->values();
+
+            return [
+                'nombre'   => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
+                'clientes' => $items,
+            ];
+        });
+
+        return view('mobile.supervisor.cartera.cartera_inactiva', [
+            'blocks' => $blocks,
+            'promotoresPaginator' => $promotoresPaginator,
+        ]);
     }
 
     public function cartera_falla()
     {
-        return view('mobile.supervisor.cartera.cartera_falla');
+        $user = auth()->user();
+        $supervisor = Supervisor::firstWhere('user_id', $user?->id);
+        abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
+
+        $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+            ->orderBy('nombre')
+            ->paginate(5);
+
+        $blocks = collect($promotoresPaginator->items())->map(function ($p) {
+            $clientes = Cliente::where('promotor_id', $p->id)
+                ->with(['credito.pagosProyectados.pagosReales.pagoCompleto', 'credito.pagosProyectados.pagosReales.pagoAnticipo', 'credito.pagosProyectados.pagosReales.pagoDiferido'])
+                ->get();
+
+            $items = collect();
+            $dineroFalla = 0.0;
+            $baseCreditos = 0.0;
+
+            foreach ($clientes as $c) {
+                $credito = $c->credito;
+                if (!$credito) continue;
+                $baseCreditos += (float) $credito->monto_total;
+
+                $vencidos = $credito->pagosProyectados
+                    ->filter(fn($pp) => $pp->fecha_limite && Carbon::parse($pp->fecha_limite)->isPast());
+                if ($vencidos->isEmpty()) continue;
+
+                $proyectado = (float) $vencidos->sum('monto_proyectado');
+                $pagado = (float) $vencidos->flatMap->pagosReales->sum('monto');
+                $deficit = max(0, $proyectado - $pagado);
+
+                if ($deficit > 0) {
+                    $dineroFalla += $deficit;
+                    $estatus = $pagado <= 0 ? 'total' : 'parcial';
+                    $items->push([
+                        'id'     => $c->id,
+                        'nombre' => trim($c->nombre . ' ' . $c->apellido_p . ' ' . ($c->apellido_m ?? '')),
+                        'monto'  => $deficit,
+                        'estatus'=> $estatus,
+                    ]);
+                }
+            }
+
+            $porcentajeFalla = $baseCreditos > 0 ? round(($dineroFalla / $baseCreditos) * 100) : 0;
+
+            return [
+                'nombre'   => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
+                'dinero'   => $dineroFalla,
+                'falla'    => $porcentajeFalla,
+                'clientes' => $items->values(),
+            ];
+        });
+
+        return view('mobile.supervisor.cartera.cartera_falla', [
+            'blocks' => $blocks,
+            'promotoresPaginator' => $promotoresPaginator,
+        ]);
     }
 
     public function cartera_historial_promotor()
