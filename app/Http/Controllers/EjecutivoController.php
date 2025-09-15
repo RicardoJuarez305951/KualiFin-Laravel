@@ -1,12 +1,19 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Cliente;
 use App\Models\Ejecutivo;
 use Illuminate\Http\Request;
 
 class EjecutivoController extends Controller
 {
-    public function index()
+    /*
+     * -----------------------------------------------------------------
+     * Métodos administrativos
+     * -----------------------------------------------------------------
+     */
+
+    public function adminIndex()
     {
         $ejecutivos = Ejecutivo::all();
         return view('ejecutivos.index', compact('ejecutivos'));
@@ -56,5 +63,46 @@ class EjecutivoController extends Controller
     {
         $ejecutivo->delete();
         return redirect()->route('ejecutivos.index');
+    }
+
+    /*
+     * -----------------------------------------------------------------
+     * Métodos para vista mobile
+     * -----------------------------------------------------------------
+     */
+
+    public function index()
+    {
+        return view('mobile.index');
+    }
+
+    public function objetivo()
+    {
+        return view('mobile.ejecutivo.objetivo.objetivo');
+    }
+
+    public function venta()
+    {
+        return view('mobile.ejecutivo.venta.venta');
+    }
+
+    public function solicitar_venta()
+    {
+        return view('mobile.ejecutivo.venta.solicitar_venta');
+    }
+
+    public function ingresar_cliente()
+    {
+        return view('mobile.ejecutivo.venta.ingresar_cliente');
+    }
+
+    public function cartera()
+    {
+        return view('mobile.ejecutivo.cartera.cartera');
+    }
+
+    public function cliente_historial(Cliente $cliente)
+    {
+        return view('mobile.ejecutivo.cartera.cliente_historial', compact('cliente'));
     }
 }
