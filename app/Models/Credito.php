@@ -45,6 +45,11 @@ class Credito extends Model
         return $this->hasOne(InformacionFamiliar::class);
     }
 
+    public function datoContacto()
+    {
+        return $this->hasOne(DatoContacto::class);
+    }
+
     public function avales()
     {
         return $this->hasMany(Aval::class);
