@@ -6,6 +6,8 @@ use App\Models\Ejercicio;
 use App\Models\Promotor;
 use App\Models\Supervisor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class SupervisorController extends Controller
 {
@@ -187,7 +189,203 @@ class SupervisorController extends Controller
 
     public function cliente_historial(Cliente $cliente)
     {
-        return view('mobile.supervisor.cartera.cliente_historial', compact('cliente'));
+        $user = auth()->user();
+        $supervisor = Supervisor::firstWhere('user_id', $user?->id);
+
+        abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
+
+        $cliente->load([
+            'promotor.supervisor',
+            'credito.pagosProyectados.pagosReales',
+            'credito.garantias',
+            'credito.avales.documentos',
+            'credito.datoContacto',
+            'documentos',
+        ]);
+
+        abort_unless(optional($cliente->promotor)->supervisor_id === $supervisor->id, 403);
+
+        $credito = $cliente->credito;
+
+        abort_unless($credito, 404, 'El cliente no cuenta con crédito activo.');
+
+        $totalWeeks = $credito->pagosProyectados->count();
+        $fechaCredito = $credito->fecha_inicio ? Carbon::parse($credito->fecha_inicio) : null;
+
+        $currentWeek = 0;
+        if ($totalWeeks > 0 && $fechaCredito) {
+            $currentWeek = min(now()->diffInWeeks($fechaCredito) + 1, $totalWeeks);
+        }
+
+        $semanas = $credito->pagosProyectados
+            ->sortBy('semana')
+            ->map(function ($pago) {
+                $fechaLimite = Carbon::parse($pago->fecha_limite);
+                $primerPago = $pago->pagosReales->sortBy('fecha_pago')->first();
+
+                if ($primerPago) {
+                    $fechaPago = Carbon::parse($primerPago->fecha_pago);
+
+                    if ($fechaPago->lt($fechaLimite)) {
+                        $estado = 'Adelantado';
+                    } elseif ($fechaPago->gt($fechaLimite)) {
+                        $estado = 'Atrasado';
+                    } else {
+                        $estado = 'Pagado';
+                    }
+                } else {
+                    $estado = $fechaLimite->isPast() ? 'Atrasado' : 'Por pagar';
+                }
+
+                return [
+                    'semana' => $pago->semana,
+                    'monto' => (float) $pago->monto_proyectado,
+                    'estado' => $estado,
+                ];
+            })
+            ->values();
+
+        $datoContacto = $credito->datoContacto;
+        $clienteDireccion = $datoContacto
+            ? collect([
+                trim($datoContacto->calle . ' ' . $datoContacto->numero_ext),
+                $datoContacto->numero_int ? 'Int. ' . $datoContacto->numero_int : null,
+                $datoContacto->colonia,
+                $datoContacto->municipio,
+                $datoContacto->estado,
+                $datoContacto->cp ? 'CP ' . $datoContacto->cp : null,
+            ])->filter()->implode(', ')
+            : null;
+
+        $clienteTelefonos = $datoContacto
+            ? collect([$datoContacto->tel_cel, $datoContacto->tel_fijo])->filter()->unique()->values()
+            : collect();
+
+        $garantiasCliente = $credito->garantias
+            ->filter(fn ($garantia) => Str::lower((string) $garantia->propietario) === 'cliente')
+            ->map(function ($garantia) {
+                $descripcion = collect([
+                    $garantia->tipo,
+                    $garantia->marca,
+                    $garantia->modelo,
+                    $garantia->num_serie,
+                ])->filter()->implode(' - ');
+
+                return [
+                    'descripcion' => $descripcion !== '' ? $descripcion : ($garantia->tipo ?? 'Garantía'),
+                    'monto' => (float) $garantia->monto_garantizado,
+                    'foto_url' => $garantia->foto_url,
+                ];
+            })
+            ->values();
+
+        $garantiasAval = $credito->garantias
+            ->filter(fn ($garantia) => Str::lower((string) $garantia->propietario) === 'aval')
+            ->map(function ($garantia) {
+                $descripcion = collect([
+                    $garantia->tipo,
+                    $garantia->marca,
+                    $garantia->modelo,
+                    $garantia->num_serie,
+                ])->filter()->implode(' - ');
+
+                return [
+                    'descripcion' => $descripcion !== '' ? $descripcion : ($garantia->tipo ?? 'Garantía'),
+                    'monto' => (float) $garantia->monto_garantizado,
+                    'foto_url' => $garantia->foto_url,
+                ];
+            })
+            ->values();
+
+        $documentosCliente = $cliente->documentos
+            ->map(fn ($documento) => [
+                'titulo' => (string) Str::of($documento->tipo_doc)->replace('_', ' ')->title(),
+                'url' => $documento->url_s3,
+            ])
+            ->values();
+
+        $documentosAval = $credito->avales
+            ->flatMap(function ($aval) {
+                $avalNombre = collect([
+                    $aval->nombre,
+                    $aval->apellido_p,
+                    $aval->apellido_m,
+                ])->filter()->implode(' ');
+
+                return $aval->documentos->map(function ($documento) use ($avalNombre) {
+                    $tituloDocumento = (string) Str::of($documento->tipo_doc)->replace('_', ' ')->title();
+
+                    return [
+                        'titulo' => $avalNombre
+                            ? trim($avalNombre . ' - ' . $tituloDocumento)
+                            : $tituloDocumento,
+                        'url' => $documento->url_s3,
+                    ];
+                });
+            })
+            ->values();
+
+        $aval = $credito->avales->first();
+
+        $clienteNombre = collect([
+            $cliente->nombre,
+            $cliente->apellido_p,
+            $cliente->apellido_m,
+        ])->filter()->implode(' ');
+
+        $promotor = $cliente->promotor;
+        $promotorNombre = $promotor
+            ? collect([
+                $promotor->nombre,
+                $promotor->apellido_p,
+                $promotor->apellido_m,
+            ])->filter()->implode(' ')
+            : '';
+
+        $supervisorNombre = collect([
+            $supervisor->nombre,
+            $supervisor->apellido_p,
+            $supervisor->apellido_m,
+        ])->filter()->implode(' ');
+
+        $avalNombre = $aval
+            ? collect([
+                $aval->nombre,
+                $aval->apellido_p,
+                $aval->apellido_m,
+            ])->filter()->implode(' ')
+            : '';
+
+        $avalDireccion = $aval?->direccion;
+        $avalTelefonos = $aval
+            ? collect([$aval->telefono])->filter()->unique()->values()
+            : collect();
+
+        $fechaCreditoTexto = $fechaCredito
+            ? $fechaCredito->clone()->locale('es')->translatedFormat('j \de F \de Y')
+            : null;
+
+        $montoCredito = (float) $credito->monto_total;
+
+        return view('mobile.supervisor.cartera.cliente_historial', compact(
+            'clienteNombre',
+            'supervisorNombre',
+            'promotorNombre',
+            'totalWeeks',
+            'currentWeek',
+            'fechaCreditoTexto',
+            'montoCredito',
+            'clienteDireccion',
+            'clienteTelefonos',
+            'garantiasCliente',
+            'documentosCliente',
+            'avalNombre',
+            'avalDireccion',
+            'avalTelefonos',
+            'garantiasAval',
+            'documentosAval',
+            'semanas'
+        ));
     }
 
     public function cartera_activa()
