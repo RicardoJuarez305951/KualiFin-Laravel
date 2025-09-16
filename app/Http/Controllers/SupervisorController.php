@@ -151,6 +151,7 @@ class SupervisorController extends Controller
                 ->values();
 
             return [
+                'id'              => $promotor->id,
                 'nombre'          => trim($promotor->nombre . ' ' . $promotor->apellido_p . ' ' . ($promotor->apellido_m ?? '')),
                 'debe'            => $debe,
                 'falla'           => $falla,

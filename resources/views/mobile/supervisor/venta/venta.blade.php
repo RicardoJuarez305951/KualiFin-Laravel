@@ -1,4 +1,4 @@
-{{-- resources/views/mobile/supervisor/venta/venta.blade.php --}}
+﻿{{-- resources/views/mobile/supervisor/venta/venta.blade.php --}}
 @php
     /** @var string $role */
     $role = isset($role) && $role ? $role : 'supervisor';
@@ -66,7 +66,7 @@
         </ul>
     </div>
 
-    {{-- Promotores bajo supervisión --}}
+    {{-- Promotores bajo supervisiÃ³n --}}
     <div class="bg-white rounded-2xl shadow-md p-6 space-y-4">
         <h2 class="text-lg font-semibold mb-2">Promotores Supervisados</h2>
         @foreach($promotoresSupervisados as $p)
@@ -85,7 +85,8 @@
                         <p class="text-sm">Venta Registrada: <span class="font-bold">{{ formatCurrency($p['ventaRegistrada']) }}</span></p>
                     </div>
                     <div>
-                        <a href="#" class="px-3 py-1 text-right text-sm font-semibold text-white bg-blue-600 rounded">D</a>
+                        {{-- <a href="{{ route('mobile.supervisor.cartera_promotor', $p->id) }}" class="px-3 py-1 text-right text-sm font-semibold text-white bg-blue-600 rounded">D</a> --}}
+                        <a href="{{ route('mobile.supervisor.cartera_promotor', ['promotor' => $p['id']]) }}" class="px-3 py-1 text-right text-sm font-semibold text-white bg-blue-600 rounded">D</a>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4 text-xs">
@@ -110,10 +111,11 @@
         @endforeach
     </div>
 
-    {{-- Botón regresar --}}
+    {{-- BotÃ³n regresar --}}
     <a href="{{ route("mobile.$role.index") }}"
        class="block text-center py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
       Regresar
     </a>
   </div>
 </x-layouts.mobile.mobile-layout>
+
