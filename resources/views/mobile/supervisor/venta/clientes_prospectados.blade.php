@@ -1,66 +1,12 @@
-{{-- resources/views/supervisor/clientes_prospectado.blade.php --}}
+{{-- resources/views/mobile/supervisor/venta/clientes_prospectados.blade.php --}}
 @php
-    use Faker\Factory as Faker;
-    $faker = Faker::create('es_MX');
-
-    // ===== DEMO DATA (reemplaza con tu query real) =====
-    $promotores = collect(range(1, 3))->map(function() use ($faker) {
-        $clientes = collect(range(1, rand(2, 5)))->map(function() use ($faker) {
-            return [
-                'id'         => $faker->uuid(),
-                'nombre'     => $faker->firstName(),
-                'apellido_p' => $faker->lastName(),
-                'apellido_m' => $faker->lastName(),
-                'telefono'   => $faker->numerify('55########'),
-                'direccion'  => $faker->streetAddress.', '.$faker->city,
-                'curp'       => strtoupper($faker->regexify('[A-Z]{4}[0-9]{6}[A-Z]{6}[0-9]{2}')),
-                // URLs DEMO (pondrás tus rutas a Drive / storage)
-                'ine_url'    => 'https://picsum.photos/seed/ine/640/400',
-                'comp_url'   => 'https://picsum.photos/seed/comprobante/640/900',
-                'aval'       => [
-                    'nombre'      => $faker->firstName(),
-                    'apellido_p'  => $faker->lastName(),
-                    'apellido_m'  => $faker->lastName(),
-                    'curp'        => strtoupper($faker->regexify('[A-Z]{4}[0-9]{6}[A-Z]{6}[0-9]{2}')),
-                ],
-            ];
-        });
-
-        $recreditos = collect(range(1, rand(1, 3)))->map(function() use ($faker) {
-            return [
-                'id'         => $faker->uuid(),
-                'nombre'     => $faker->firstName().' '.$faker->lastName().' (Recrédito)',
-                'apellido_p' => $faker->lastName(),
-                'apellido_m' => $faker->lastName(),
-                'telefono'   => $faker->numerify('55########'),
-                'direccion'  => $faker->streetAddress.', '.$faker->city,
-                'curp'       => strtoupper($faker->regexify('[A-Z]{4}[0-9]{6}[A-Z]{6}[0-9]{2}')),
-                'ine_url'    => 'https://picsum.photos/seed/ine2/640/400',
-                'comp_url'   => 'https://picsum.photos/seed/comprobante2/640/900',
-                'aval'       => [
-                    'nombre'      => $faker->firstName(),
-                    'apellido_p'  => $faker->lastName(),
-                    'apellido_m'  => $faker->lastName(),
-                    'curp'        => strtoupper($faker->regexify('[A-Z]{4}[0-9]{6}[A-Z]{6}[0-9]{2}')),
-                ],
-            ];
-        });
-
-        return [
-            'nombre'     => $faker->firstName().' '.$faker->lastName(),
-            'clientes'   => $clientes,
-            'recreditos' => $recreditos,
-        ];
-    });
+    $formatMoney = fn($value) => '$' . number_format((float) $value, 2, '.', ',');
 @endphp
 
-<x-layouts.mobile.mobile-layout title="Clientes Prospectado">
-  <div x-data="prospectado()" class="p-4 w-full max-w-md mx-auto space-y-6">
-
-    {{-- LISTA POR PROMOTOR --}}
-    @foreach($promotores as $promotor)
+<x-layouts.mobile.mobile-layout title="Clientes Prospectados">
+  <div x-data="prospectado()" x-init="init()" class="p-4 w-full max-w-md mx-auto space-y-6">
+    @forelse($promotores as $promotor)
       <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-        {{-- Header promotor --}}
         <div class="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
           <span class="inline-flex items-center justify-center w-7 h-7 text-[12px] font-bold rounded-full bg-gray-200 text-gray-700">{{ $loop->iteration }}</span>
           <div>
@@ -69,7 +15,6 @@
           </div>
         </div>
 
-        {{-- Clientes Nuevos --}}
         <div class="px-3 py-2 space-y-4">
           <div class="bg-gray-50 rounded-lg border border-gray-200">
             <div class="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
@@ -77,205 +22,178 @@
               <span class="text-[11px] px-2 py-0.5 rounded-full bg-gray-200 text-gray-700">{{ $promotor['clientes']->count() }}</span>
             </div>
             <div>
-              @foreach($promotor['clientes'] as $c)
+              @forelse($promotor['clientes'] as $cliente)
                 <div class="py-2 px-3">
-                  <div class="grid grid-cols-[70%_30%] items-center gap-2">
+                  <div class="flex items-center justify-between gap-3">
                     <div class="min-w-0">
-                      <p class="truncate text-[14px] font-medium text-gray-800">{{ $c['nombre'] }}</p>
+                      <p class="truncate text-[14px] font-medium text-gray-800">{{ $cliente['nombre'] }}</p>
+                      <p class="text-[11px] text-gray-500 uppercase">{{ $cliente['estatus'] }}</p>
                     </div>
-                    <div>
-                      <button
-                        type="button"
-                        class="w-full px-3 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm ring-1 ring-emerald-900/20 transition"
-                        @click="openModal({
-                          id: '{{ $c['id'] }}',
-                          nombre: @js($c['nombre']),
-                          apellido_p: '{{ $c['apellido_p'] }}',
-                          apellido_m: '{{ $c['apellido_m'] }}',
-                          curp: '{{ $c['curp'] }}',
-                          ine_url: '{{ $c['ine_url'] }}',
-                          comp_url: '{{ $c['comp_url'] }}',
-                          aval_nombre: @js($c['aval']['nombre']),
-                          aval_apellido_p: '{{ $c['aval']['apellido_p'] }}',
-                          aval_apellido_m: '{{ $c['aval']['apellido_m'] }}',
-                          aval_curp: '{{ $c['aval']['curp'] }}'
-                        })">
-                        CHECK
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      class="px-3 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm transition"
+                      @click="openModal(@js($cliente))">
+                      Revisar
+                    </button>
                   </div>
                 </div>
-                @if(!$loop->last)<div class="h-px bg-gray-100"></div>@endif
-              @endforeach
+              @empty
+                <p class="px-3 py-4 text-sm text-gray-500 text-center">Sin clientes nuevos</p>
+              @endforelse
             </div>
           </div>
 
-          {{-- Recréditos --}}
           <div class="bg-gray-50 rounded-lg border border-gray-200">
             <div class="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
-              <h3 class="text-[13px] font-bold text-gray-700">Recréditos</h3>
+              <h3 class="text-[13px] font-bold text-gray-700">Recreditos</h3>
               <span class="text-[11px] px-2 py-0.5 rounded-full bg-gray-200 text-gray-700">{{ $promotor['recreditos']->count() }}</span>
             </div>
             <div>
-              @foreach($promotor['recreditos'] as $r)
+              @forelse($promotor['recreditos'] as $cliente)
                 <div class="py-2 px-3">
-                  <div class="grid grid-cols-[70%_30%] items-center gap-2">
+                  <div class="flex items-center justify-between gap-3">
                     <div class="min-w-0">
-                      <p class="truncate text-[14px] font-medium text-gray-800">{{ $r['nombre'] }}</p>
+                      <p class="truncate text-[14px] font-medium text-gray-800">{{ $cliente['nombre'] }}</p>
+                      <p class="text-[11px] text-gray-500 uppercase">Monto solicitado {{ $formatMoney($cliente['monto']) }}</p>
                     </div>
-                    <div>
-                      <button
-                        type="button"
-                        class="w-full px-3 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm ring-1 ring-emerald-900/20 transition"
-                        @click="openModal({
-                          id: '{{ $r['id'] }}',
-                          nombre: @js($r['nombre']),
-                          apellido_p: '{{ $r['apellido_p'] }}',
-                          apellido_m: '{{ $r['apellido_m'] }}',
-                          curp: '{{ $r['curp'] }}',
-                          ine_url: '{{ $r['ine_url'] }}',
-                          comp_url: '{{ $r['comp_url'] }}',
-                          aval_nombre: @js($r['aval']['nombre']),
-                          aval_apellido_p: '{{ $r['aval']['apellido_p'] }}',
-                          aval_apellido_m: '{{ $r['aval']['apellido_m'] }}',
-                          aval_curp: '{{ $r['aval']['curp'] }}'
-                        })">
-                        CHECK
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      class="px-3 py-1.5 text-xs rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm transition"
+                      @click="openModal(@js($cliente))">
+                      Revisar
+                    </button>
                   </div>
                 </div>
-                @if(!$loop->last)<div class="h-px bg-gray-100"></div>@endif
-              @endforeach
+              @empty
+                <p class="px-3 py-4 text-sm text-gray-500 text-center">Sin solicitudes de recredito</p>
+              @endforelse
             </div>
           </div>
         </div>
       </div>
-    @endforeach
+    @empty
+      <div class="rounded-2xl bg-white border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 shadow-sm">
+        No se encontraron clientes prospectados bajo tu supervision.
+      </div>
+    @endforelse
 
-    {{-- BOTONES INFERIORES --}}
-    <div class="grid grid-cols-3 gap-3">
-      {{-- <a href="#" --}}
-      <a href="{{ route("mobile.index") }}"
-         class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-800 text-white font-semibold shadow-sm transition">Regresar</a>
-      {{-- <a href="#" --}}
-      <a href="{{ url()->current() }}"
-         class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm transition">Actualizar</a>
-      {{-- <a href="#" --}}
-      <a href="{{ route("mobile.$role.reporte") }}"
-         class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-sm transition">Reporte</a>
-    </div>
-
-    {{-- ===== MODAL: “Cliente nuevo” al dar CHECK ===== --}}
     <template x-if="showModal">
       <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-        {{-- overlay --}}
         <div class="absolute inset-0 bg-black/40" @click="closeModal()"></div>
-
-        {{-- sheet/modal --}}
-        <div
-          class="relative w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white text-gray-900 border border-gray-200 shadow-2xl
-                 sm:rounded-2xl rounded-t-2xl p-5 sm:mx-auto"
-          x-trap.noscroll="showModal" x-transition>
-          
-          {{-- Título --}}
-          <h2 class="text-xl sm:text-2xl font-extrabold text-center">Cliente nuevo</h2>
-          <div class="mt-2 text-center space-y-0.5">
-            <p class="text-sm font-semibold" x-text="selected.nombre || '—'"></p>
-            <p class="text-xs text-gray-600" x-text="selected.curp || '—'"></p>
+        <div class="relative w-full sm:max-w-md bg-white text-gray-900 border border-gray-200 shadow-2xl sm:rounded-2xl rounded-t-2xl p-5 sm:mx-auto space-y-4"
+             x-trap.noscroll="showModal" x-transition>
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-base font-semibold" x-text="selected.nombre"></p>
+              <p class="text-xs text-gray-500" x-text="selected.curp"></p>
+            </div>
+            <button class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200" @click="closeModal()">Cerrar</button>
           </div>
 
-          {{-- Formulario documentos y datos --}}
-          <form class="mt-4 space-y-4">
-            <div>
-              <h3 class="text-sm font-semibold mb-2 text-center">Datos del Cliente</h3>
-              <div class="grid grid-cols-1 gap-2">
-                <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.nombre" readonly>
-                <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.apellido_p" readonly>
-                <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.apellido_m" readonly>
-                <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.curp" readonly>
-              </div>
-            </div>
+          <div class="grid grid-cols-1 gap-2 text-sm">
+            <p><span class="font-semibold">Estatus:</span> <span x-text="selected.estatus || 'Sin definir'"></span></p>
+            <p x-show="selected.fecha_nacimiento"><span class="font-semibold">Fecha nacimiento:</span> <span x-text="selected.fecha_nacimiento"></span></p>
+            <p x-show="selected.telefono"><span class="font-semibold">Telefono:</span> <span x-text="selected.telefono"></span></p>
+            <p x-show="selected.direccion"><span class="font-semibold">Direccion:</span> <span x-text="selected.direccion"></span></p>
+            <p x-show="selected.monto"><span class="font-semibold">Monto:</span> <span x-text="formatCurrency(selected.monto)"></span></p>
+          </div>
 
-            <div>
-              <h3 class="text-sm font-semibold mb-2 text-center">Datos del Aval</h3>
-              <div class="grid grid-cols-1 gap-2">
-                <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.aval_nombre" readonly>
-                <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.aval_apellido_p" readonly>
-                <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.aval_apellido_m" readonly>
-                <input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-sm" :value="selected.aval_curp" readonly>
-              </div>
+          <div>
+            <h3 class="text-sm font-semibold mb-2 text-center">Documentos</h3>
+            <div class="grid grid-cols-1 gap-2 text-sm">
+              <template x-if="selected.documentos_detalle && selected.documentos_detalle.length">
+                <template x-for="doc in selected.documentos_detalle" :key="doc.id">
+                  <a :href="doc.url" target="_blank"
+                     class="flex items-center justify-between px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition">
+                    <span class="text-sm font-medium truncate" x-text="doc.titulo"></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                      <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                  </a>
+                </template>
+              </template>
+              <p x-show="!selected.documentos_detalle || !selected.documentos_detalle.length"
+                 class="text-xs text-gray-500 text-center">Sin documentos cargados.</p>
             </div>
+          </div>
 
-            <div>
-              <h3 class="text-sm font-semibold mb-2 text-center">Documentos faltantes</h3>
-              <div class="grid grid-cols-1 gap-2 text-sm">
-                <label class="font-medium">INE</label>
-                <input type="file" class="w-full text-xs" />
-                <label class="font-medium">Comprobante de domicilio</label>
-                <input type="file" class="w-full text-xs" />
-              </div>
-            </div>
+          <div x-show="selected.aval" class="space-y-1">
+            <h3 class="text-sm font-semibold mb-1 text-center">Datos del aval</h3>
+            <p class="text-sm text-gray-700" x-text="selected.aval ? selected.aval.nombre : ''"></p>
+            <p class="text-xs text-gray-500" x-show="selected.aval && selected.aval.curp" x-text="selected.aval ? selected.aval.curp : ''"></p>
+            <p class="text-xs text-gray-500" x-show="selected.aval && selected.aval.telefono">
+              Tel. <span x-text="selected.aval ? selected.aval.telefono : ''"></span>
+            </p>
+            <p class="text-xs text-gray-500" x-show="selected.aval && selected.aval.direccion">
+              Dir. <span x-text="selected.aval ? selected.aval.direccion : ''"></span>
+            </p>
+          </div>
 
-            <div>
-              <h3 class="text-sm font-semibold mb-2 text-center">Datos adicionales</h3>
-              <div class="grid grid-cols-1 gap-2">
-                <input type="date" class="w-full px-3 py-2 border rounded-lg text-sm" x-model="selected.fecha_nacimiento">
-                <input type="number" step="0.01" placeholder="Monto máximo" class="w-full px-3 py-2 border rounded-lg text-sm" x-model="selected.monto_maximo">
-                <input type="text" placeholder="Estatus" class="w-full px-3 py-2 border rounded-lg text-sm" x-model="selected.estatus">
-                <label class="flex items-center text-xs"><input type="checkbox" class="mr-2" x-model="selected.tiene_credito_activo">Tiene crédito activo</label>
-                <label class="flex items-center text-xs"><input type="checkbox" class="mr-2" x-model="selected.activo">Activo</label>
-              </div>
-            </div>
-          </form>
-          {{-- Botones acciones --}}
-          <div class="mt-6 grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-2 gap-3">
             <button
               class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold shadow-sm transition"
-              @click="rechazar()">
-              Rechazar
-            </button>
+              @click="rechazar()">Rechazar</button>
             <button
               class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm transition"
-              @click="aceptar()">
-              Aceptar
-            </button>
+              @click="aceptar()">Aceptar</button>
           </div>
-
-          {{-- Cerrar esquina --}}
-          <button class="absolute top-3 right-3 p-2 rounded-lg bg-gray-100 hover:bg-gray-200" @click="closeModal()">✕</button>
         </div>
       </div>
     </template>
-
   </div>
 
-  {{-- === Alpine.js === --}}
   <script>
     function prospectado() {
       return {
         showModal: false,
-        selected: { id:null, nombre:'', apellido_p:'', apellido_m:'', curp:'', ine_url:'', comp_url:'', aval_nombre:'', aval_apellido_p:'', aval_apellido_m:'', aval_curp:'', fecha_nacimiento:'', tiene_credito_activo:false, estatus:'', monto_maximo:'', activo:false },
-
+        selected: {},
+        init() {
+          this.selected = this.defaultSelected();
+        },
+        defaultSelected() {
+          return {
+            id: null,
+            nombre: '',
+            curp: '',
+            estatus: '',
+            fecha_nacimiento: '',
+            telefono: '',
+            direccion: '',
+            monto: null,
+            monto_maximo: null,
+            documentos: { ine: null, comprobante: null },
+            documentos_detalle: [],
+            aval: null,
+            tiene_credito_activo: false,
+            activo: false,
+          };
+        },
         openModal(data) {
-          this.selected = data;
+          const defaults = this.defaultSelected();
+          this.selected = {
+            ...defaults,
+            ...data,
+            documentos: { ...defaults.documentos, ...(data.documentos || {}) },
+            documentos_detalle: data.documentos_detalle || [],
+            aval: data.aval || null,
+          };
           this.showModal = true;
         },
         closeModal() {
           this.showModal = false;
-          this.selected  = { id:null, nombre:'', apellido_p:'', apellido_m:'', curp:'', ine_url:'', comp_url:'', aval_nombre:'', aval_apellido_p:'', aval_apellido_m:'', aval_curp:'', fecha_nacimiento:'', tiene_credito_activo:false, estatus:'', monto_maximo:'', activo:false };
+          this.selected = this.defaultSelected();
         },
-
-        // Acciones
         aceptar() {
-          // Aquí POST a tu endpoint para aceptar al cliente
           console.log('ACEPTAR', this.selected);
           this.closeModal();
         },
         rechazar() {
-          // Aquí POST a tu endpoint para rechazar al cliente
           console.log('RECHAZAR', this.selected);
           this.closeModal();
+        },
+        formatCurrency(value) {
+          const number = Number(value || 0);
+          return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 }).format(number);
         },
       }
     }
