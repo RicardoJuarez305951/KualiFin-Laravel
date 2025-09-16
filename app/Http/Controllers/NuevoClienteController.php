@@ -1,0 +1,299 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Cliente;
+use App\Models\Credito;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Throwable;
+
+class NuevoClienteController extends Controller
+{
+    public function store(Request $request): JsonResponse
+    {
+        $form = (array) $request->input('form', []);
+
+        $form['ocupacion']['ingresos_adicionales'] = collect($form['ocupacion']['ingresos_adicionales'] ?? [])
+            ->map(function ($item) {
+                return [
+                    'concepto' => isset($item['concepto']) ? trim((string) $item['concepto']) : null,
+                    'monto' => isset($item['monto']) && $item['monto'] !== '' ? $item['monto'] : null,
+                    'frecuencia' => isset($item['frecuencia']) ? trim((string) $item['frecuencia']) : null,
+                ];
+            })
+            ->filter(fn ($item) => collect($item)->filter(fn ($value) => $value !== null && $value !== '')->isNotEmpty())
+            ->values()
+            ->all();
+
+        $form['garantias'] = collect($form['garantias'] ?? [])
+            ->map(function ($item) {
+                return [
+                    'propietario' => isset($item['propietario']) ? trim((string) $item['propietario']) : null,
+                    'tipo' => isset($item['tipo']) ? trim((string) $item['tipo']) : null,
+                    'marca' => isset($item['marca']) ? trim((string) $item['marca']) : null,
+                    'modelo' => isset($item['modelo']) ? trim((string) $item['modelo']) : null,
+                    'num_serie' => isset($item['num_serie']) ? trim((string) $item['num_serie']) : null,
+                    'antiguedad' => isset($item['antiguedad']) ? trim((string) $item['antiguedad']) : null,
+                    'monto_garantizado' => isset($item['monto_garantizado']) && $item['monto_garantizado'] !== '' ? $item['monto_garantizado'] : null,
+                    'foto_url' => isset($item['foto_url']) ? trim((string) $item['foto_url']) : null,
+                ];
+            })
+            ->filter(fn ($item) => collect($item)->filter(fn ($value) => $value !== null && $value !== '')->isNotEmpty())
+            ->values()
+            ->all();
+
+        $familiares = (array) ($form['familiares'] ?? []);
+        $familiares['conyuge_vive_con_cliente'] = $this->toBoolean($familiares['conyuge_vive_con_cliente'] ?? null);
+        $form['familiares'] = $familiares;
+
+        $request->merge([
+            'cliente_id' => $request->input('cliente_id'),
+            'form' => $form,
+        ]);
+
+        $rules = [
+            'cliente_id' => ['required', 'exists:clientes,id'],
+            'form' => ['required', 'array'],
+
+            'form.cliente.curp' => ['required', 'string', 'size:18'],
+            'form.cliente.nombre' => ['required', 'string', 'max:100'],
+            'form.cliente.apellido_p' => ['required', 'string', 'max:100'],
+            'form.cliente.apellido_m' => ['required', 'string', 'max:100'],
+            'form.cliente.fecha_nacimiento' => ['required', 'date'],
+
+            'form.credito.monto_total' => ['required', 'numeric', 'min:0'],
+            'form.credito.periodicidad' => ['required', 'string', 'max:100'],
+            'form.credito.fecha_inicio' => ['required', 'date'],
+            'form.credito.fecha_final' => ['required', 'date', 'after_or_equal:form.credito.fecha_inicio'],
+
+            'form.ocupacion.actividad' => ['required', 'string', 'max:100'],
+            'form.ocupacion.nombre_empresa' => ['required', 'string', 'max:100'],
+            'form.ocupacion.calle' => ['required', 'string', 'max:100'],
+            'form.ocupacion.numero' => ['required', 'string', 'max:10'],
+            'form.ocupacion.colonia' => ['required', 'string', 'max:100'],
+            'form.ocupacion.municipio' => ['required', 'string', 'max:100'],
+            'form.ocupacion.telefono' => ['required', 'string', 'max:20'],
+            'form.ocupacion.antiguedad' => ['required', 'string', 'max:20'],
+            'form.ocupacion.monto_percibido' => ['required', 'numeric', 'min:0'],
+            'form.ocupacion.periodo_pago' => ['required', 'string', 'max:20'],
+            'form.ocupacion.ingresos_adicionales' => ['array'],
+            'form.ocupacion.ingresos_adicionales.*.concepto' => ['nullable', 'string', 'max:100'],
+            'form.ocupacion.ingresos_adicionales.*.monto' => ['nullable', 'numeric', 'min:0'],
+            'form.ocupacion.ingresos_adicionales.*.frecuencia' => ['nullable', 'string', 'max:20'],
+
+            'form.contacto.calle' => ['required', 'string', 'max:150'],
+            'form.contacto.numero_ext' => ['required', 'string', 'max:10'],
+            'form.contacto.numero_int' => ['nullable', 'string', 'max:10'],
+            'form.contacto.monto_mensual' => ['required', 'numeric', 'min:0'],
+            'form.contacto.colonia' => ['required', 'string', 'max:100'],
+            'form.contacto.municipio' => ['required', 'string', 'max:100'],
+            'form.contacto.estado' => ['nullable', 'string', 'max:100'],
+            'form.contacto.cp' => ['required', 'string', 'max:10'],
+            'form.contacto.tiempo_en_residencia' => ['required', 'string', 'max:20'],
+            'form.contacto.tel_fijo' => ['nullable', 'string', 'max:20'],
+            'form.contacto.tel_cel' => ['required', 'string', 'max:20'],
+            'form.contacto.tipo_de_vivienda' => ['required', 'string', 'max:100'],
+
+            'form.familiares.nombre_conyuge' => ['required', 'string', 'max:100'],
+            'form.familiares.celular_conyuge' => ['required', 'string', 'max:20'],
+            'form.familiares.actividad_conyuge' => ['required', 'string', 'max:100'],
+            'form.familiares.ingresos_semanales_conyuge' => ['required', 'numeric', 'min:0'],
+            'form.familiares.domicilio_trabajo_conyuge' => ['required', 'string', 'max:255'],
+            'form.familiares.personas_en_domicilio' => ['required', 'integer', 'min:0'],
+            'form.familiares.dependientes_economicos' => ['required', 'integer', 'min:0'],
+            'form.familiares.conyuge_vive_con_cliente' => ['required', 'boolean'],
+
+            'form.aval.curp' => ['required', 'string', 'size:18'],
+            'form.aval.nombre' => ['required', 'string', 'max:100'],
+            'form.aval.apellido_p' => ['required', 'string', 'max:100'],
+            'form.aval.apellido_m' => ['required', 'string', 'max:100'],
+            'form.aval.fecha_nacimiento' => ['required', 'date'],
+            'form.aval.direccion' => ['required', 'string', 'max:255'],
+            'form.aval.telefono' => ['required', 'string', 'max:20'],
+            'form.aval.parentesco' => ['required', 'string', 'max:20'],
+
+            'form.garantias' => ['array', 'max:8'],
+            'form.garantias.*.propietario' => ['nullable', 'string', 'max:100'],
+            'form.garantias.*.tipo' => ['nullable', 'string', 'max:100'],
+            'form.garantias.*.marca' => ['nullable', 'string', 'max:100'],
+            'form.garantias.*.modelo' => ['nullable', 'string', 'max:100'],
+            'form.garantias.*.num_serie' => ['nullable', 'string', 'max:100'],
+            'form.garantias.*.antiguedad' => ['nullable', 'string', 'max:20'],
+            'form.garantias.*.monto_garantizado' => ['nullable', 'numeric', 'min:0'],
+            'form.garantias.*.foto_url' => ['nullable', 'string', 'max:255'],
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+
+        $validator->after(function ($validator) use ($form) {
+            foreach ($form['ocupacion']['ingresos_adicionales'] ?? [] as $index => $ingreso) {
+                if (in_array(null, $ingreso, true) || in_array('', $ingreso, true)) {
+                    $validator->errors()->add("form.ocupacion.ingresos_adicionales.$index", 'Completa todos los campos de cada ingreso adicional.');
+                }
+            }
+
+            foreach ($form['garantias'] ?? [] as $index => $garantia) {
+                foreach (['propietario', 'tipo', 'antiguedad', 'monto_garantizado', 'foto_url'] as $field) {
+                    if ($garantia[$field] === null || $garantia[$field] === '') {
+                        $validator->errors()->add("form.garantias.$index.$field", 'Completa todos los campos obligatorios de la garantÃƒÂ­a.');
+                        break;
+                    }
+                }
+            }
+        });
+
+        $validated = $validator->validate();
+        $form = $validated['form'];
+
+        try {
+            $cliente = DB::transaction(function () use ($validated, $form) {
+                $cliente = Cliente::lockForUpdate()->findOrFail($validated['cliente_id']);
+                $cliente->fecha_nacimiento = $form['cliente']['fecha_nacimiento'];
+                $cliente->save();
+
+                $credito = Credito::firstOrNew(['cliente_id' => $cliente->id]);
+                $credito->monto_total = (float) $form['credito']['monto_total'];
+                $credito->periodicidad = $form['credito']['periodicidad'];
+                $credito->fecha_inicio = $form['credito']['fecha_inicio'];
+                $credito->fecha_final = $form['credito']['fecha_final'];
+                $credito->estado = $credito->estado ?? 'pendiente';
+                $credito->interes = $credito->interes ?? 0;
+                $credito->save();
+
+                $ocupacion = $credito->ocupacion()->firstOrNew();
+                $ocupacion->fill([
+                    'credito_id' => $credito->id,
+                    'actividad' => $form['ocupacion']['actividad'],
+                    'nombre_empresa' => $form['ocupacion']['nombre_empresa'],
+                    'calle' => $form['ocupacion']['calle'],
+                    'numero' => $form['ocupacion']['numero'],
+                    'colonia' => $form['ocupacion']['colonia'],
+                    'municipio' => $form['ocupacion']['municipio'],
+                    'telefono' => $form['ocupacion']['telefono'],
+                    'antiguedad' => $form['ocupacion']['antiguedad'],
+                    'monto_percibido' => (float) $form['ocupacion']['monto_percibido'],
+                    'periodo_pago' => $form['ocupacion']['periodo_pago'],
+                ]);
+                $ocupacion->save();
+
+                $ocupacion->ingresosAdicionales()->delete();
+                foreach ($form['ocupacion']['ingresos_adicionales'] as $ingreso) {
+                    $ocupacion->ingresosAdicionales()->create([
+                        'concepto' => $ingreso['concepto'],
+                        'monto' => (float) $ingreso['monto'],
+                        'frecuencia' => $ingreso['frecuencia'],
+                    ]);
+                }
+
+                $credito->datoContacto()->updateOrCreate(
+                    ['credito_id' => $credito->id],
+                    [
+                        'credito_id' => $credito->id,
+                        'calle' => $form['contacto']['calle'],
+                        'numero_ext' => $form['contacto']['numero_ext'],
+                        'numero_int' => $this->nullIfBlank($form['contacto']['numero_int'] ?? null),
+                        'monto_mensual' => (int) round($form['contacto']['monto_mensual']),
+                        'colonia' => $form['contacto']['colonia'],
+                        'municipio' => $form['contacto']['municipio'],
+                        'estado' => $this->nullIfBlank($form['contacto']['estado'] ?? null),
+                        'cp' => $form['contacto']['cp'],
+                        'tiempo_en_residencia' => $form['contacto']['tiempo_en_residencia'],
+                        'tel_fijo' => $this->nullIfBlank($form['contacto']['tel_fijo'] ?? null),
+                        'tel_cel' => $form['contacto']['tel_cel'],
+                        'tipo_de_vivienda' => $form['contacto']['tipo_de_vivienda'],
+                    ]
+                );
+
+                $credito->informacionFamiliar()->updateOrCreate(
+                    ['credito_id' => $credito->id],
+                    [
+                        'credito_id' => $credito->id,
+                        'nombre_conyuge' => $form['familiares']['nombre_conyuge'],
+                        'celular_conyuge' => $form['familiares']['celular_conyuge'],
+                        'actividad_conyuge' => $form['familiares']['actividad_conyuge'],
+                        'ingresos_semanales_conyuge' => (float) $form['familiares']['ingresos_semanales_conyuge'],
+                        'domicilio_trabajo_conyuge' => $form['familiares']['domicilio_trabajo_conyuge'],
+                        'personas_en_domicilio' => (int) $form['familiares']['personas_en_domicilio'],
+                        'dependientes_economicos' => (int) $form['familiares']['dependientes_economicos'],
+                        'conyuge_vive_con_cliente' => (bool) $form['familiares']['conyuge_vive_con_cliente'],
+                    ]
+                );
+
+                $credito->avales()->updateOrCreate(
+                    ['credito_id' => $credito->id, 'CURP' => $form['aval']['curp']],
+                    [
+                        'CURP' => $form['aval']['curp'],
+                        'credito_id' => $credito->id,
+                        'nombre' => $form['aval']['nombre'],
+                        'apellido_p' => $form['aval']['apellido_p'],
+                        'apellido_m' => $form['aval']['apellido_m'],
+                        'fecha_nacimiento' => $form['aval']['fecha_nacimiento'],
+                        'direccion' => $form['aval']['direccion'],
+                        'telefono' => $form['aval']['telefono'],
+                        'parentesco' => $form['aval']['parentesco'],
+                    ]
+                );
+
+                $credito->garantias()->delete();
+                foreach ($form['garantias'] as $garantia) {
+                    $credito->garantias()->create([
+                        'propietario' => $garantia['propietario'],
+                        'tipo' => $garantia['tipo'],
+                        'marca' => $this->nullIfBlank($garantia['marca']),
+                        'modelo' => $this->nullIfBlank($garantia['modelo']),
+                        'num_serie' => $this->nullIfBlank($garantia['num_serie']),
+                        'antiguedad' => $garantia['antiguedad'],
+                        'monto_garantizado' => (float) $garantia['monto_garantizado'],
+                        'foto_url' => $garantia['foto_url'],
+                    ]);
+                }
+
+                return $cliente;
+            });
+
+            return response()->json([
+                'message' => 'Informacion guardada correctamente.',
+                'cliente' => [
+                    'id' => $cliente->id,
+                    'nombre' => trim($cliente->nombre . ' ' . $cliente->apellido_p . ' ' . $cliente->apellido_m),
+                ],
+            ], 201);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'No se pudo guardar la informacion del cliente.',
+            ], 500);
+        }
+    }
+
+    private function toBoolean($value): ?bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return match (strtolower((string) $value)) {
+            '1', 'true', 'si', 'sÃƒÂ­', 'on', 'yes' => true,
+            '0', 'false', 'no', 'off' => false,
+            default => null,
+        };
+    }
+
+    private function nullIfBlank($value): ?string
+    {
+        $value = is_string($value) ? trim($value) : $value;
+
+        return $value === null || $value === '' ? null : (string) $value;
+    }
+}
+
+
+

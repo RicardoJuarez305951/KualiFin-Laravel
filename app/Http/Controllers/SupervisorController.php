@@ -89,36 +89,78 @@ class SupervisorController extends Controller
 
     public function venta()
     {
-        $clientesProspectados   = Cliente::count();
-        $clientesPorSupervisar  = Cliente::where('estatus', 'inactivo')->count();
+        $user = auth()->user();
+        $supervisor = Supervisor::with([
+            'promotores' => function ($query) {
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo')
+                    ->with(['clientes' => function ($clienteQuery) {
+                        $clienteQuery->select('id', 'promotor_id', 'nombre', 'apellido_p', 'apellido_m', 'estatus', 'tiene_credito_activo')
+                            ->orderBy('nombre');
+                    }])
+                    ->orderBy('nombre');
+            },
+        ])->firstWhere('user_id', $user?->id);
 
-        $ejercicio        = Ejercicio::latest('fecha_inicio')->first();
-        $moneyWeeklyNow   = $ejercicio?->dinero_autorizado ?? 0;
-        $moneyWeeklyTarget= $ejercicio?->venta_objetivo ?? 0;
-        $fechaLimite      = $ejercicio?->fecha_final?->format('d/m/Y');
+        abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
+
+        $promotores = $supervisor->promotores ?? collect();
+        $promotorIds = $promotores->pluck('id');
+
+        $prospectStatuses = ['pendiente', 'a_supervision', 'pendiente_recredito', 'inactivo'];
+        $supervisionStatuses = ['a_supervision', 'pendiente_recredito', 'inactivo'];
+
+        $clientesProspectados = $promotorIds->isEmpty()
+            ? 0
+            : Cliente::whereIn('promotor_id', $promotorIds)->count();
+
+        $clientesPorSupervisar = $promotorIds->isEmpty()
+            ? 0
+            : Cliente::whereIn('promotor_id', $promotorIds)
+                ->whereIn('estatus', $supervisionStatuses)
+                ->count();
+
+        $ejercicio = Ejercicio::where('supervisor_id', $supervisor->id)
+            ->latest('fecha_inicio')
+            ->first();
+
+        $moneyWeeklyNow = (float) ($ejercicio?->dinero_autorizado ?? 0);
+        $moneyWeeklyTarget = (float) ($ejercicio?->venta_objetivo ?? 0);
+        $fechaLimite = $ejercicio?->fecha_final?->format('d/m/Y');
 
         $moneyProgress = $moneyWeeklyTarget > 0
             ? min(100, ($moneyWeeklyNow / $moneyWeeklyTarget) * 100)
             : 0;
 
-        $promotoresSupervisados = Promotor::with('clientes')
-            ->get()
-            ->map(function ($p) {
-                $debe  = (float) $p->venta_maxima;
-                $falla = max(0, $debe - (float) $p->venta_proyectada_objetivo);
+        $promotoresSupervisados = $promotores->map(function ($promotor) use ($prospectStatuses, $supervisionStatuses) {
+            $debe = (float) $promotor->venta_maxima;
+            $registrada = (float) $promotor->venta_proyectada_objetivo;
+            $falla = max(0, $debe - $registrada);
 
-                return [
-                    'nombre'          => trim($p->nombre . ' ' . $p->apellido_p),
-                    'debe'            => $debe,
-                    'falla'           => $falla,
-                    'porcentajeFalla' => $debe > 0 ? ($falla / $debe) * 100 : 0,
-                    'ventaRegistrada' => (float) $p->venta_proyectada_objetivo,
-                    'prospectados'    => $p->clientes->pluck('nombre'),
-                    'porSupervisar'   => $p->clientes
-                        ->where('estatus', 'inactivo')
-                        ->pluck('nombre'),
-                ];
-            });
+            $formatNombre = function ($cliente) {
+                return trim($cliente->nombre . ' ' . $cliente->apellido_p . ' ' . ($cliente->apellido_m ?? ''));
+            };
+
+            $prospectos = $promotor->clientes
+                ->whereIn('estatus', $prospectStatuses)
+                ->map($formatNombre)
+                ->values();
+
+            $porSupervisar = $promotor->clientes
+                ->whereIn('estatus', $supervisionStatuses)
+                ->map($formatNombre)
+                ->values();
+
+            return [
+                'id'              => $promotor->id,
+                'nombre'          => trim($promotor->nombre . ' ' . $promotor->apellido_p . ' ' . ($promotor->apellido_m ?? '')),
+                'debe'            => $debe,
+                'falla'           => $falla,
+                'porcentajeFalla' => $debe > 0 ? ($falla / $debe) * 100 : 0,
+                'ventaRegistrada' => $registrada,
+                'prospectados'    => $prospectos,
+                'porSupervisar'   => $porSupervisar,
+            ];
+        });
 
         return view('mobile.supervisor.venta.venta', compact(
             'clientesProspectados',
@@ -143,12 +185,58 @@ class SupervisorController extends Controller
 
     public function clientes_prospectados()
     {
-        return view('mobile.supervisor.venta.clientes_prospectados');
+        [, $promotores] = $this->resolveSupervisorPromotoresConClientes();
+
+        $nuevoStatuses = ['pendiente', 'a_supervision', 'inactivo'];
+        $recreditoStatuses = ['pendiente_recredito'];
+
+        $promotoresData = $promotores->map(function ($promotor) use ($nuevoStatuses, $recreditoStatuses) {
+            $clientes = $promotor->clientes ?? collect();
+
+            $mapCliente = function (Cliente $cliente) {
+                return $this->mapClienteDetalle($cliente);
+            };
+
+            return [
+                'id' => $promotor->id,
+                'nombre' => trim($promotor->nombre . ' ' . $promotor->apellido_p . ' ' . ($promotor->apellido_m ?? '')),
+                'clientes' => $clientes->whereIn('estatus', $nuevoStatuses)->map($mapCliente)->values(),
+                'recreditos' => $clientes->whereIn('estatus', $recreditoStatuses)->map($mapCliente)->values(),
+            ];
+        });
+
+        return view('mobile.supervisor.venta.clientes_prospectados', [
+            'promotores' => $promotoresData,
+        ]);
     }
 
     public function clientes_supervisados()
     {
-        return view('mobile.supervisor.venta.clientes_supervisados');
+        [, $promotores] = $this->resolveSupervisorPromotoresConClientes();
+
+        $supervisionStatuses = ['a_supervision', 'pendiente', 'inactivo'];
+        $recreditoStatuses = ['pendiente_recredito'];
+
+        $promotoresData = $promotores->map(function ($promotor) use ($supervisionStatuses, $recreditoStatuses) {
+            $clientes = $promotor->clientes ?? collect();
+
+            $mapCliente = function (Cliente $cliente) use ($promotor) {
+                $data = $this->mapClienteDetalle($cliente);
+                $data['promotor'] = trim($promotor->nombre . ' ' . $promotor->apellido_p . ' ' . ($promotor->apellido_m ?? ''));
+                return $data;
+            };
+
+            return [
+                'id' => $promotor->id,
+                'nombre' => trim($promotor->nombre . ' ' . $promotor->apellido_p . ' ' . ($promotor->apellido_m ?? '')),
+                'clientes' => $clientes->whereIn('estatus', $supervisionStatuses)->map($mapCliente)->values(),
+                'recreditos' => $clientes->whereIn('estatus', $recreditoStatuses)->map($mapCliente)->values(),
+            ];
+        });
+
+        return view('mobile.supervisor.venta.clientes_supervisados', [
+            'promotores' => $promotoresData,
+        ]);
     }
 
     public function cartera()
@@ -736,4 +824,112 @@ class SupervisorController extends Controller
     {
         return view('mobile.supervisor.apertura.apertura');
     }
+
+    private function resolveSupervisorPromotoresConClientes(): array
+    {
+        $user = auth()->user();
+        $supervisor = Supervisor::firstWhere('user_id', $user?->id);
+        abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
+
+        $promotores = $supervisor->promotores()
+            ->with([
+                'clientes' => function ($clienteQuery) {
+                    $clienteQuery->select('id', 'promotor_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'estatus', 'fecha_nacimiento', 'tiene_credito_activo', 'monto_maximo', 'activo')
+                        ->with([
+                            'documentos',
+                            'credito' => function ($creditoQuery) {
+                                $creditoQuery->select('creditos.id', 'creditos.cliente_id', 'creditos.monto_total', 'creditos.estado', 'creditos.fecha_inicio')
+                                    ->with([
+                                        'datoContacto',
+                                        'avales' => function ($avalQuery) {
+                                            $avalQuery->select('id', 'credito_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'telefono', 'direccion');
+                                        },
+                                    ]);
+                            },
+                        ])
+                        ->orderBy('nombre');
+                },
+            ])
+            ->orderBy('nombre')
+            ->get();
+
+        return [$supervisor, $promotores];
+    }
+
+    private function mapClienteDetalle(Cliente $cliente): array
+    {
+        $credito = $cliente->credito;
+        $documentosCollection = $cliente->documentos ?? collect();
+        $formattedDocsCollection = $documentosCollection->map(function ($documento) {
+            $titulo = Str::of($documento->tipo_doc ?? '')
+                ->replace('_', ' ')
+                ->title();
+
+            return [
+                'id' => $documento->id,
+                'tipo' => $documento->tipo_doc,
+                'titulo' => (string) $titulo,
+                'url' => $documento->url_s3,
+                'archivo' => $documento->nombre_arch,
+            ];
+        })->values();
+
+        $findDoc = function (string $needle) use ($formattedDocsCollection) {
+            return $formattedDocsCollection->first(function ($doc) use ($needle) {
+                return Str::contains(Str::lower($doc['tipo'] ?? ''), $needle);
+            });
+        };
+
+        $ineDoc = $findDoc('ine');
+        $domDoc = $findDoc('domic');
+
+        $dato = $credito?->datoContacto;
+        $direccion = $dato ? collect([
+            trim(($dato->calle ?? '') . ' ' . ($dato->numero_ext ?? '')),
+            $dato->numero_int ? 'Int. ' . $dato->numero_int : null,
+            $dato->colonia ?? null,
+            $dato->municipio ?? null,
+            $dato->estado ?? null,
+            $dato->cp ? 'CP ' . $dato->cp : null,
+        ])->filter()->implode(', ') : null;
+
+        $aval = $credito?->avales?->last();
+        $fechaInicioCredito = $credito?->fecha_inicio ? Carbon::parse($credito->fecha_inicio)->format('Y-m-d') : null;
+
+        return [
+            'id' => $cliente->id,
+            'nombre' => trim($cliente->nombre . ' ' . $cliente->apellido_p . ' ' . ($cliente->apellido_m ?? '')),
+            'nombre_simple' => $cliente->nombre,
+            'apellido_p' => $cliente->apellido_p,
+            'apellido_m' => $cliente->apellido_m,
+            'curp' => $cliente->CURP,
+            'estatus' => $cliente->estatus,
+            'fecha_nacimiento' => $cliente->fecha_nacimiento?->format('Y-m-d'),
+            'tiene_credito_activo' => (bool) $cliente->tiene_credito_activo,
+            'activo' => (bool) $cliente->activo,
+            'monto_maximo' => (float) ($cliente->monto_maximo ?? 0),
+            'monto_credito' => (float) ($credito?->monto_total ?? 0),
+            'monto' => (float) ($cliente->monto_maximo ?? $credito?->monto_total ?? 0),
+            'telefono' => $dato?->tel_cel ?? $dato?->tel_fijo,
+            'direccion' => $direccion,
+            'documentos' => [
+                'ine' => $ineDoc['url'] ?? null,
+                'comprobante' => $domDoc['url'] ?? null,
+            ],
+            'documentos_detalle' => $formattedDocsCollection->toArray(),
+            'aval' => $aval ? [
+                'nombre' => trim($aval->nombre . ' ' . $aval->apellido_p . ' ' . ($aval->apellido_m ?? '')),
+                'curp' => $aval->CURP,
+                'telefono' => $aval->telefono ?? null,
+                'direccion' => $aval->direccion ?? null,
+            ] : null,
+            'credito' => [
+                'id' => $credito?->id,
+                'monto_total' => (float) ($credito?->monto_total ?? 0),
+                'estado' => $credito?->estado,
+                'fecha_inicio' => $fechaInicioCredito,
+            ],
+        ];
+    }
+
 }
