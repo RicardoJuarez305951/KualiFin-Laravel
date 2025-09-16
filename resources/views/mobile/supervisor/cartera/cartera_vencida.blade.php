@@ -1,40 +1,5 @@
 {{-- resources/views/mobile/supervisor/cartera/cartera_vencida.blade.php --}}
 
-@php
-    use Faker\Factory as Faker;
-    $faker = Faker::create('es_MX');
-
-    // Estatus de vencimiento para clientes
-    $estatusVencido = ['total', 'parcial', 'tiempo'];
-
-    $promotores = collect(range(1, 3))->map(function ($i) use ($faker, $estatusVencido) {
-        $clientes = collect(range(1, rand(4, 7)))->map(function () use ($faker, $estatusVencido) {
-            $estatus = collect($estatusVencido)->random();
-            return [
-                'id'      => $faker->unique()->numberBetween(1, 1000),
-                'nombre'  => $faker->firstName . ' ' . $faker->lastName,
-                'monto'   => $faker->numberBetween(1000, 10000),
-                'estatus' => $estatus,
-            ];
-        });
-
-        // total vencido
-        $totalVencido = $clientes->sum('monto');
-        $porcentajeVencido = $faker->numberBetween(15, 70); // simulado %
-
-        // ordenar clientes por prioridad de estatus
-        $ordenPrioridad = ['total' => 1, 'parcial' => 2, 'tiempo' => 3];
-        $clientesOrdenados = $clientes->sortBy(fn($c) => $ordenPrioridad[$c['estatus']])->values();
-
-        return [
-            'nombre'     => $faker->name,
-            'dinero'     => $totalVencido,
-            'vencido'    => $porcentajeVencido,
-            'clientes'   => $clientesOrdenados,
-        ];
-    });
-@endphp
-
 <x-layouts.mobile.mobile-layout>
     <div x-data class="p-4 space-y-5">
         {{-- Incluimos el modal calculadora --}}
@@ -43,7 +8,7 @@
 
         <h1 class="text-xl font-bold text-gray-900">Cartera Vencida</h1>
 
-        @foreach($promotores as $promotor)
+        @foreach($blocks as $promotor)
             <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
                 {{-- Header Promotor --}}
                 <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -97,6 +62,10 @@
                 </div>
             </div>
         @endforeach
+
+        <div class="mt-4">
+            {{ $promotoresPaginator->withQueryString()->links() }}
+        </div>
 
         {{-- Botón Regresar --}}
         <a href="{{ url()->previous() }}"

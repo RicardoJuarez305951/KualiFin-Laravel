@@ -30,4 +30,29 @@ class PagoReal extends Model
     {
         return $this->hasOne(PagoAnticipo::class);
     }
+
+    // Monto total asociado a este pago real (sumando tipo correspondiente)
+    public function getMontoAttribute(): float
+    {
+        $total = 0.0;
+        if ($this->relationLoaded('pagoCompleto') && $this->pagoCompleto) {
+            $total += (float) ($this->pagoCompleto->monto_completo ?? 0);
+        } elseif ($this->pagoCompleto) {
+            $total += (float) ($this->pagoCompleto->monto_completo ?? 0);
+        }
+
+        if ($this->relationLoaded('pagoAnticipo') && $this->pagoAnticipo) {
+            $total += (float) ($this->pagoAnticipo->monto_anticipo ?? 0);
+        } elseif ($this->pagoAnticipo) {
+            $total += (float) ($this->pagoAnticipo->monto_anticipo ?? 0);
+        }
+
+        if ($this->relationLoaded('pagoDiferido') && $this->pagoDiferido) {
+            $total += (float) ($this->pagoDiferido->monto_diferido ?? 0);
+        } elseif ($this->pagoDiferido) {
+            $total += (float) ($this->pagoDiferido->monto_diferido ?? 0);
+        }
+
+        return $total;
+    }
 }

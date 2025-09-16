@@ -1,38 +1,17 @@
 {{-- resources/views/mobile/supervisor/cartera/cartera_activa.blade.php --}}
 
 @php
-    use Faker\Factory as Faker;
-    $faker = Faker::create('es_MX');
-
-    // Promotores con clientes (faker)
-    $promotores = collect(range(1, 3))->map(function () use ($faker) {
-        $clientes = collect(range(1, rand(4, 8)))->map(function () use ($faker) {
-            $status = collect(['V', '!', 'F', 'Ad'])->random(); // V, !, F, Ad
-            return [
-                'nombre'        => $faker->firstName . ' ' . $faker->lastName,
-                'monto'         => $faker->numberBetween(3000, 20000),
-                'semana'        => $faker->numberBetween(1, 20),
-                'pago_semanal'  => $faker->numberBetween(400, 1600),
-                'status'        => $status,
-            ];
-        });
-
-        return [
-            'nombre'   => $faker->name,
-            'dinero'   => $clientes->sum('monto'),
-            'clientes' => $clientes->sortBy('nombre')->values(),
-        ];
-    });
-
     // Helper para badge de estatus
-    function badgeClasses($s) {
-        return match ($s) {
-            'V'  => 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
-            '!'  => 'bg-yellow-50 text-yellow-800 ring-1 ring-yellow-600/20',
-            'F'  => 'bg-rose-50 text-rose-700 ring-1 ring-rose-600/20',
-            'Ad' => 'bg-sky-50 text-sky-700 ring-1 ring-sky-600/20',
-            default => 'bg-gray-50 text-gray-700 ring-1 ring-gray-300',
-        };
+    if (!function_exists('badgeClasses')) {
+        function badgeClasses($s) {
+            return match ($s) {
+                'V'  => 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
+                '!'  => 'bg-yellow-50 text-yellow-800 ring-1 ring-yellow-600/20',
+                'F'  => 'bg-rose-50 text-rose-700 ring-1 ring-rose-600/20',
+                'Ad' => 'bg-sky-50 text-sky-700 ring-1 ring-sky-600/20',
+                default => 'bg-gray-50 text-gray-700 ring-1 ring-gray-300',
+            };
+        }
     }
 @endphp
 
@@ -50,7 +29,7 @@
             </div>
         </div>
 
-        @foreach($promotores as $promotor)
+        @foreach($blocks as $promotor)
             <div class="rounded-2xl border border-gray-100 bg-white/80 backdrop-blur-sm shadow-sm">
                 {{-- Header del promotor --}}
                 <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -129,6 +108,10 @@
                 </div>
             </div>
         @endforeach
+
+        <div class="mt-4">
+            {{ $promotoresPaginator->withQueryString()->links() }}
+        </div>
         {{-- <a href="{{ url()->previous() }}" --}}
         <a href="{{ route("mobile.$role.cartera") }}"
         class="flex items-center justify-center rounded-xl border border-gray-300 text-white text-sm font-semibold px-3 py-2 bg-blue-600 hover:bg-blue-700 shadow-sm">
