@@ -45,7 +45,7 @@
   <div class="triangulo t1"></div>
 
   <!-- Contenido -->
-  <div class="relative z-10 h-[100dvh] max-w-md mx-auto flex flex-col">
+  <div class="relative z-10 max-w-md mx-auto flex flex-col">
     {{ $slot }}
   </div>
   <x-floating-button />
