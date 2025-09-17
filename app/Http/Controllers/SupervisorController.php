@@ -94,7 +94,7 @@ class SupervisorController extends Controller
             'promotores' => function ($query) {
                 $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo')
                     ->with(['clientes' => function ($clienteQuery) {
-                        $clienteQuery->select('id', 'promotor_id', 'nombre', 'apellido_p', 'apellido_m', 'estatus', 'tiene_credito_activo')
+                        $clienteQuery->select('id', 'promotor_id', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'tiene_credito_activo')
                             ->orderBy('nombre');
                     }])
                     ->orderBy('nombre');
@@ -106,8 +106,8 @@ class SupervisorController extends Controller
         $promotores = $supervisor->promotores ?? collect();
         $promotorIds = $promotores->pluck('id');
 
-        $prospectStatuses = ['pendiente', 'a_supervision', 'pendiente_recredito', 'inactivo'];
-        $supervisionStatuses = ['a_supervision', 'pendiente_recredito', 'inactivo'];
+        $prospectStatuses = ['activo', 'desembolsado', 'regularizado', 'inactivo'];
+        $supervisionStatuses = ['moroso', 'desembolsado', 'regularizado'];
 
         $clientesProspectados = $promotorIds->isEmpty()
             ? 0
@@ -116,7 +116,7 @@ class SupervisorController extends Controller
         $clientesPorSupervisar = $promotorIds->isEmpty()
             ? 0
             : Cliente::whereIn('promotor_id', $promotorIds)
-                ->whereIn('estatus', $supervisionStatuses)
+                ->whereIn('cartera_estado', $supervisionStatuses)
                 ->count();
 
         $ejercicio = Ejercicio::where('supervisor_id', $supervisor->id)
@@ -141,12 +141,12 @@ class SupervisorController extends Controller
             };
 
             $prospectos = $promotor->clientes
-                ->whereIn('estatus', $prospectStatuses)
+                ->whereIn('cartera_estado', $prospectStatuses)
                 ->map($formatNombre)
                 ->values();
 
             $porSupervisar = $promotor->clientes
-                ->whereIn('estatus', $supervisionStatuses)
+                ->whereIn('cartera_estado', $supervisionStatuses)
                 ->map($formatNombre)
                 ->values();
 
@@ -187,8 +187,8 @@ class SupervisorController extends Controller
     {
         [, $promotores] = $this->resolveSupervisorPromotoresConClientes();
 
-        $nuevoStatuses = ['pendiente', 'a_supervision', 'inactivo'];
-        $recreditoStatuses = ['pendiente_recredito'];
+        $nuevoStatuses = ['activo', 'desembolsado', 'regularizado', 'inactivo'];
+        $recreditoStatuses = ['moroso'];
 
         $promotoresData = $promotores->map(function ($promotor) use ($nuevoStatuses, $recreditoStatuses) {
             $clientes = $promotor->clientes ?? collect();
@@ -200,8 +200,8 @@ class SupervisorController extends Controller
             return [
                 'id' => $promotor->id,
                 'nombre' => trim($promotor->nombre . ' ' . $promotor->apellido_p . ' ' . ($promotor->apellido_m ?? '')),
-                'clientes' => $clientes->whereIn('estatus', $nuevoStatuses)->map($mapCliente)->values(),
-                'recreditos' => $clientes->whereIn('estatus', $recreditoStatuses)->map($mapCliente)->values(),
+                'clientes' => $clientes->whereIn('cartera_estado', $nuevoStatuses)->map($mapCliente)->values(),
+                'recreditos' => $clientes->whereIn('cartera_estado', $recreditoStatuses)->map($mapCliente)->values(),
             ];
         });
 
@@ -214,8 +214,8 @@ class SupervisorController extends Controller
     {
         [, $promotores] = $this->resolveSupervisorPromotoresConClientes();
 
-        $supervisionStatuses = ['a_supervision', 'pendiente', 'inactivo'];
-        $recreditoStatuses = ['pendiente_recredito'];
+        $supervisionStatuses = ['moroso', 'desembolsado', 'regularizado'];
+        $recreditoStatuses = ['moroso'];
 
         $promotoresData = $promotores->map(function ($promotor) use ($supervisionStatuses, $recreditoStatuses) {
             $clientes = $promotor->clientes ?? collect();
@@ -229,8 +229,8 @@ class SupervisorController extends Controller
             return [
                 'id' => $promotor->id,
                 'nombre' => trim($promotor->nombre . ' ' . $promotor->apellido_p . ' ' . ($promotor->apellido_m ?? '')),
-                'clientes' => $clientes->whereIn('estatus', $supervisionStatuses)->map($mapCliente)->values(),
-                'recreditos' => $clientes->whereIn('estatus', $recreditoStatuses)->map($mapCliente)->values(),
+                'clientes' => $clientes->whereIn('cartera_estado', $supervisionStatuses)->map($mapCliente)->values(),
+                'recreditos' => $clientes->whereIn('cartera_estado', $recreditoStatuses)->map($mapCliente)->values(),
             ];
         });
 
@@ -834,7 +834,7 @@ class SupervisorController extends Controller
         $promotores = $supervisor->promotores()
             ->with([
                 'clientes' => function ($clienteQuery) {
-                    $clienteQuery->select('id', 'promotor_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'estatus', 'fecha_nacimiento', 'tiene_credito_activo', 'monto_maximo', 'activo')
+                    $clienteQuery->select('id', 'promotor_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'fecha_nacimiento', 'tiene_credito_activo', 'monto_maximo', 'activo')
                         ->with([
                             'documentos',
                             'credito' => function ($creditoQuery) {
@@ -903,7 +903,7 @@ class SupervisorController extends Controller
             'apellido_p' => $cliente->apellido_p,
             'apellido_m' => $cliente->apellido_m,
             'curp' => $cliente->CURP,
-            'estatus' => $cliente->estatus,
+            'cartera_estado' => $cliente->cartera_estado,
             'fecha_nacimiento' => $cliente->fecha_nacimiento?->format('Y-m-d'),
             'tiene_credito_activo' => (bool) $cliente->tiene_credito_activo,
             'activo' => (bool) $cliente->activo,

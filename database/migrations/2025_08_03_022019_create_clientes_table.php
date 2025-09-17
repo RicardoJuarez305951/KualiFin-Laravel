@@ -1,4 +1,3 @@
-// database/migrations/2025_08_02_000005_create_clientes_table.php
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -18,15 +17,15 @@ class CreateClientesTable extends Migration
             $table->string('apellido_m', 100);
             $table->date('fecha_nacimiento');
             $table->boolean('tiene_credito_activo');
-            $table->string('estatus', 100);
+            $table->string('cartera_estado', 100);
             $table->decimal('monto_maximo', 12, 2);
             $table->timestamp('creado_en')->useCurrent();
             $table->timestamp('actualizado_en')->useCurrent()->useCurrentOnUpdate();
             $table->boolean('activo');
 
             $table->foreign('promotor_id')
-                  ->references('id')->on('promotores')
-                  ->onDelete('cascade');
+                ->references('id')->on('promotores')
+                ->onDelete('cascade');
         });
     }
 

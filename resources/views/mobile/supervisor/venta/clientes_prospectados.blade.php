@@ -28,7 +28,7 @@
                   <div class="flex items-center justify-between gap-3">
                     <div class="min-w-0">
                       <p class="truncate text-[14px] font-medium text-gray-800">{{ $cliente['nombre'] }}</p>
-                      <p class="text-[11px] text-gray-500 uppercase">{{ $cliente['estatus'] }}</p>
+                      <p class="text-[11px] text-gray-500 uppercase">{{ $cliente['cartera_estado'] ?? 'Sin estado' }}</p>
                     </div>
                     <button
                       type="button"
@@ -46,7 +46,7 @@
 
           <div class="bg-gray-50 rounded-lg border border-gray-200">
             <div class="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
-              <h3 class="text-[13px] font-bold text-gray-700">RecrÃ©ditos</h3>
+              <h3 class="text-[13px] font-bold text-gray-700">Recréditos</h3>
               <span class="text-[11px] px-2 py-0.5 rounded-full bg-gray-200 text-gray-700">{{ $promotor['recreditos']->count() }}</span>
             </div>
             <div>
@@ -66,7 +66,7 @@
                   </div>
                 </div>
               @empty
-                <p class="px-3 py-4 text-sm text-gray-500 text-center">Sin solicitudes de recrÃ©dito</p>
+                <p class="px-3 py-4 text-sm text-gray-500 text-center">Sin solicitudes de recrédito</p>
               @endforelse
             </div>
           </div>
@@ -74,7 +74,7 @@
       </div>
     @empty
       <div class="rounded-2xl bg-white border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 shadow-sm">
-        No se encontraron clientes prospectados bajo tu supervisiÃ³n.
+        No se encontraron clientes prospectados bajo tu supervisión.
       </div>
     @endforelse
 
@@ -97,10 +97,10 @@
           </div>
 
           <div class="grid grid-cols-1 gap-2 text-sm">
-            <p><span class="font-semibold">Estatus:</span> <span x-text="selected.estatus || 'Sin definir'"></span></p>
+            <p><span class="font-semibold">Estatus:</span> <span x-text="selected.cartera_estado || 'Sin definir'"></span></p>
             <p x-show="selected.fecha_nacimiento"><span class="font-semibold">Fecha nacimiento:</span> <span x-text="selected.fecha_nacimiento"></span></p>
-            <p x-show="selected.telefono"><span class="font-semibold">TelÃ©fono:</span> <span x-text="selected.telefono"></span></p>
-            <p x-show="selected.direccion"><span class="font-semibold">DirecciÃ³n:</span> <span x-text="selected.direccion"></span></p>
+            <p x-show="selected.telefono"><span class="font-semibold">Teléfono:</span> <span x-text="selected.telefono"></span></p>
+            <p x-show="selected.direccion"><span class="font-semibold">Dirección:</span> <span x-text="selected.direccion"></span></p>
             <p x-show="selected.monto"><span class="font-semibold">Monto:</span> <span x-text="formatCurrency(selected.monto)"></span></p>
           </div>
 
@@ -220,14 +220,6 @@
         </div>
       </div>
     </template>
-
-
-
-
-
-
-
-
   </div>
 
   <script>
@@ -238,7 +230,7 @@
         currentStep: 1,
         steps: [
           { id: 1, label: 'Clientes' },
-          { id: 2, label: 'CrÃ©ditos' },
+          { id: 2, label: 'Créditos' },
           { id: 3, label: 'Ocupaciones' },
           { id: 4, label: 'Datos contacto' },
           { id: 5, label: 'InformaciÃ³n familiares' },
@@ -263,7 +255,7 @@
             apellido_p: '',
             apellido_m: '',
             curp: '',
-            estatus: '',
+            cartera_estado: '',
             fecha_nacimiento: '',
             telefono: '',
             direccion: '',

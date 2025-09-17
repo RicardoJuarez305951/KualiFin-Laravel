@@ -1,4 +1,3 @@
-// database/migrations/2025_08_02_000006_create_creditos_table.php
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -20,8 +19,8 @@ class CreateCreditosTable extends Migration
             $table->date('fecha_final');
 
             $table->foreign('cliente_id')
-                  ->references('id')->on('clientes')
-                  ->onDelete('cascade');
+                ->references('id')->on('clientes')
+                ->onDelete('cascade');
         });
     }
 
