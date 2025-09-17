@@ -7,6 +7,7 @@ use App\Models\Ejercicio;
 use App\Models\Promotor;
 use App\Models\Supervisor;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -236,6 +237,66 @@ class SupervisorController extends Controller
 
         return view('mobile.supervisor.venta.clientes_supervisados', [
             'promotores' => $promotoresData,
+        ]);
+    }
+
+    public function aprobarProspecto(Cliente $cliente): JsonResponse
+    {
+        $credito = $cliente->credito;
+
+        if (!$credito) {
+            return response()->json(['message' => 'El cliente no tiene un credito asociado.'], 404);
+        }
+
+        DB::transaction(function () use ($cliente, $credito) {
+            $credito->estado = 'Supervisado';
+            $credito->save();
+
+            $cliente->cartera_estado = 'activo';
+            $cliente->activo = true;
+            $cliente->save();
+        });
+
+        $cliente->refresh();
+        $credito->refresh();
+
+        return response()->json([
+            'message' => 'Cliente supervisado correctamente.',
+            'cliente' => [
+                'id' => $cliente->id,
+                'cartera_estado' => $cliente->cartera_estado,
+                'credito_estado' => $credito->estado,
+            ],
+        ]);
+    }
+
+    public function rechazarProspecto(Cliente $cliente): JsonResponse
+    {
+        $credito = $cliente->credito;
+
+        if (!$credito) {
+            return response()->json(['message' => 'El cliente no tiene un credito asociado.'], 404);
+        }
+
+        DB::transaction(function () use ($cliente, $credito) {
+            $credito->estado = 'Rechazado';
+            $credito->save();
+
+            $cliente->cartera_estado = 'inactivo';
+            $cliente->activo = false;
+            $cliente->save();
+        });
+
+        $cliente->refresh();
+        $credito->refresh();
+
+        return response()->json([
+            'message' => 'Cliente rechazado correctamente.',
+            'cliente' => [
+                'id' => $cliente->id,
+                'cartera_estado' => $cliente->cartera_estado,
+                'credito_estado' => $credito->estado,
+            ],
         ]);
     }
 
@@ -838,9 +899,21 @@ class SupervisorController extends Controller
                         ->with([
                             'documentos',
                             'credito' => function ($creditoQuery) {
-                                $creditoQuery->select('creditos.id', 'creditos.cliente_id', 'creditos.monto_total', 'creditos.estado', 'creditos.fecha_inicio')
+                                $creditoQuery->select('creditos.id', 'creditos.cliente_id', 'creditos.monto_total', 'creditos.estado', 'creditos.periodicidad', 'creditos.fecha_inicio', 'creditos.fecha_final')
                                     ->with([
                                         'datoContacto',
+                                        'ocupacion' => function ($ocupacionQuery) {
+                                            $ocupacionQuery->select('id', 'credito_id', 'actividad', 'nombre_empresa', 'calle', 'numero', 'colonia', 'municipio', 'telefono', 'antiguedad', 'monto_percibido', 'periodo_pago')
+                                                ->with(['ingresosAdicionales' => function ($ingresoQuery) {
+                                                    $ingresoQuery->select('id', 'ocupacion_id', 'concepto', 'monto', 'frecuencia');
+                                                }]);
+                                        },
+                                        'informacionFamiliar' => function ($familiarQuery) {
+                                            $familiarQuery->select('id', 'credito_id', 'nombre_conyuge', 'celular_conyuge', 'actividad_conyuge', 'ingresos_semanales_conyuge', 'domicilio_trabajo_conyuge', 'personas_en_domicilio', 'dependientes_economicos', 'conyuge_vive_con_cliente');
+                                        },
+                                        'garantias' => function ($garantiaQuery) {
+                                            $garantiaQuery->select('id', 'credito_id', 'propietario', 'tipo', 'marca', 'modelo', 'num_serie', 'antiguedad', 'monto_garantizado', 'foto_url');
+                                        },
                                         'avales' => function ($avalQuery) {
                                             $avalQuery->select('id', 'credito_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'telefono', 'direccion');
                                         },
@@ -894,7 +967,29 @@ class SupervisorController extends Controller
         ])->filter()->implode(', ') : null;
 
         $aval = $credito?->avales?->last();
+        $ocupacion = $credito?->ocupacion;
+        $ingresosAdicionales = $ocupacion?->ingresosAdicionales?->map(function ($ingreso) {
+            return [
+                'concepto' => $ingreso->concepto,
+                'monto' => (float) ($ingreso->monto ?? 0),
+                'frecuencia' => $ingreso->frecuencia,
+            ];
+        })->values() ?? collect();
+        $informacionFamiliar = $credito?->informacionFamiliar;
+        $garantias = $credito?->garantias?->map(function ($garantia) {
+            return [
+                'propietario' => $garantia->propietario,
+                'tipo' => $garantia->tipo,
+                'marca' => $garantia->marca,
+                'modelo' => $garantia->modelo,
+                'num_serie' => $garantia->num_serie,
+                'antiguedad' => $garantia->antiguedad,
+                'monto_garantizado' => (float) ($garantia->monto_garantizado ?? 0),
+                'foto_url' => $garantia->foto_url,
+            ];
+        })->values() ?? collect();
         $fechaInicioCredito = $credito?->fecha_inicio ? Carbon::parse($credito->fecha_inicio)->format('Y-m-d') : null;
+        $fechaFinalCredito = $credito?->fecha_final ? Carbon::parse($credito->fecha_final)->format('Y-m-d') : null;
 
         return [
             'id' => $cliente->id,
@@ -917,6 +1012,46 @@ class SupervisorController extends Controller
                 'comprobante' => $domDoc['url'] ?? null,
             ],
             'documentos_detalle' => $formattedDocsCollection->toArray(),
+            'contacto' => $dato ? [
+                'calle' => $dato->calle,
+                'numero_ext' => $dato->numero_ext,
+                'numero_int' => $dato->numero_int,
+                'monto_mensual' => (float) ($dato->monto_mensual ?? 0),
+                'colonia' => $dato->colonia,
+                'municipio' => $dato->municipio,
+                'estado' => $dato->estado,
+                'cp' => $dato->cp,
+                'tiempo_en_residencia' => $dato->tiempo_en_residencia,
+                'tel_fijo' => $dato->tel_fijo,
+                'tel_cel' => $dato->tel_cel,
+                'tipo_de_vivienda' => $dato->tipo_de_vivienda,
+            ] : null,
+            'ocupacion' => $ocupacion ? [
+                'actividad' => $ocupacion->actividad,
+                'nombre_empresa' => $ocupacion->nombre_empresa,
+                'calle' => $ocupacion->calle,
+                'numero' => $ocupacion->numero,
+                'colonia' => $ocupacion->colonia,
+                'municipio' => $ocupacion->municipio,
+                'telefono' => $ocupacion->telefono,
+                'antiguedad' => $ocupacion->antiguedad,
+                'monto_percibido' => (float) ($ocupacion->monto_percibido ?? 0),
+                'periodo_pago' => $ocupacion->periodo_pago,
+                'tiene_ingresos_adicionales' => $ingresosAdicionales->isNotEmpty(),
+                'ingresos_adicionales' => $ingresosAdicionales->toArray(),
+            ] : null,
+            'familiares' => $informacionFamiliar ? [
+                'tiene_conyuge' => ($informacionFamiliar->nombre_conyuge !== '' || $informacionFamiliar->celular_conyuge !== '' || $informacionFamiliar->actividad_conyuge !== ''),
+                'nombre_conyuge' => $informacionFamiliar->nombre_conyuge,
+                'celular_conyuge' => $informacionFamiliar->celular_conyuge,
+                'actividad_conyuge' => $informacionFamiliar->actividad_conyuge,
+                'ingresos_semanales_conyuge' => (float) ($informacionFamiliar->ingresos_semanales_conyuge ?? 0),
+                'domicilio_trabajo_conyuge' => $informacionFamiliar->domicilio_trabajo_conyuge,
+                'personas_en_domicilio' => (int) ($informacionFamiliar->personas_en_domicilio ?? 0),
+                'dependientes_economicos' => (int) ($informacionFamiliar->dependientes_economicos ?? 0),
+                'conyuge_vive_con_cliente' => (bool) $informacionFamiliar->conyuge_vive_con_cliente,
+            ] : null,
+            'garantias' => $garantias->toArray(),
             'aval' => $aval ? [
                 'nombre' => trim($aval->nombre . ' ' . $aval->apellido_p . ' ' . ($aval->apellido_m ?? '')),
                 'curp' => $aval->CURP,
@@ -927,7 +1062,9 @@ class SupervisorController extends Controller
                 'id' => $credito?->id,
                 'monto_total' => (float) ($credito?->monto_total ?? 0),
                 'estado' => $credito?->estado,
+                'periodicidad' => $credito?->periodicidad,
                 'fecha_inicio' => $fechaInicioCredito,
+                'fecha_final' => $fechaFinalCredito,
             ],
         ];
     }

@@ -10,7 +10,7 @@
                x-model="form.contacto.calle" name="contacto[calle]">
       </div>
       <div class="space-y-1">
-        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Numero exterior <span class="text-red-500">*</span></label>
+        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">N?mero exterior <span class="text-red-500">*</span></label>
         <input type="text"
                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                x-model="form.contacto.numero_ext" name="contacto[numero_ext]">
@@ -18,7 +18,7 @@
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div class="space-y-1">
-        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Numero interior</label>
+        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">N?mero interior</label>
         <input type="text"
                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                x-model="form.contacto.numero_int" name="contacto[numero_int]">
@@ -52,7 +52,7 @@
                x-model="form.contacto.estado" name="contacto[estado]">
       </div>
       <div class="space-y-1">
-        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Codigo postal <span class="text-red-500">*</span></label>
+        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">C?digo postal <span class="text-red-500">*</span></label>
         <input type="text"
                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                x-model="form.contacto.cp" name="contacto[cp]">
@@ -63,10 +63,10 @@
         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tiempo en residencia <span class="text-red-500">*</span></label>
         <input type="text"
                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-               x-model="form.contacto.tiempo_en_residencia" name="contacto[tiempo_en_residencia]" placeholder="Ej. 3 años">
+               x-model="form.contacto.tiempo_en_residencia" name="contacto[tiempo_en_residencia]" placeholder="Ej. 3 a?os">
       </div>
       <div class="space-y-1">
-        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Telefono fijo</label>
+        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tel?fono fijo</label>
         <input type="tel"
                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                x-model="form.contacto.tel_fijo" name="contacto[tel_fijo]">
@@ -74,16 +74,20 @@
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div class="space-y-1">
-        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Telefono celular <span class="text-red-500">*</span></label>
+        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tel?fono celular <span class="text-red-500">*</span></label>
         <input type="tel"
                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                x-model="form.contacto.tel_cel" name="contacto[tel_cel]">
       </div>
       <div class="space-y-1">
         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tipo de vivienda <span class="text-red-500">*</span></label>
-        <input type="text"
-               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-               x-model="form.contacto.tipo_de_vivienda" name="contacto[tipo_de_vivienda]" placeholder="Propia, rentada...">
+        <select class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                x-model="form.contacto.tipo_de_vivienda" name="contacto[tipo_de_vivienda]">
+          <option value="">Selecciona una opci?n</option>
+          <option value="Propia">Propia</option>
+          <option value="Rentada">Rentada</option>
+          <option value="Familiar">Familiar</option>
+        </select>
       </div>
     </div>
   </div>
