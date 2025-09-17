@@ -3,11 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<<<<<<< HEAD
-    <title>{{ $title ?? config('app.name', 'Kaulifin') }}</title>
-=======
     <title>{{ $title ?? config('app.name', 'Kualifin') }}</title>
->>>>>>> 8c4df4a168c5cca3be3943152747fec6603c3779
     @vite(['resources/css/app.css', 'resources/css/authenticated.css', 'resources/js/app.js'])
     
 </head>
@@ -70,12 +66,14 @@
         <div class="h-full px-3 pb-4 overflow-y-auto bg-white">
             <ul class="space-y-2 font-medium">
                 <x-layouts.navlink route="dashboard" icon="🏠" text="Dashboard" />
-                <x-layouts.navlink route="credito.create" icon="📋" text="Nueva Solicitud" />
+                {{-- <x-layouts.navlink route="credito.create" icon="📋" text="Nueva Solicitud" />
                 <x-layouts.navlink route="nuevoCliente" icon="👥" text="Nuevo Cliente" />
                 <x-layouts.navlink route="panelRevision" icon="🔍" text="Panel de Revisión" />
                 <x-layouts.navlink route="preAprobacion" icon="📝" text="Pre Aprobación" />
                 <x-layouts.navlink route="reportes" icon="📊" text="Reportes" />
-                <x-layouts.navlink route="recreditoClientes" icon="🔄" text="Recrédito Clientes" />
+                <x-layouts.navlink route="recreditoClientes" icon="🔄" text="Recrédito Clientes" /> --}}
+                <x-layouts.navlink route='consulta.historica' icon="🔍" text="Consulta Histórica" />
+                <x-layouts.navlink route='mobile.index' icon="📱" text="Vista Móvil" />
                 <x-layouts.navlink route="admin.index" icon="🧑‍💼" text="Panel Administrativo" />
             </ul>
             

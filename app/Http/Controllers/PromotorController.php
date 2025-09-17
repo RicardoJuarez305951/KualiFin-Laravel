@@ -378,7 +378,21 @@ class PromotorController extends Controller
         }
 
         $clientes = $promotor->clientes()
-            ->with(['credito.pagosProyectados' => fn ($query) => $query->orderBy('semana')])
+            ->with([
+                'credito' => function ($query) {
+                    $query->with([
+                        'pagosProyectados' => fn ($subQuery) => $subQuery->orderBy('semana'),
+                        'avales' => fn ($subQuery) => $subQuery->orderByDesc('id'),
+                        'datoContacto',
+                    ]);
+                },
+                'creditos' => function ($query) {
+                    $query->with([
+                        'avales' => fn ($subQuery) => $subQuery->orderByDesc('id'),
+                        'datoContacto',
+                    ])->orderByDesc('id')->limit(1);
+                },
+            ])
             ->orderBy('nombre')
             ->get();
 
@@ -410,7 +424,77 @@ class PromotorController extends Controller
                 continue;
             }
 
-            $inactivos->push($cliente);
+            $ultimoCredito = $cliente->creditos->first() ?? $credito;
+            $contacto = $ultimoCredito?->datoContacto;
+
+            $clienteDireccion = $this->buildDireccionFromContacto($contacto);
+            $clienteTelefono = $this->pickTelefonoFromContacto($contacto);
+            $fechaUltimoCredito = optional($ultimoCredito?->fecha_inicio)->format('Y-m-d')
+                ?: optional($ultimoCredito?->fecha_final)->format('Y-m-d');
+
+            $avalModel = $ultimoCredito?->avales?->first();
+            $aval = [
+                'apellido_p' => $avalModel?->apellido_p ?? '',
+                'apellido_m' => $avalModel?->apellido_m ?? '',
+                'nombre' => $avalModel?->nombre ?? '',
+                'direccion' => $avalModel?->direccion ?? '',
+                'telefono' => $avalModel?->telefono ?? '',
+                'CURP' => $avalModel?->CURP ?? '',
+                'curp' => $avalModel?->CURP ?? '',
+            ];
+            $avalNombreCompleto = $this->formatFullName(
+                $aval['apellido_p'],
+                $aval['apellido_m'],
+                $aval['nombre']
+            );
+
+            $clienteResumen = [
+                'apellido_p' => $cliente->apellido_p,
+                'apellido_m' => $cliente->apellido_m,
+                'nombre' => $cliente->nombre,
+                'direccion' => $clienteDireccion,
+                'telefono' => $clienteTelefono,
+                'CURP' => $cliente->CURP,
+                'curp' => $cliente->CURP,
+            ];
+
+            $inactivos->push([
+                'id' => $cliente->id,
+                'nombre' => $cliente->nombre,
+                'apellido_p' => $cliente->apellido_p,
+                'apellido_m' => $cliente->apellido_m,
+                'CURP' => $cliente->CURP,
+                'curp' => $cliente->CURP,
+                'direccion' => $clienteDireccion,
+                'telefono' => $clienteTelefono,
+                'fecha_ultimo_credito' => $fechaUltimoCredito ?: '',
+                'cliente' => array_merge($clienteResumen, [
+                    'nombre_completo' => $this->formatFullName(
+                        $cliente->apellido_p,
+                        $cliente->apellido_m,
+                        $cliente->nombre
+                    ),
+                ]),
+                'aval' => array_merge($aval, [
+                    'nombre_completo' => $avalNombreCompleto,
+                ]),
+                'ultimo_aval' => array_merge($aval, [
+                    'nombre_completo' => $avalNombreCompleto,
+                ]),
+                'aval_nombre' => $avalNombreCompleto,
+                'aval_apellido_p' => $aval['apellido_p'],
+                'aval_apellido_m' => $aval['apellido_m'],
+                'aval_direccion' => $aval['direccion'],
+                'aval_telefono' => $aval['telefono'],
+                'aval_CURP' => $aval['CURP'],
+                'ultimo_credito' => $ultimoCredito ? [
+                    'id' => $ultimoCredito->id,
+                    'estado' => $ultimoCredito->estado,
+                    'fecha_inicio' => optional($ultimoCredito->fecha_inicio)->format('Y-m-d'),
+                    'fecha_final' => optional($ultimoCredito->fecha_final)->format('Y-m-d'),
+                    'dato_contacto' => $contacto ? $contacto->toArray() : null,
+                ] : null,
+            ]);
         }
 
         return view('mobile.promotor.cartera.cartera', [
@@ -418,6 +502,51 @@ class PromotorController extends Controller
             'vencidos' => $vencidos->values(),
             'inactivos' => $inactivos->values(),
         ]);
+    }
+
+    private function buildDireccionFromContacto($contacto): string
+    {
+        if (!$contacto) {
+            return '';
+        }
+
+        return collect([
+            $contacto->calle ?? null,
+            $contacto->numero_ext ? '#' . $contacto->numero_ext : null,
+            $contacto->numero_int ? 'Int ' . $contacto->numero_int : null,
+            $contacto->colonia ?? null,
+            $contacto->municipio ?? null,
+            $contacto->estado ?? null,
+            $contacto->cp ? 'CP ' . $contacto->cp : null,
+        ])->filter()->implode(', ');
+    }
+
+    private function pickTelefonoFromContacto($contacto): string
+    {
+        if (!$contacto) {
+            return '';
+        }
+
+        return collect([$contacto->tel_cel ?? null, $contacto->tel_fijo ?? null])
+            ->map(fn ($telefono) => $telefono ? trim($telefono) : null)
+            ->filter()
+            ->first() ?? '';
+    }
+
+    private function formatFullName(...$parts): string
+    {
+        return collect($parts)
+            ->map(function ($part) {
+                if ($part === null) {
+                    return null;
+                }
+
+                $part = is_string($part) ? trim($part) : (string) $part;
+
+                return $part !== '' ? $part : null;
+            })
+            ->filter()
+            ->implode(' ');
     }
 
     public function cliente_historial(Cliente $cliente)
