@@ -190,9 +190,19 @@ class SupervisorController extends Controller
 
         $nuevoStatuses = ['activo', 'desembolsado', 'regularizado', 'inactivo'];
         $recreditoStatuses = ['moroso'];
+        $supervisadoCreditStatuses = ['supervisado', 'supervisados'];
 
-        $promotoresData = $promotores->map(function ($promotor) use ($nuevoStatuses, $recreditoStatuses) {
+        $promotoresData = $promotores->map(function ($promotor) use ($nuevoStatuses, $recreditoStatuses, $supervisadoCreditStatuses) {
             $clientes = $promotor->clientes ?? collect();
+            $clientesDisponibles = $clientes->reject(function (Cliente $cliente) use ($supervisadoCreditStatuses) {
+                $estadoCredito = $cliente->credito?->estado;
+
+                if (!$estadoCredito) {
+                    return false;
+                }
+
+                return in_array(Str::lower($estadoCredito), $supervisadoCreditStatuses, true);
+            });
 
             $mapCliente = function (Cliente $cliente) {
                 return $this->mapClienteDetalle($cliente);
@@ -201,8 +211,8 @@ class SupervisorController extends Controller
             return [
                 'id' => $promotor->id,
                 'nombre' => trim($promotor->nombre . ' ' . $promotor->apellido_p . ' ' . ($promotor->apellido_m ?? '')),
-                'clientes' => $clientes->whereIn('cartera_estado', $nuevoStatuses)->map($mapCliente)->values(),
-                'recreditos' => $clientes->whereIn('cartera_estado', $recreditoStatuses)->map($mapCliente)->values(),
+                'clientes' => $clientesDisponibles->whereIn('cartera_estado', $nuevoStatuses)->map($mapCliente)->values(),
+                'recreditos' => $clientesDisponibles->whereIn('cartera_estado', $recreditoStatuses)->map($mapCliente)->values(),
             ];
         });
 
@@ -217,8 +227,9 @@ class SupervisorController extends Controller
 
         $supervisionStatuses = ['moroso', 'desembolsado', 'regularizado'];
         $recreditoStatuses = ['moroso'];
+        $supervisadoCreditStatuses = ['supervisado', 'supervisados'];
 
-        $promotoresData = $promotores->map(function ($promotor) use ($supervisionStatuses, $recreditoStatuses) {
+        $promotoresData = $promotores->map(function ($promotor) use ($supervisionStatuses, $recreditoStatuses, $supervisadoCreditStatuses) {
             $clientes = $promotor->clientes ?? collect();
 
             $mapCliente = function (Cliente $cliente) use ($promotor) {
@@ -230,7 +241,17 @@ class SupervisorController extends Controller
             return [
                 'id' => $promotor->id,
                 'nombre' => trim($promotor->nombre . ' ' . $promotor->apellido_p . ' ' . ($promotor->apellido_m ?? '')),
-                'clientes' => $clientes->whereIn('cartera_estado', $supervisionStatuses)->map($mapCliente)->values(),
+                'clientes' => $clientes
+                    ->filter(function (Cliente $cliente) use ($supervisionStatuses, $supervisadoCreditStatuses) {
+                        $estadoCredito = $cliente->credito?->estado;
+                        if ($estadoCredito && in_array(Str::lower($estadoCredito), $supervisadoCreditStatuses, true)) {
+                            return true;
+                        }
+
+                        return in_array($cliente->cartera_estado, $supervisionStatuses, true);
+                    })
+                    ->map($mapCliente)
+                    ->values(),
                 'recreditos' => $clientes->whereIn('cartera_estado', $recreditoStatuses)->map($mapCliente)->values(),
             ];
         });
