@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Throwable;
 
 class NuevoClienteController extends Controller
@@ -325,6 +326,58 @@ class NuevoClienteController extends Controller
                 'message' => 'No se pudo guardar la informacion del cliente.',
             ], 500);
         }
+    }
+
+    public function RegistrarCredito(Request $request, Cliente $cliente): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'accion' => ['required', Rule::in(['aprobar', 'rechazar'])],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => $validator->errors()->first('accion') ?? 'Acción inválida proporcionada.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $accion = $validator->validated()['accion'];
+        $credito = $cliente->credito;
+
+        if (!$credito) {
+            return response()->json(['message' => 'El cliente no tiene un credito asociado.'], 404);
+        }
+
+        DB::transaction(function () use ($accion, $cliente, $credito) {
+            if ($accion === 'aprobar') {
+                $credito->estado = 'Supervisado';
+                $cliente->cartera_estado = 'activo';
+                $cliente->activo = true;
+            } else {
+                $credito->estado = 'Rechazado';
+                $cliente->cartera_estado = 'inactivo';
+                $cliente->activo = false;
+            }
+
+            $credito->save();
+            $cliente->save();
+        });
+
+        $cliente->refresh();
+        $credito->refresh();
+
+        $message = $accion === 'aprobar'
+            ? 'Cliente supervisado correctamente.'
+            : 'Cliente rechazado correctamente.';
+
+        return response()->json([
+            'message' => $message,
+            'cliente' => [
+                'id' => $cliente->id,
+                'cartera_estado' => $cliente->cartera_estado,
+                'credito_estado' => $credito->estado,
+            ],
+        ]);
     }
 
     private function toBoolean($value): ?bool

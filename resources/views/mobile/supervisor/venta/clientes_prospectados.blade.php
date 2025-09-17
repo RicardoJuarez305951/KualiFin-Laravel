@@ -259,8 +259,7 @@
         actionInProgress: null,
         maxGarantias: 8,
         postUrl: '{{ route('mobile.supervisor.nuevo_cliente.store') }}',
-        approveUrlTemplate: @js(route('mobile.supervisor.clientes_prospectados.aprobar', ['cliente' => '__CLIENTE_ID__'])),
-        rejectUrlTemplate: @js(route('mobile.supervisor.clientes_prospectados.rechazar', ['cliente' => '__CLIENTE_ID__'])),
+        registrarCreditoUrlTemplate: @js(route('mobile.supervisor.clientes_prospectados.registrar_credito', ['cliente' => '__CLIENTE_ID__'])),
         csrfToken: '{{ csrf_token() }}',
         selected: {},
         form: {},
@@ -672,13 +671,16 @@
           this.actionInProgress = type;
           this.modalFeedback = { show: false, type: 'success', message: '' };
           try {
+            const accion = type === 'approve' ? 'aprobar' : 'rechazar';
             const response = await fetch(url, {
               method: 'POST',
               headers: {
                 'Accept': 'application/json',
                 'X-CSRF-TOKEN': this.csrfToken,
                 'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json',
               },
+              body: JSON.stringify({ accion }),
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
@@ -710,12 +712,12 @@
         },
         async aceptar() {
           if (!this.selected?.id) return;
-          const url = this.approveUrlTemplate.replace('__CLIENTE_ID__', this.selected.id);
+          const url = this.registrarCreditoUrlTemplate.replace('__CLIENTE_ID__', this.selected.id);
           await this.handleProspectoAction('approve', url, 'Cliente supervisado correctamente.', 'No se pudo supervisar el cliente.');
         },
         async rechazar() {
           if (!this.selected?.id) return;
-          const url = this.rejectUrlTemplate.replace('__CLIENTE_ID__', this.selected.id);
+          const url = this.registrarCreditoUrlTemplate.replace('__CLIENTE_ID__', this.selected.id);
           await this.handleProspectoAction('reject', url, 'Cliente rechazado correctamente.', 'No se pudo rechazar el cliente.');
         },
         async submitForm() {
@@ -788,8 +790,6 @@
             this.saving = false;
           }
         },
-        aceptar() { console.log('ACEPTAR', this.selected); this.closeModal(); },
-        rechazar() { console.log('RECHAZAR', this.selected); this.closeModal(); },
         formatCurrency(value) {
           const number = Number(value || 0);
           return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 }).format(number);
