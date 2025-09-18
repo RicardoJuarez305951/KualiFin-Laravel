@@ -179,6 +179,11 @@ class SupervisorController extends Controller
         return view('mobile.supervisor.venta.solicitar_venta');
     }
 
+    public function horarios()
+    {
+        return view('mobile.supervisor.venta.horarios');
+    }
+
     public function ingresar_cliente()
     {
         return view('mobile.supervisor.venta.ingresar_cliente');
