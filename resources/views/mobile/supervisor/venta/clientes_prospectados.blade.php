@@ -46,7 +46,7 @@
 
           <div class="bg-gray-50 rounded-lg border border-gray-200">
             <div class="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
-              <h3 class="text-[13px] font-bold text-gray-700">Recr�ditos</h3>
+              <h3 class="text-[13px] font-bold text-gray-700">Recréditos</h3>
               <span class="text-[11px] px-2 py-0.5 rounded-full bg-gray-200 text-gray-700">{{ $promotor['recreditos']->count() }}</span>
             </div>
             <div>
@@ -66,7 +66,7 @@
                   </div>
                 </div>
               @empty
-                <p class="px-3 py-4 text-sm text-gray-500 text-center">Sin solicitudes de recr�dito</p>
+                <p class="px-3 py-4 text-sm text-gray-500 text-center">Sin solicitudes de recrédito</p>
               @endforelse
             </div>
           </div>
@@ -74,7 +74,7 @@
       </div>
     @empty
       <div class="rounded-2xl bg-white border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 shadow-sm">
-        No se encontraron clientes prospectados bajo tu supervisi�n.
+        No se encontraron clientes prospectados bajo tu supervisión.
       </div>
     @endforelse
 
@@ -246,7 +246,7 @@
         currentStep: 1,
         steps: [
           { id: 1, label: 'Clientes' },
-          { id: 2, label: 'Cr�ditos' },
+          { id: 2, label: 'Créditos' },
           { id: 3, label: 'Ocupaciones' },
           { id: 4, label: 'Datos contacto' },
           { id: 5, label: 'Información familiares' },

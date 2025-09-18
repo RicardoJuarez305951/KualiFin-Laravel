@@ -96,7 +96,7 @@
 
           <div class="space-y-1">
 
-            <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">?El Conyuge vive con el cliente? <span class='text-red-500'>*</span></label>
+            <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">¿El Conyuge vive con el cliente? <span class='text-red-500'>*</span></label>
 
             <select class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
 

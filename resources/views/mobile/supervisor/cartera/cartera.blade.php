@@ -78,9 +78,9 @@
 
     {{-- ===================== Acciones ===================== --}}
     <section class="grid grid-cols-3 gap-3">
-      {!! $btn(url()->previous(), 'Regresar', 'outline-primary') !!}
+      {!! $btn(route('mobile.index'), 'Regresar', 'outline-primary') !!}
       {!! $btn(url()->current(), 'Actualizar', 'primary') !!}
-      {!! $btn(route('mobile.'.$role.'.reporte'), 'Reporte', 'indigo') !!}
+      {!! $btn(url()->current(), 'Reporte', 'indigo') !!}
     </section>
 
   </div>
