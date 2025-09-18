@@ -19,10 +19,13 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div class="space-y-1">
           <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Propietario <span class="text-red-500">*</span></label>
-          <input type="text"
-                 class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                 :name="`garantias[${index}][propietario]`"
-                 x-model="form.garantias[index].propietario">
+          <select class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  :name="`garantias[${index}][propietario]`"
+                  x-model="form.garantias[index].propietario">
+            <option value="">Selecciona una opci?n</option>
+            <option value="Aval">Aval</option>
+            <option value="Cliente">Cliente</option>
+          </select>
         </div>
         <div class="space-y-1">
           <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tipo <span class="text-red-500">*</span></label>
@@ -73,11 +76,13 @@
                  x-model="form.garantias[index].monto_garantizado">
         </div>
         <div class="space-y-1">
-          <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Foto (URL) <span class="text-red-500">*</span></label>
-          <input type="url"
+          <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Foto <span class="text-red-500">*</span></label>
+          <input type="file" accept="image/*"
                  class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                 :name="`garantias[${index}][foto_url]`"
-                 x-model="form.garantias[index].foto_url" placeholder="https://">
+                 :name="`garantias[${index}][foto_archivo]`"
+                 @change="handleGarantiaFileChange($event, index)">
+          <p class="text-[11px] text-gray-500" x-show="form.garantias[index].foto_nombre">Archivo seleccionado: <span x-text="form.garantias[index].foto_nombre"></span></p>
+          <p class="text-[11px] text-gray-500" x-show="!form.garantias[index].foto_nombre && form.garantias[index].foto_url">Archivo registrado: <span x-text="form.garantias[index].foto_url"></span></p>
         </div>
       </div>
     </div>

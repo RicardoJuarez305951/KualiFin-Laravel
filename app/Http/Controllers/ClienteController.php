@@ -20,16 +20,16 @@ class ClienteController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'promotor_id'      => 'required|exists:promotores,id',
-            'CURP'              => 'required|string|size:18',
-            'nombre'            => 'required|string',
-            'apellido_p'        => 'required|string',
-            'apellido_m'        => 'nullable|string',
-            'fecha_nacimiento'  => 'required|date',
-            'tiene_credito_activo' => 'required|boolean',
-            'estatus'           => 'required|string',
-            'monto_maximo'      => 'required|numeric',
-            'activo'            => 'required|boolean',
+            'promotor_id'         => 'required|exists:promotores,id',
+            'CURP'                => 'required|string|size:18',
+            'nombre'              => 'required|string',
+            'apellido_p'          => 'required|string',
+            'apellido_m'          => 'nullable|string',
+            'fecha_nacimiento'    => 'required|date',
+            'tiene_credito_activo'=> 'required|boolean',
+            'cartera_estado'      => 'required|string',
+            'monto_maximo'        => 'required|numeric',
+            'activo'              => 'required|boolean',
         ]);
 
         Cliente::create($data);
@@ -49,13 +49,13 @@ class ClienteController extends Controller
     public function update(Request $request, Cliente $cliente)
     {
         $data = $request->validate([
-            'nombre'            => 'required|string',
-            'apellido_p'        => 'required|string',
-            'apellido_m'        => 'nullable|string',
-            'tiene_credito_activo' => 'required|boolean',
-            'estatus'           => 'required|string',
-            'monto_maximo'      => 'required|numeric',
-            'activo'            => 'required|boolean',
+            'nombre'              => 'required|string',
+            'apellido_p'          => 'required|string',
+            'apellido_m'          => 'nullable|string',
+            'tiene_credito_activo'=> 'required|boolean',
+            'cartera_estado'      => 'required|string',
+            'monto_maximo'        => 'required|numeric',
+            'activo'              => 'required|boolean',
         ]);
 
         $cliente->update($data);

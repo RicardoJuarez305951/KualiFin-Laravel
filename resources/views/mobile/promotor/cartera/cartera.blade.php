@@ -20,20 +20,145 @@
             // Inactiva detail
             showInactivaDetail: null,
 
+            normalizeString(value) {
+                if (value === undefined || value === null) {
+                    return '';
+                }
+
+                if (typeof value === 'string') {
+                    return value.trim();
+                }
+
+                if (typeof value === 'number' || typeof value === 'boolean') {
+                    return String(value);
+                }
+
+                return '';
+            },
+
+            formatName(...parts) {
+                return parts
+                    .map((part) => this.normalizeString(part))
+                    .filter(Boolean)
+                    .join(' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            },
+
+            pickValue(target, paths) {
+                for (const path of paths) {
+                    if (!path) continue;
+
+                    const segments = path.split('.');
+                    let current = target;
+
+                    for (const segment of segments) {
+                        if (current === undefined || current === null) {
+                            current = undefined;
+                            break;
+                        }
+
+                        current = current[segment];
+                    }
+
+                    if (current === undefined || current === null) {
+                        continue;
+                    }
+
+                    if (typeof current === 'string') {
+                        const trimmed = current.trim();
+                        if (trimmed !== '') {
+                            return trimmed;
+                        }
+                        continue;
+                    }
+
+                    if (Array.isArray(current)) {
+                        if (current.length) {
+                            return current;
+                        }
+                        continue;
+                    }
+
+                    if (typeof current === 'object') {
+                        if (Object.keys(current).length) {
+                            return current;
+                        }
+                        continue;
+                    }
+
+                    return current;
+                }
+
+                return '';
+            },
+
+            resolveAval(c) {
+                let aval = this.pickValue(c, ['ultimo_aval', 'aval', 'aval_actual']);
+
+                if (Array.isArray(aval) && aval.length) {
+                    aval = aval[aval.length - 1];
+                }
+
+                if (!aval || typeof aval !== 'object' || Array.isArray(aval)) {
+                    const avalesCredito = this.pickValue(c, ['credito.avales']);
+                    if (Array.isArray(avalesCredito) && avalesCredito.length) {
+                        aval = avalesCredito[avalesCredito.length - 1];
+                    }
+                }
+
+                if (!aval || typeof aval !== 'object' || Array.isArray(aval)) {
+                    const avales = this.pickValue(c, ['avales']);
+                    if (Array.isArray(avales) && avales.length) {
+                        aval = avales[avales.length - 1];
+                    }
+                }
+
+                if (!aval || typeof aval !== 'object' || Array.isArray(aval)) {
+                    aval = {
+                        apellido_p: this.pickValue(c, ['aval_apellido_p']),
+                        apellido_m: this.pickValue(c, ['aval_apellido_m']),
+                        nombre: this.pickValue(c, ['aval_nombre']),
+                        direccion: this.pickValue(c, ['aval_direccion']),
+                        telefono: this.pickValue(c, ['aval_telefono']),
+                        CURP: this.pickValue(c, ['aval_CURP', 'aval_curp']),
+                    };
+                }
+
+                return aval && typeof aval === 'object' && !Array.isArray(aval) ? aval : {};
+            },
+
             openInactivaDetail(c) {
+                const clienteApellidoP = this.pickValue(c, ['apellido_p', 'cliente.apellido_p', 'apellido']);
+                const clienteApellidoM = this.pickValue(c, ['apellido_m', 'cliente.apellido_m']);
+                const clienteNombre = this.pickValue(c, ['nombre', 'cliente.nombre']);
+
+                const clienteDireccion = this.normalizeString(this.pickValue(c, ['direccion', 'cliente.direccion', 'domicilio']));
+                const clienteCurp = this.normalizeString(this.pickValue(c, ['CURP', 'curp', 'cliente.CURP', 'cliente.curp']));
+                const clienteTelefono = this.normalizeString(this.pickValue(c, ['telefono', 'cliente.telefono']));
+
+                const aval = this.resolveAval(c);
+                const avalApellidoP = this.pickValue(aval, ['apellido_p', 'apellido']);
+                const avalApellidoM = this.pickValue(aval, ['apellido_m']);
+                const avalNombre = this.pickValue(aval, ['nombre']);
+                const avalDireccion = this.normalizeString(this.pickValue(aval, ['direccion', 'domicilio']));
+                const avalCurp = this.normalizeString(this.pickValue(aval, ['CURP', 'curp']));
+                const avalTelefono = this.normalizeString(this.pickValue(aval, ['telefono', 'telefono_contacto']));
+
                 this.showInactivaDetail = {
                     client: {
-                        nombre: c.nombre,
-                        apellido: c.apellido,
-                        direccion: c.direccion,
-                        telefono: c.telefono,
+                        nombre: this.formatName(clienteApellidoP, clienteApellidoM, clienteNombre),
+                        direccion: clienteDireccion,
+                        curp: clienteCurp,
+                        telefono: clienteTelefono,
                     },
                     aval: {
-                        nombre: c.aval_nombre,
-                        direccion: c.aval_direccion,
-                        telefono: c.aval_telefono,
+                        nombre: this.formatName(avalApellidoP, avalApellidoM, avalNombre),
+                        direccion: avalDireccion,
+                        curp: avalCurp,
+                        telefono: avalTelefono,
                     },
-                    fecha_ultimo_credito: c.fecha_ultimo_credito,
+                    fecha_ultimo_credito: this.normalizeString(this.pickValue(c, ['fecha_ultimo_credito', 'ultimo_credito.fecha', 'fecha_ultimo'])),
                 };
             },
 
@@ -196,15 +321,17 @@
             <div class="bg-white rounded-2xl p-6 w-80" @click.away="showInactivaDetail = null" x-transition>
                 <div class="mb-4">
                     <h3 class="text-lg font-bold">Cliente</h3>
-                    <p class="font-semibold" x-text="showInactivaDetail.client.apellido + ' ' + showInactivaDetail.client.nombre"></p>
+                    <p class="font-semibold" x-text="showInactivaDetail.client.nombre"></p>
                     <p x-text="showInactivaDetail.client.direccion"></p>
-                    <p x-text="showInactivaDetail.client.telefono"></p>
+                    <p><span class="font-semibold">CURP:</span> <span x-text="showInactivaDetail.client.curp"></span></p>
+                    <p><span class="font-semibold">Telefono:</span> <span x-text="showInactivaDetail.client.telefono"></span></p>
                 </div>
                 <div class="mb-4">
-                    <h3 class="text-lg font-bold">Aval</h3>
+                    <h3 class="text-lg font-bold">Ultimo Aval</h3>
                     <p class="font-semibold" x-text="showInactivaDetail.aval.nombre"></p>
                     <p x-text="showInactivaDetail.aval.direccion"></p>
-                    <p x-text="showInactivaDetail.aval.telefono"></p>
+                    <p><span class="font-semibold">CURP:</span> <span x-text="showInactivaDetail.aval.curp"></span></p>
+                    <p><span class="font-semibold">Telefono:</span> <span x-text="showInactivaDetail.aval.telefono"></span></p>
                 </div>
                 <p class="mb-4"><span class="font-semibold">Fecha último crédito:</span> <span x-text="showInactivaDetail.fecha_ultimo_credito"></span></p>
                 <button @click="showInactivaDetail = null" class="w-full py-2 bg-blue-600 text-white rounded">Cerrar</button>

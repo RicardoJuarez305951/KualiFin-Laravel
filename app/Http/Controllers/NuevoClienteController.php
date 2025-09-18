@@ -8,13 +8,32 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Throwable;
 
 class NuevoClienteController extends Controller
 {
     public function store(Request $request): JsonResponse
     {
-        $form = (array) $request->input('form', []);
+        $formInput = $request->input('form', []);
+        if (is_string($formInput)) {
+            $decoded = json_decode($formInput, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $form = $decoded;
+            } else {
+                $form = [];
+            }
+        } else {
+            $form = (array) $formInput;
+        }
+
+        $ocupacion = (array) ($form['ocupacion'] ?? []);
+        $ocupacion['tiene_ingresos_adicionales'] = $this->toBoolean($ocupacion['tiene_ingresos_adicionales'] ?? null) ?? false;
+        if (!$ocupacion['tiene_ingresos_adicionales']) {
+            $ocupacion['ingresos_adicionales'] = [];
+        }
+        $form['ocupacion'] = $ocupacion;
 
         $form['ocupacion']['ingresos_adicionales'] = collect($form['ocupacion']['ingresos_adicionales'] ?? [])
             ->map(function ($item) {
@@ -27,6 +46,8 @@ class NuevoClienteController extends Controller
             ->filter(fn ($item) => collect($item)->filter(fn ($value) => $value !== null && $value !== '')->isNotEmpty())
             ->values()
             ->all();
+
+        $garantiaFiles = array_values($request->file('garantia_archivos', []));
 
         $form['garantias'] = collect($form['garantias'] ?? [])
             ->map(function ($item) {
@@ -46,7 +67,16 @@ class NuevoClienteController extends Controller
             ->all();
 
         $familiares = (array) ($form['familiares'] ?? []);
+        $familiares['tiene_conyuge'] = $this->toBoolean($familiares['tiene_conyuge'] ?? null) ?? false;
         $familiares['conyuge_vive_con_cliente'] = $this->toBoolean($familiares['conyuge_vive_con_cliente'] ?? null);
+        if (!$familiares['tiene_conyuge']) {
+            $familiares['nombre_conyuge'] = null;
+            $familiares['celular_conyuge'] = null;
+            $familiares['actividad_conyuge'] = null;
+            $familiares['ingresos_semanales_conyuge'] = null;
+            $familiares['domicilio_trabajo_conyuge'] = null;
+            $familiares['conyuge_vive_con_cliente'] = false;
+        }
         $form['familiares'] = $familiares;
 
         $request->merge([
@@ -79,6 +109,7 @@ class NuevoClienteController extends Controller
             'form.ocupacion.antiguedad' => ['required', 'string', 'max:20'],
             'form.ocupacion.monto_percibido' => ['required', 'numeric', 'min:0'],
             'form.ocupacion.periodo_pago' => ['required', 'string', 'max:20'],
+            'form.ocupacion.tiene_ingresos_adicionales' => ['boolean'],
             'form.ocupacion.ingresos_adicionales' => ['array'],
             'form.ocupacion.ingresos_adicionales.*.concepto' => ['nullable', 'string', 'max:100'],
             'form.ocupacion.ingresos_adicionales.*.monto' => ['nullable', 'numeric', 'min:0'],
@@ -97,14 +128,15 @@ class NuevoClienteController extends Controller
             'form.contacto.tel_cel' => ['required', 'string', 'max:20'],
             'form.contacto.tipo_de_vivienda' => ['required', 'string', 'max:100'],
 
-            'form.familiares.nombre_conyuge' => ['required', 'string', 'max:100'],
-            'form.familiares.celular_conyuge' => ['required', 'string', 'max:20'],
-            'form.familiares.actividad_conyuge' => ['required', 'string', 'max:100'],
-            'form.familiares.ingresos_semanales_conyuge' => ['required', 'numeric', 'min:0'],
-            'form.familiares.domicilio_trabajo_conyuge' => ['required', 'string', 'max:255'],
+            'form.familiares.tiene_conyuge' => ['boolean'],
+            'form.familiares.nombre_conyuge' => ['nullable', 'string', 'max:100', 'required_if:form.familiares.tiene_conyuge,true'],
+            'form.familiares.celular_conyuge' => ['nullable', 'string', 'max:20', 'required_if:form.familiares.tiene_conyuge,true'],
+            'form.familiares.actividad_conyuge' => ['nullable', 'string', 'max:100', 'required_if:form.familiares.tiene_conyuge,true'],
+            'form.familiares.ingresos_semanales_conyuge' => ['nullable', 'numeric', 'min:0', 'required_if:form.familiares.tiene_conyuge,true'],
+            'form.familiares.domicilio_trabajo_conyuge' => ['nullable', 'string', 'max:255', 'required_if:form.familiares.tiene_conyuge,true'],
             'form.familiares.personas_en_domicilio' => ['required', 'integer', 'min:0'],
             'form.familiares.dependientes_economicos' => ['required', 'integer', 'min:0'],
-            'form.familiares.conyuge_vive_con_cliente' => ['required', 'boolean'],
+            'form.familiares.conyuge_vive_con_cliente' => ['nullable', 'boolean', 'required_if:form.familiares.tiene_conyuge,true'],
 
             'form.aval.curp' => ['required', 'string', 'size:18'],
             'form.aval.nombre' => ['required', 'string', 'max:100'],
@@ -124,23 +156,40 @@ class NuevoClienteController extends Controller
             'form.garantias.*.antiguedad' => ['nullable', 'string', 'max:20'],
             'form.garantias.*.monto_garantizado' => ['nullable', 'numeric', 'min:0'],
             'form.garantias.*.foto_url' => ['nullable', 'string', 'max:255'],
+            'garantia_archivos.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ];
 
         $validator = Validator::make($request->all(), $rules);
 
-        $validator->after(function ($validator) use ($form) {
-            foreach ($form['ocupacion']['ingresos_adicionales'] ?? [] as $index => $ingreso) {
-                if (in_array(null, $ingreso, true) || in_array('', $ingreso, true)) {
-                    $validator->errors()->add("form.ocupacion.ingresos_adicionales.$index", 'Completa todos los campos de cada ingreso adicional.');
+        $validator->after(function ($validator) use ($form, $garantiaFiles) {
+            $requiresIngresos = $form['ocupacion']['tiene_ingresos_adicionales'] ?? false;
+            if ($requiresIngresos) {
+                foreach ($form['ocupacion']['ingresos_adicionales'] ?? [] as $index => $ingreso) {
+                    if (in_array(null, $ingreso, true) || in_array('', $ingreso, true)) {
+                        $validator->errors()->add("form.ocupacion.ingresos_adicionales.$index", 'Completa todos los campos de cada ingreso adicional.');
+                    }
                 }
             }
 
             foreach ($form['garantias'] ?? [] as $index => $garantia) {
-                foreach (['propietario', 'tipo', 'antiguedad', 'monto_garantizado', 'foto_url'] as $field) {
+                $missingRequired = false;
+                foreach (['propietario', 'tipo', 'antiguedad', 'monto_garantizado'] as $field) {
                     if ($garantia[$field] === null || $garantia[$field] === '') {
-                        $validator->errors()->add("form.garantias.$index.$field", 'Completa todos los campos obligatorios de la garantÃƒÂ­a.');
+                        $validator->errors()->add("form.garantias.$index.$field", 'Completa todos los campos obligatorios de la garantia.');
+                        $missingRequired = true;
                         break;
                     }
+                }
+
+                if ($missingRequired) {
+                    continue;
+                }
+
+                $hasFile = isset($garantiaFiles[$index]);
+                $hasUrl = isset($garantia['foto_url']) && $garantia['foto_url'] !== null && $garantia['foto_url'] !== '';
+
+                if (!$hasFile && !$hasUrl) {
+                    $validator->errors()->add("form.garantias.$index.foto", 'Agrega una foto de la garantia.');
                 }
             }
         });
@@ -149,7 +198,7 @@ class NuevoClienteController extends Controller
         $form = $validated['form'];
 
         try {
-            $cliente = DB::transaction(function () use ($validated, $form) {
+            $cliente = DB::transaction(function () use ($validated, $form, $garantiaFiles) {
                 $cliente = Cliente::lockForUpdate()->findOrFail($validated['cliente_id']);
                 $cliente->fecha_nacimiento = $form['cliente']['fecha_nacimiento'];
                 $cliente->save();
@@ -207,18 +256,19 @@ class NuevoClienteController extends Controller
                     ]
                 );
 
+                $tieneConyuge = (bool) ($form['familiares']['tiene_conyuge'] ?? false);
                 $credito->informacionFamiliar()->updateOrCreate(
                     ['credito_id' => $credito->id],
                     [
                         'credito_id' => $credito->id,
-                        'nombre_conyuge' => $form['familiares']['nombre_conyuge'],
-                        'celular_conyuge' => $form['familiares']['celular_conyuge'],
-                        'actividad_conyuge' => $form['familiares']['actividad_conyuge'],
-                        'ingresos_semanales_conyuge' => (float) $form['familiares']['ingresos_semanales_conyuge'],
-                        'domicilio_trabajo_conyuge' => $form['familiares']['domicilio_trabajo_conyuge'],
+                        'nombre_conyuge' => $tieneConyuge ? ($this->nullIfBlank($form['familiares']['nombre_conyuge'] ?? null) ?? '') : '',
+                        'celular_conyuge' => $tieneConyuge ? ($this->nullIfBlank($form['familiares']['celular_conyuge'] ?? null) ?? '') : '',
+                        'actividad_conyuge' => $tieneConyuge ? ($this->nullIfBlank($form['familiares']['actividad_conyuge'] ?? null) ?? '') : '',
+                        'ingresos_semanales_conyuge' => $tieneConyuge ? (float) ($form['familiares']['ingresos_semanales_conyuge'] ?? 0) : 0.0,
+                        'domicilio_trabajo_conyuge' => $tieneConyuge ? ($this->nullIfBlank($form['familiares']['domicilio_trabajo_conyuge'] ?? null) ?? '') : '',
                         'personas_en_domicilio' => (int) $form['familiares']['personas_en_domicilio'],
                         'dependientes_economicos' => (int) $form['familiares']['dependientes_economicos'],
-                        'conyuge_vive_con_cliente' => (bool) $form['familiares']['conyuge_vive_con_cliente'],
+                        'conyuge_vive_con_cliente' => $tieneConyuge ? (bool) ($form['familiares']['conyuge_vive_con_cliente'] ?? false) : false,
                     ]
                 );
 
@@ -238,7 +288,15 @@ class NuevoClienteController extends Controller
                 );
 
                 $credito->garantias()->delete();
-                foreach ($form['garantias'] as $garantia) {
+                foreach ($form['garantias'] as $index => $garantia) {
+                    $file = $garantiaFiles[$index] ?? null;
+                    $fotoUrl = $garantia['foto_url'];
+
+                    if ($file) {
+                        $path = $file->store('garantias', 'public');
+                        $fotoUrl = Storage::disk('public')->url($path);
+                    }
+
                     $credito->garantias()->create([
                         'propietario' => $garantia['propietario'],
                         'tipo' => $garantia['tipo'],
@@ -247,7 +305,7 @@ class NuevoClienteController extends Controller
                         'num_serie' => $this->nullIfBlank($garantia['num_serie']),
                         'antiguedad' => $garantia['antiguedad'],
                         'monto_garantizado' => (float) $garantia['monto_garantizado'],
-                        'foto_url' => $garantia['foto_url'],
+                        'foto_url' => $fotoUrl,
                     ]);
                 }
 
@@ -268,6 +326,58 @@ class NuevoClienteController extends Controller
                 'message' => 'No se pudo guardar la informacion del cliente.',
             ], 500);
         }
+    }
+
+    public function RegistrarCredito(Request $request, Cliente $cliente): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'accion' => ['required', Rule::in(['aprobar', 'rechazar'])],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => $validator->errors()->first('accion') ?? 'Acción inválida proporcionada.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $accion = $validator->validated()['accion'];
+        $credito = $cliente->credito;
+
+        if (!$credito) {
+            return response()->json(['message' => 'El cliente no tiene un credito asociado.'], 404);
+        }
+
+        DB::transaction(function () use ($accion, $cliente, $credito) {
+            if ($accion === 'aprobar') {
+                $credito->estado = 'Supervisado';
+                $cliente->cartera_estado = 'activo';
+                $cliente->activo = true;
+            } else {
+                $credito->estado = 'Rechazado';
+                $cliente->cartera_estado = 'inactivo';
+                $cliente->activo = false;
+            }
+
+            $credito->save();
+            $cliente->save();
+        });
+
+        $cliente->refresh();
+        $credito->refresh();
+
+        $message = $accion === 'aprobar'
+            ? 'Cliente supervisado correctamente.'
+            : 'Cliente rechazado correctamente.';
+
+        return response()->json([
+            'message' => $message,
+            'cliente' => [
+                'id' => $cliente->id,
+                'cartera_estado' => $cliente->cartera_estado,
+                'credito_estado' => $credito->estado,
+            ],
+        ]);
     }
 
     private function toBoolean($value): ?bool

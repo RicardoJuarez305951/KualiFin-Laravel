@@ -10,7 +10,8 @@ class Cliente extends Model
     use HasFactory;
 
     protected $table = 'clientes';
-    public $timestamps = false; 
+
+    public $timestamps = false;
 
     protected $fillable = [
         'promotor_id',
@@ -20,7 +21,7 @@ class Cliente extends Model
         'apellido_m',
         'fecha_nacimiento',
         'tiene_credito_activo',
-        'estatus',
+        'cartera_estado',
         'monto_maximo',
         'creado_en',
         'actualizado_en',
@@ -34,7 +35,7 @@ class Cliente extends Model
         'creado_en' => 'datetime',
         'actualizado_en' => 'datetime',
     ];
-    
+
     public function promotor()
     {
         return $this->belongsTo(Promotor::class, 'promotor_id');

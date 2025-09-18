@@ -1,21 +1,36 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\Promotor;
+
+use App\Models\Aval;
 use App\Models\Cliente;
 use App\Models\Credito;
-use Illuminate\Http\Request;    
+use App\Models\Promotor;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Gate;
-use App\Models\Aval;
 use Illuminate\Validation\ValidationException;
 
 class PromotorController extends Controller
 {
+    private const AVAL_CREDIT_STATUS_BLOCKLIST = [
+        'prospectado',
+        'prospectado_recredito',
+        'solicitado',
+        'aprobado',
+        'supervisado',
+        'desembolsado',
+        'vencido',
+        'cancelado',
+    ];
+
+    private const AVAL_CARTERA_STATUS_BLOCKLIST = [
+        'activo',
+        'moroso',
+        'desembolsado',
+    ];
+
     public function index()
     {
         return view('mobile.index');
@@ -32,7 +47,7 @@ class PromotorController extends Controller
 
         $user->load([
             'promotor.supervisor.ejecutivo.user',
-            'promotor.clientes' => fn ($q) => $q->with('credito'),
+            'promotor.clientes' => fn ($query) => $query->with('credito')->orderBy('nombre'),
         ]);
 
         $promotor = $user->promotor;
@@ -41,8 +56,7 @@ class PromotorController extends Controller
         $ejecutivo = $promotor?->supervisor?->ejecutivo?->user?->name;
 
         $clientes = $promotor?->clientes ?? collect();
-
-        $total = $clientes->sum(fn ($c) => $c->credito->monto_total ?? $c->monto_maximo);
+        $total = $clientes->sum(fn ($cliente) => $cliente->credito->monto_total ?? $cliente->monto_maximo);
 
         return view('mobile.promotor.venta.venta', compact(
             'fecha',
@@ -63,27 +77,43 @@ class PromotorController extends Controller
         try {
             $promotor = Auth::user()->promotor;
             if (!$promotor) {
-                Log::warning("Usuario sin perfil de promotor intentó enviar ventas.", ['user_id' => Auth::id()]);
+                Log::warning('Usuario sin perfil de promotor intento enviar ventas.', ['user_id' => Auth::id()]);
                 return response()->json(['success' => false, 'message' => 'Perfil de promotor no encontrado.'], 404);
             }
 
             DB::beginTransaction();
-            
-            Cliente::where('promotor_id', $promotor->id)
-                ->where('activo', 1)
-                ->update([
+
+            $clientes = Cliente::where('promotor_id', $promotor->id)
+                ->where('activo', true)
+                ->with('credito')
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($clientes as $cliente) {
+                $cliente->update([
                     'tiene_credito_activo' => false,
-                    'estatus' => 'a_supervision',
+                    'cartera_estado' => 'inactivo',
                     'activo' => false,
                 ]);
-            
+
+                $credito = $cliente->credito;
+                if ($credito) {
+                    $nuevoEstado = $credito->estado === 'prospectado_recredito'
+                        ? 'prospectado_recredito'
+                        : 'prospectado';
+
+                    $credito->update([
+                        'estado' => $nuevoEstado,
+                    ]);
+                }
+            }
+
             DB::commit();
 
-            return response()->json(['success' => true, 'message' => 'Ventas enviadas a supervisión correctamente.']);
-
-        } catch (\Exception $e) {
+            return response()->json(['success' => true, 'message' => 'Ventas enviadas a supervision correctamente.']);
+        } catch (\Throwable $exception) {
             DB::rollBack();
-            Log::error('Error al enviar ventas: ' . $e->getMessage(), ['exception' => $e]);
+            Log::error('Error al enviar ventas: ' . $exception->getMessage(), ['exception' => $exception]);
             return response()->json(['success' => false, 'message' => 'Hubo un error al procesar la solicitud.'], 500);
         }
     }
@@ -98,12 +128,10 @@ class PromotorController extends Controller
         try {
             $promotor = Promotor::where('user_id', Auth::id())->firstOrFail();
 
-            // --- INICIO DE VALIDACIONES ---
             $data = $request->validate([
                 'nombre' => 'required|string|max:100',
                 'apellido_p' => 'required|string|max:100',
                 'apellido_m' => 'nullable|string|max:100',
-                // Se quita la regla 'unique' para personalizar el mensaje de error.
                 'CURP' => 'required|string|size:18',
                 'monto' => 'required|numeric|min:0|max:3000',
                 'aval_nombre' => 'required|string|max:100',
@@ -112,26 +140,19 @@ class PromotorController extends Controller
                 'aval_CURP' => 'required|string|size:18',
             ]);
 
-            // 1. Validación manual para CURP de cliente duplicado.
             $clienteExistente = Cliente::where('CURP', $data['CURP'])->first();
             if ($clienteExistente) {
                 throw ValidationException::withMessages([
-                    'CURP' => 'La CURP ingresada ya está registrada para otro cliente.',
+                    'CURP' => 'La CURP ingresada ya esta registrada para otro cliente.',
                 ]);
             }
 
-            // 2. Validación manual para el CURP del aval.
-            $avalComoCliente = Cliente::where('CURP', $data['aval_CURP'])->first();
-            if ($avalComoCliente) {
-                // Un cliente no puede ser aval si tiene un crédito activo O una solicitud en proceso.
-                $estatusNoPermitidos = ['pendiente', 'a_supervision', 'pendiente_recredito', 'activo', 'vencido'];
-                if ($avalComoCliente->tiene_credito_activo || in_array($avalComoCliente->estatus, $estatusNoPermitidos)) {
-                    throw ValidationException::withMessages([
-                        'aval_CURP' => 'El aval es un cliente con un crédito activo o en proceso y no puede ser garante.',
-                    ]);
-                }
+            $avalComoCliente = Cliente::with('credito')->where('CURP', $data['aval_CURP'])->first();
+            if ($avalComoCliente && $this->avalNoDisponible($avalComoCliente)) {
+                throw ValidationException::withMessages([
+                    'aval_CURP' => 'El aval tiene un credito activo o en proceso y no puede respaldar esta solicitud.',
+                ]);
             }
-            // --- FIN DE VALIDACIONES ---
 
             DB::transaction(function () use ($data, $promotor) {
                 $cliente = Cliente::create([
@@ -142,7 +163,7 @@ class PromotorController extends Controller
                     'apellido_m' => $data['apellido_m'] ?? '',
                     'fecha_nacimiento' => now()->subYears(18),
                     'tiene_credito_activo' => false,
-                    'estatus' => 'pendiente',
+                    'cartera_estado' => 'inactivo',
                     'monto_maximo' => $data['monto'],
                     'activo' => false,
                 ]);
@@ -150,9 +171,9 @@ class PromotorController extends Controller
                 $credito = Credito::create([
                     'cliente_id' => $cliente->id,
                     'monto_total' => $data['monto'],
-                    'estado' => 'pendiente',
+                    'estado' => 'prospectado',
                     'interes' => 0,
-                    'periodicidad' => 'semanal',
+                    'periodicidad' => '15Semanas',
                     'fecha_inicio' => now(),
                     'fecha_final' => now()->addMonths(12),
                 ]);
@@ -163,38 +184,36 @@ class PromotorController extends Controller
                     'nombre' => $data['aval_nombre'],
                     'apellido_p' => $data['aval_apellido_p'],
                     'apellido_m' => $data['aval_apellido_m'] ?? '',
-                    'fecha_nacimiento' => now()->subYears(25), // Placeholder
-                    'direccion' => 'Desconocida', // Placeholder
-                    'telefono' => 'N/A', // Placeholder
-                    'parentesco' => 'Desconocido', // Placeholder
+                    'fecha_nacimiento' => now()->subYears(25),
+                    'direccion' => 'Por definir',
+                    'telefono' => 'Por definir',
+                    'parentesco' => 'Por definir',
                 ]);
             });
 
-            $message = 'Cliente creado con éxito.';
+            $message = 'Cliente creado con exito.';
             return $request->expectsJson()
                 ? response()->json(['success' => true, 'message' => $message])
                 : redirect()->route('mobile.promotor.ingresar_cliente')->with('success', $message);
-
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            Log::warning('Intento de creación de cliente por usuario sin perfil de promotor.', ['user_id' => Auth::id()]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $exception) {
+            Log::warning('Intento de creacion de cliente por usuario sin perfil de promotor.', ['user_id' => Auth::id()]);
             $message = 'No tienes un perfil de promotor asignado.';
             return $request->expectsJson()
                 ? response()->json(['success' => false, 'message' => $message], 403)
                 : back()->with('error', $message);
-        } catch (ValidationException $e) {
-            Log::warning('Error de validación al crear cliente.', ['errors' => $e->errors(), 'user_id' => Auth::id()]);
-            
-            // Se prioriza mostrar los mensajes de error personalizados para CURP y aval_CURP.
-            $customMessage = $e->validator->errors()->first('CURP') 
-                ?: $e->validator->errors()->first('aval_CURP') 
-                ?: 'Datos inválidos: ' . collect($e->errors())->flatten()->implode(' ');
+        } catch (ValidationException $exception) {
+            Log::warning('Error de validacion al crear cliente.', ['errors' => $exception->errors(), 'user_id' => Auth::id()]);
+
+            $customMessage = $exception->validator->errors()->first('CURP')
+                ?: $exception->validator->errors()->first('aval_CURP')
+                ?: 'Datos invalidos: ' . collect($exception->errors())->flatten()->implode(' ');
 
             return $request->expectsJson()
                 ? response()->json(['success' => false, 'message' => $customMessage], 422)
-                : back()->with('error', $customMessage)->withErrors($e->errors())->withInput();
-        } catch (\Exception $e) {
-            Log::error('Error al crear cliente: ' . $e->getMessage(), ['exception' => $e]);
-            $message = 'No se pudo crear el cliente. Inténtalo de nuevo.';
+                : back()->with('error', $customMessage)->withErrors($exception->errors())->withInput();
+        } catch (\Throwable $exception) {
+            Log::error('Error al crear cliente: ' . $exception->getMessage(), ['exception' => $exception]);
+            $message = 'No se pudo crear el cliente. Intentalo de nuevo.';
             return $request->expectsJson()
                 ? response()->json(['success' => false, 'message' => $message], 500)
                 : back()->with('error', $message);
@@ -210,39 +229,36 @@ class PromotorController extends Controller
                 ? response()->json(['success' => false, 'message' => $message], 403)
                 : back()->with('error', $message);
         }
-    
+
         $isNewAval = $request->boolean('r_newAval');
-    
-        // --- INICIO DE VALIDACIONES ---
+
         $rules = [
-            // 1. Se mantiene la validación para asegurar que el cliente exista.
             'CURP' => 'required|string|size:18|exists:clientes,CURP',
             'monto' => 'required|numeric|min:0|max:20000',
             'r_newAval' => 'required|boolean',
         ];
-    
+
         if ($isNewAval) {
             $rules = array_merge($rules, [
                 'aval_nombre' => 'required|string|max:100',
                 'aval_apellido_p' => 'required|string|max:100',
                 'aval_apellido_m' => 'nullable|string|max:100',
-                // 1. El CURP del nuevo aval no debe existir como cliente.
                 'aval_CURP' => 'required|string|size:18',
             ]);
         }
-        
+
         try {
             $data = $request->validate($rules);
 
-            // 2. Validación manual para el aval (nuevo o existente).
             $avalCurp = null;
             if ($isNewAval) {
                 $avalCurp = $data['aval_CURP'];
             } else {
                 $cliente = Cliente::where('CURP', $data['CURP'])->first();
                 if ($cliente) {
-                    $prevAval = Aval::whereHas('credito', fn($q) => $q->where('cliente_id', $cliente->id))
-                                    ->latest('creado_en')->first();
+                    $prevAval = Aval::whereHas('credito', fn ($query) => $query->where('cliente_id', $cliente->id))
+                        ->latest('creado_en')
+                        ->first();
                     if ($prevAval) {
                         $avalCurp = $prevAval->CURP;
                     }
@@ -250,182 +266,288 @@ class PromotorController extends Controller
             }
 
             if ($avalCurp) {
-                $avalComoCliente = Cliente::where('CURP', $avalCurp)->first();
-                if ($avalComoCliente) {
-                    // Un cliente no puede ser aval si tiene un crédito activo O una solicitud en proceso.
-                    $estatusNoPermitidos = ['pendiente', 'a_supervision', 'pendiente_recredito', 'activo', 'vencido'];
-                    if ($avalComoCliente->tiene_credito_activo || in_array($avalComoCliente->estatus, $estatusNoPermitidos)) {
-                        throw ValidationException::withMessages([
-                            'aval_CURP' => 'El aval es un cliente con un crédito activo o en proceso y no puede ser garante.',
-                        ]);
-                    }
+                $avalComoCliente = Cliente::with('credito')->where('CURP', $avalCurp)->first();
+                if ($avalComoCliente && $this->avalNoDisponible($avalComoCliente)) {
+                    throw ValidationException::withMessages([
+                        'aval_CURP' => 'El aval tiene un credito activo o en proceso y no puede respaldar esta solicitud.',
+                    ]);
                 }
             }
-            // --- FIN DE VALIDACIONES ---
+        } catch (ValidationException $exception) {
+            $customMessage = $exception->validator->errors()->first('aval_CURP')
+                ?: 'Datos invalidos: ' . collect($exception->errors())->flatten()->implode(' ');
 
-        } catch (ValidationException $e) {
-            $customMessage = $e->validator->errors()->first('aval_CURP') ?: 'Datos inválidos: ' . collect($e->errors())->flatten()->implode(' ');
             return $request->expectsJson()
                 ? response()->json(['success' => false, 'message' => $customMessage], 422)
-                : back()->withErrors($e->errors())->withInput()->with('error', $customMessage);
+                : back()->withErrors($exception->errors())->withInput()->with('error', $customMessage);
         }
-    
+
         try {
             DB::transaction(function () use ($data, $promotor, $isNewAval) {
-                $cliente = Cliente::where('CURP', $data['CURP'])->firstOrFail();
-    
+                $cliente = Cliente::where('CURP', $data['CURP'])->lockForUpdate()->firstOrFail();
+
                 if ($cliente->promotor_id !== $promotor->id) {
-                    throw new \Exception('No estás autorizado para otorgar un recrédito a este cliente.');
+                    throw new \RuntimeException('No estas autorizado para otorgar un recredito a este cliente.');
                 }
-    
-                if ($cliente->tiene_credito_activo) {
-                     throw new \Exception('El cliente ya tiene un crédito activo o en proceso.');
+
+                $ultimoCredito = $cliente->credito;
+                if ($cliente->tiene_credito_activo || ($ultimoCredito && in_array($ultimoCredito->estado, self::AVAL_CREDIT_STATUS_BLOCKLIST, true))) {
+                    throw new \RuntimeException('El cliente ya tiene un credito activo o en proceso.');
                 }
-    
+
                 $avalDataForCreation = [];
-    
                 if ($isNewAval) {
                     $avalDataForCreation = [
                         'CURP' => $data['aval_CURP'],
                         'nombre' => $data['aval_nombre'],
                         'apellido_p' => $data['aval_apellido_p'],
                         'apellido_m' => $data['aval_apellido_m'] ?? null,
-                        'fecha_nacimiento' => now()->subYears(25), // Placeholder
-                        'direccion' => 'Desconocida', // Placeholder
-                        'telefono' => 'N/A', // Placeholder
-                        'parentesco' => 'Desconocido', // Placeholder
+                        'fecha_nacimiento' => now()->subYears(25),
+                        'direccion' => 'Por definir',
+                        'telefono' => 'Por definir',
+                        'parentesco' => 'Por definir',
                     ];
                 } else {
-                    $prevAval = Aval::whereHas('credito', fn($q) => $q->where('cliente_id', $cliente->id))
-                                    ->latest('creado_en')->first();
-    
+                    $prevAval = Aval::whereHas('credito', fn ($query) => $query->where('cliente_id', $cliente->id))
+                        ->latest('creado_en')
+                        ->first();
+
                     if (!$prevAval) {
-                        throw new \Exception('No se encontró un aval previo para este cliente. Debe registrar uno nuevo.');
+                        throw new \RuntimeException('No se encontro un aval previo para este cliente. Debe registrar uno nuevo.');
                     }
-                    
+
                     $avalDataForCreation = $prevAval->only([
-                        'CURP', 'nombre', 'apellido_p', 'apellido_m', 'fecha_nacimiento', 
-                        'direccion', 'telefono', 'parentesco'
+                        'CURP',
+                        'nombre',
+                        'apellido_p',
+                        'apellido_m',
+                        'fecha_nacimiento',
+                        'direccion',
+                        'telefono',
+                        'parentesco',
                     ]);
                 }
-                
+
                 $credito = Credito::create([
                     'cliente_id' => $cliente->id,
                     'monto_total' => $data['monto'],
-                    'estado' => 'pendiente',
+                    'estado' => 'prospectado_recredito',
                     'interes' => 0,
-                    'periodicidad' => 'mensual',
+                    'periodicidad' => 'Mes',
                     'fecha_inicio' => now(),
                     'fecha_final' => now()->addWeeks(16),
                 ]);
-    
+
                 Aval::create(array_merge($avalDataForCreation, ['credito_id' => $credito->id]));
-                
+
                 $cliente->update([
                     'tiene_credito_activo' => false,
-                    'estatus' => 'pendiente_recredito',
+                    'cartera_estado' => 'inactivo',
                     'activo' => false,
                 ]);
             });
-    
-            $message = 'Recrédito solicitado con éxito.';
+
+            $message = 'Recredito solicitado con exito.';
             return $request->expectsJson()
                 ? response()->json(['success' => true, 'message' => $message])
                 : redirect()->route('mobile.promotor.ingresar_cliente')->with('success', $message);
-    
-        } catch (\Exception $e) {
-            Log::error('Error al procesar recrédito: ' . $e->getMessage(), [
-                'user_id' => Auth::id(), 'request' => $request->all(), 'exception' => $e
+        } catch (\Throwable $exception) {
+            Log::error('Error al procesar recredito: ' . $exception->getMessage(), [
+                'user_id' => Auth::id(),
+                'request' => $request->all(),
+                'exception' => $exception,
             ]);
-            
-            $userMessage = 'No se pudo procesar el recrédito. ' . $e->getMessage();
-            
+
+            $userMessage = 'No se pudo procesar el recredito. ' . $exception->getMessage();
+
             return $request->expectsJson()
                 ? response()->json(['success' => false, 'message' => $userMessage], 500)
                 : back()->with('error', $userMessage)->withInput();
         }
     }
 
-    public function cartera()
+        public function cartera()
     {
         $promotor = Auth::user()->promotor;
-        $clientes = $promotor
-            ? $promotor->clientes()
-                ->with(['credito.pagosProyectados' => fn ($q) => $q->orderBy('semana')])
-                ->orderBy('nombre')
-                ->get()
-            : collect();
+        if (!$promotor) {
+            return view('mobile.promotor.cartera.cartera', [
+                'activos' => collect(),
+                'vencidos' => collect(),
+                'inactivos' => collect(),
+            ]);
+        }
 
-    // Si no hay promotor, regresa colecciones vacías
-    if (!$promotor) {
+        $clientes = $promotor->clientes()
+            ->with([
+                'credito' => function ($query) {
+                    $query->with([
+                        'pagosProyectados' => fn ($subQuery) => $subQuery->orderBy('semana'),
+                        'avales' => fn ($subQuery) => $subQuery->orderByDesc('id'),
+                        'datoContacto',
+                    ]);
+                },
+                'creditos' => function ($query) {
+                    $query->with([
+                        'avales' => fn ($subQuery) => $subQuery->orderByDesc('id'),
+                        'datoContacto',
+                    ])->orderByDesc('id')->limit(1);
+                },
+            ])
+            ->orderBy('nombre')
+            ->get();
+
         $activos = collect();
         $vencidos = collect();
         $inactivos = collect();
 
-        return view('mobile.promotor.cartera.cartera', compact('activos', 'vencidos', 'inactivos'));
-    }
+        foreach ($clientes as $cliente) {
+            $credito = $cliente->credito;
+            $estadoCartera = $cliente->cartera_estado ?? $this->mapCreditoEstadoACartera($credito) ?? 'inactivo';
 
-    // Cargamos clientes con su crédito y pagos proyectados ordenados por semana
-    $clientes = $promotor->clientes()
-        ->with([
-            'credito.pagosProyectados' => fn ($q) => $q->orderBy('semana'),
-        ])
-        ->orderBy('nombre')
-        ->get();
+            $cliente->cartera_estado = $estadoCartera;
+            $cliente->tiene_credito_activo = in_array($estadoCartera, ['activo', 'moroso', 'desembolsado'], true);
+            unset($cliente->semana_credito, $cliente->monto_semanal);
 
-    $activos = collect();
-    $vencidos = collect();
-    $inactivos = collect();
-
-    foreach ($clientes as $cliente) {
-        $credito = $cliente->credito;
-
-        // Default/compatibilidad con vistas que usan flags
-        $cliente->tiene_credito_activo = false;
-        $cliente->estatus = 'inactivo';
-        unset($cliente->semana_credito, $cliente->monto_semanal);
-
-        if ($credito) {
-            // Normalizamos estatus a partir del crédito
-            // estados esperados: 'activo', 'mora', otros -> 'inactivo'
-            $estado = $credito->estado;
-
-            if ($estado === 'activo') {
-                $pagoPendiente = $credito->pagosProyectados
-                    ? $credito->pagosProyectados->firstWhere('estado', 'pendiente')
-                    : null;
-
+            if (in_array($estadoCartera, ['activo', 'desembolsado'], true)) {
+                $pagoPendiente = $credito?->pagosProyectados?->firstWhere('estado', 'pendiente');
                 if ($pagoPendiente) {
-                    // Datos útiles para la vista
                     $cliente->semana_credito = $pagoPendiente->semana;
-                    $cliente->monto_semanal  = $pagoPendiente->monto_proyectado;
+                    $cliente->monto_semanal = $pagoPendiente->monto_proyectado;
                 }
 
-                $cliente->tiene_credito_activo = true;
-                $cliente->estatus = 'activo';
                 $activos->push($cliente);
                 continue;
             }
 
-            if ($estado === 'mora') {
-                $cliente->tiene_credito_activo = true; // sigue teniendo crédito, solo que vencido
-                $cliente->estatus = 'vencido';
+            if ($estadoCartera === 'moroso') {
                 $vencidos->push($cliente);
                 continue;
             }
+
+            $ultimoCredito = $cliente->creditos->first() ?? $credito;
+            $contacto = $ultimoCredito?->datoContacto;
+
+            $clienteDireccion = $this->buildDireccionFromContacto($contacto);
+            $clienteTelefono = $this->pickTelefonoFromContacto($contacto);
+            $fechaUltimoCredito = optional($ultimoCredito?->fecha_inicio)->format('Y-m-d')
+                ?: optional($ultimoCredito?->fecha_final)->format('Y-m-d');
+
+            $avalModel = $ultimoCredito?->avales?->first();
+            $aval = [
+                'apellido_p' => $avalModel?->apellido_p ?? '',
+                'apellido_m' => $avalModel?->apellido_m ?? '',
+                'nombre' => $avalModel?->nombre ?? '',
+                'direccion' => $avalModel?->direccion ?? '',
+                'telefono' => $avalModel?->telefono ?? '',
+                'CURP' => $avalModel?->CURP ?? '',
+                'curp' => $avalModel?->CURP ?? '',
+            ];
+            $avalNombreCompleto = $this->formatFullName(
+                $aval['apellido_p'],
+                $aval['apellido_m'],
+                $aval['nombre']
+            );
+
+            $clienteResumen = [
+                'apellido_p' => $cliente->apellido_p,
+                'apellido_m' => $cliente->apellido_m,
+                'nombre' => $cliente->nombre,
+                'direccion' => $clienteDireccion,
+                'telefono' => $clienteTelefono,
+                'CURP' => $cliente->CURP,
+                'curp' => $cliente->CURP,
+            ];
+
+            $inactivos->push([
+                'id' => $cliente->id,
+                'nombre' => $cliente->nombre,
+                'apellido_p' => $cliente->apellido_p,
+                'apellido_m' => $cliente->apellido_m,
+                'CURP' => $cliente->CURP,
+                'curp' => $cliente->CURP,
+                'direccion' => $clienteDireccion,
+                'telefono' => $clienteTelefono,
+                'fecha_ultimo_credito' => $fechaUltimoCredito ?: '',
+                'cliente' => array_merge($clienteResumen, [
+                    'nombre_completo' => $this->formatFullName(
+                        $cliente->apellido_p,
+                        $cliente->apellido_m,
+                        $cliente->nombre
+                    ),
+                ]),
+                'aval' => array_merge($aval, [
+                    'nombre_completo' => $avalNombreCompleto,
+                ]),
+                'ultimo_aval' => array_merge($aval, [
+                    'nombre_completo' => $avalNombreCompleto,
+                ]),
+                'aval_nombre' => $avalNombreCompleto,
+                'aval_apellido_p' => $aval['apellido_p'],
+                'aval_apellido_m' => $aval['apellido_m'],
+                'aval_direccion' => $aval['direccion'],
+                'aval_telefono' => $aval['telefono'],
+                'aval_CURP' => $aval['CURP'],
+                'ultimo_credito' => $ultimoCredito ? [
+                    'id' => $ultimoCredito->id,
+                    'estado' => $ultimoCredito->estado,
+                    'fecha_inicio' => optional($ultimoCredito->fecha_inicio)->format('Y-m-d'),
+                    'fecha_final' => optional($ultimoCredito->fecha_final)->format('Y-m-d'),
+                    'dato_contacto' => $contacto ? $contacto->toArray() : null,
+                ] : null,
+            ]);
         }
 
-      return view('mobile.promotor.cartera.cartera', compact('activos', 'vencidos', 'inactivos'));
+        return view('mobile.promotor.cartera.cartera', [
+            'activos' => $activos->values(),
+            'vencidos' => $vencidos->values(),
+            'inactivos' => $inactivos->values(),
+        ]);
     }
 
-    // Opcional: reindexar
-    $activos   = $activos->values();
-    $vencidos  = $vencidos->values();
-    $inactivos = $inactivos->values();
+    private function buildDireccionFromContacto($contacto): string
+    {
+        if (!$contacto) {
+            return '';
+        }
 
-    return view('mobile.promotor.cartera.cartera', compact('activos', 'vencidos', 'inactivos'));
-}
+        return collect([
+            $contacto->calle ?? null,
+            $contacto->numero_ext ? '#' . $contacto->numero_ext : null,
+            $contacto->numero_int ? 'Int ' . $contacto->numero_int : null,
+            $contacto->colonia ?? null,
+            $contacto->municipio ?? null,
+            $contacto->estado ?? null,
+            $contacto->cp ? 'CP ' . $contacto->cp : null,
+        ])->filter()->implode(', ');
+    }
 
+    private function pickTelefonoFromContacto($contacto): string
+    {
+        if (!$contacto) {
+            return '';
+        }
+
+        return collect([$contacto->tel_cel ?? null, $contacto->tel_fijo ?? null])
+            ->map(fn ($telefono) => $telefono ? trim($telefono) : null)
+            ->filter()
+            ->first() ?? '';
+    }
+
+    private function formatFullName(...$parts): string
+    {
+        return collect($parts)
+            ->map(function ($part) {
+                if ($part === null) {
+                    return null;
+                }
+
+                $part = is_string($part) ? trim($part) : (string) $part;
+
+                return $part !== '' ? $part : null;
+            })
+            ->filter()
+            ->implode(' ');
+    }
 
     public function cliente_historial(Cliente $cliente)
     {
@@ -437,5 +559,44 @@ class PromotorController extends Controller
 
         return view('mobile.promotor.cartera.cliente_historial', compact('cliente'));
     }
+
+    private function mapCreditoEstadoACartera(?Credito $credito): ?string
+    {
+        if (!$credito) {
+            return null;
+        }
+
+        return match ($credito->estado) {
+            'desembolsado' => 'desembolsado',
+            'vencido' => 'moroso',
+            'liquidado' => 'regularizado',
+            'cancelado' => 'inactivo',
+            'prospectado', 'prospectado_recredito', 'solicitado', 'aprobado', 'supervisado' => 'activo',
+            default => null,
+        };
+    }
+    private function avalNoDisponible(Cliente $cliente): bool
+    {
+        if ($cliente->tiene_credito_activo) {
+            return true;
+        }
+
+        $estadoCredito = $cliente->credito?->estado;
+        if ($estadoCredito && in_array($estadoCredito, self::AVAL_CREDIT_STATUS_BLOCKLIST, true)) {
+            return true;
+        }
+
+        if ($cliente->cartera_estado && in_array($cliente->cartera_estado, self::AVAL_CARTERA_STATUS_BLOCKLIST, true)) {
+            return true;
+        }
+
+        return false;
+    }
 }
+
+
+
+
+
+
 

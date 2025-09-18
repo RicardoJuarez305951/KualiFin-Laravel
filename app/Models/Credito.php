@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,6 +20,13 @@ class Credito extends Model
     ];
 
     public $timestamps = false;
+
+    protected $casts = [
+        'monto_total' => 'decimal:2',
+        'interes' => 'decimal:2',
+        'fecha_inicio' => 'date',
+        'fecha_final' => 'date',
+    ];
 
     public function cliente()
     {
