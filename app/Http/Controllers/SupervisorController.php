@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Route;
 
 class SupervisorController extends Controller
 {
@@ -181,7 +182,37 @@ class SupervisorController extends Controller
 
     public function horarios()
     {
-        return view('mobile.supervisor.venta.horarios');
+        $user = auth()->user();
+
+        $supervisor = Supervisor::with(['promotores' => function ($query) {
+            $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m')
+                ->orderBy('nombre');
+        }])->firstWhere('user_id', $user?->id);
+
+        abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
+
+        $promotores = ($supervisor->promotores ?? collect())
+            ->map(function (Promotor $promotor) {
+                $promotor->nombre_completo = trim($promotor->nombre . ' ' . $promotor->apellido_p . ' ' . ($promotor->apellido_m ?? ''));
+                return $promotor;
+            })
+            ->values();
+
+        $ventaFecha = Ejercicio::where('supervisor_id', $supervisor->id)
+            ->latest('fecha_inicio')
+            ->value('fecha_inicio');
+
+        $ventaFecha = $ventaFecha ? Carbon::parse($ventaFecha) : now();
+
+        $definirRoute = Route::has('mobile.supervisor.horarios.definir')
+            ? fn ($promotorId) => route('mobile.supervisor.horarios.definir', ['promotor' => $promotorId])
+            : fn ($promotorId = null) => '#';
+
+        return view('mobile.supervisor.venta.horarios', [
+            'venta_fecha'   => $ventaFecha,
+            'promotores'    => $promotores,
+            'definirRoute'  => $definirRoute,
+        ]);
     }
 
     public function ingresar_cliente()

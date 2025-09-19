@@ -18,6 +18,12 @@
       --color-secondary: #A6D9F6;
       --color-background: #FAF6EA;
       @endrole
+
+      @role('ejecutivo')
+      --color-primary: #7880B5;
+      --color-secondary: #6987C9;
+      --color-background: #bbe5ed;
+      @endrole
     }
     .triangulo {
       position: absolute;

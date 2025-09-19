@@ -1,17 +1,12 @@
 {{-- resources/views/mobile/supervisor/venta/definir_horarios.blade.php --}}
 @php
   use Carbon\Carbon;
-  use Illuminate\Support\Facades\Route;
 
   /** ===== Vars con defaults seguros ===== */
   $role         = $role ?? 'supervisor';
   $venta_fecha  = $venta_fecha ?? now();         // string|Carbon
-  $promotores   = $promotores instanceof \Illuminate\Support\Collection ? $promotores : collect($promotores ?? []);      // coleccion de promotores
-  $definirRoute = $definirRoute ?? function ($id) {
-    return Route::has("mobile.supervisor.horarios.definir")
-      ? route("mobile.supervisor.horarios.definir", ["promotor" => $id])
-      : '#';
-  }; // ajusta si usas otra ruta
+  $promotores   = $promotores ?? collect();      // colección de promotores
+  $definirRoute = fn($id) => route('mobile.supervisor.horarios.definir', $id); // ajusta si usas otra ruta
 
   /** ===== Normaliza fecha a DD/MM/YY ===== */
   try {

@@ -112,14 +112,16 @@
     </div>
 
     {{-- BotÃ³n regresar --}}
-    <a href="{{ route("mobile.$role.horarios") }}"
-       class="block text-center py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
-      Horarios
-    </a>
     <a href="{{ route("mobile.$role.index") }}"
        class="block text-center py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
       Regresar
     </a>
+
+    <a href="{{ route("mobile.$role.horarios") }}"
+       class="block text-center py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
+      Horarios
+    </a>
+    
   </div>
 </x-layouts.mobile.mobile-layout>
 
