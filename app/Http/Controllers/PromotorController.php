@@ -555,7 +555,13 @@ class PromotorController extends Controller
             abort(403, 'No autorizado');
         }
 
-        $cliente->load('credito.pagosProyectados');
+        $cliente->load([
+            'promotor.user',
+            'promotor.supervisor.user',
+            'credito.pagosProyectados' => function ($query) {
+                $query->orderBy('semana');
+            },
+        ]);
 
         return view('mobile.promotor.cartera.cliente_historial', compact('cliente'));
     }
@@ -593,10 +599,3 @@ class PromotorController extends Controller
         return false;
     }
 }
-
-
-
-
-
-
-

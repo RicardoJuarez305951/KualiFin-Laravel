@@ -132,9 +132,9 @@
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
                   {{-- Botón detalles "D" --}}
-                  {!! $pill(route("mobile.$role.venta_supervisor"), 'D') !!}
+                  {!! $pill(route("mobile.supervisor.venta"), 'D') !!}
                   {{-- Botón venta "V" --}}
-                  {!! $pill(route("mobile.$role.desembolso"), 'V') !!}
+                  {!! $pill(route("mobile.ejecutivo.desembolso"), 'V') !!}
                 </div>
               </div>
 
