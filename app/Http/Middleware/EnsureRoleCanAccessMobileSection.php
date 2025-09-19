@@ -16,6 +16,11 @@ class EnsureRoleCanAccessMobileSection
     {
         $user = $request->user();
         $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+        $defaultSection = RoleHierarchy::defaultSection($primaryRole);
+
+        if ($user && $request->routeIs("mobile.$sectionRole.index") && RoleHierarchy::normalize($sectionRole) !== $defaultSection) {
+            return redirect()->route("mobile.{$defaultSection}.index");
+        }
 
         if (!$user || !RoleHierarchy::canAccess($primaryRole, $sectionRole)) {
             abort(403, 'No autorizado.');

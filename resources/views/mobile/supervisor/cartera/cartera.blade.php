@@ -55,7 +55,7 @@
 
         <div class="space-y-3">
           @forelse($promotores as $p)
-            <a href="{{ route('mobile.supervisor.cartera_promotor', $p->id) }}"
+            <a href="{{ route('mobile.promotor.cartera', $p->id) }}"
                class="block rounded-xl border border-gray-100 p-3 shadow-md hover:shadow transition">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">

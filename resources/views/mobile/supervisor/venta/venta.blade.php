@@ -86,7 +86,7 @@
                     </div>
                     <div>
                         {{-- <a href="{{ route('mobile.supervisor.cartera_promotor', $p->id) }}" class="px-3 py-1 text-right text-sm font-semibold text-white bg-blue-600 rounded">D</a> --}}
-                        <a href="{{ route('mobile.supervisor.cartera_promotor', ['promotor' => $p['id']]) }}" class="px-3 py-1 text-right text-sm font-semibold text-white bg-blue-600 rounded">D</a>
+                        <a href="{{ route('mobile.promotor.venta', ['promotor' => $p['id']]) }}" class="px-3 py-1 text-right text-sm font-semibold text-white bg-blue-600 rounded">D</a>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4 text-xs">
