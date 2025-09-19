@@ -24,6 +24,12 @@
       --color-secondary: #6987C9;
       --color-background: #bbe5ed;
       @endrole
+
+      @role('administrativo|superadmin')
+      --color-primary: #7880B5;
+      --color-secondary: #6987C9;
+      --color-background: #bbe5ed;
+      @endrole
     }
     .triangulo {
       position: absolute;

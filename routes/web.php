@@ -12,7 +12,7 @@ use App\Http\Controllers\SupervisorController;
 use App\Http\Controllers\NuevoClienteController;
 use App\Http\Controllers\PagoRealController;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Middleware\ShareRole;
+use App\Support\RoleHierarchy;
 use App\Http\Controllers\ExcelController;
 
 
@@ -24,7 +24,7 @@ use App\Http\Controllers\ExcelController;
 
 Route::get('/', function () {
     // if (Auth::check() && Auth::user()->hasRole('promotor')) {
-    if (Auth::check() && Auth::user()->hasAnyRole(['promotor', 'supervisor', 'ejecutivo'])) {
+    if (Auth::check() && Auth::user()->hasAnyRole(['promotor', 'supervisor', 'ejecutivo', 'administrativo', 'superadmin'])) {
         return redirect()->route('mobile.index');
     }
     return redirect()->route('login');
@@ -43,15 +43,18 @@ Route::middleware(['auth','verified'])->group(function () {
 
     Route::prefix('mobile')
          ->name('mobile.')
-         ->middleware(ShareRole::class)
          ->group(function () {
              Route::get('/', function () {
-                 $role = Auth::user()->getRoleNames()->first();
-                 return redirect()->route("mobile.{$role}.index");
-             })->name('index');
+                 $user = Auth::user();
+                 $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+                 $section = RoleHierarchy::defaultSection($primaryRole);
+
+                 return redirect()->route("mobile.{$section}.index");
+            })->middleware('share_role')->name('index');
 
              Route::prefix('promotor')
                   ->name('promotor.')
+                  ->middleware(['role_hierarchy:promotor', 'share_role'])
                   ->controller(PromotorController::class)
                   ->group(function () {
                       Route::get('/',                 'index')             ->name('index');
@@ -68,6 +71,7 @@ Route::middleware(['auth','verified'])->group(function () {
 
              Route::prefix('ejecutivo')
                   ->name('ejecutivo.')
+                  ->middleware(['role_hierarchy:ejecutivo', 'share_role'])
                   ->controller(EjecutivoController::class)
                   ->group(function () {
                       Route::get('/',                 'index')             ->name('index');
@@ -89,11 +93,11 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('reportes',  'reportes')  ->name('reportes');
                     });
 
-               Route::prefix('supervisor')
-                    ->name('supervisor.')
-                    ->middleware('role:supervisor')
-                    ->controller(SupervisorController::class)
-                    ->group(function () {
+             Route::prefix('supervisor')
+                  ->name('supervisor.')
+                  ->middleware(['role_hierarchy:supervisor', 'share_role'])
+                  ->controller(SupervisorController::class)
+                  ->group(function () {
                         Route::get('/',                 'index')             ->name('index');
                         Route::get('venta',             'venta')             ->name('venta');
                         Route::get('cartera',           'cartera')           ->name('cartera');
@@ -163,4 +167,5 @@ Route::middleware(['auth','verified'])->group(function () {
 require __DIR__.'/auth.php';
 
 // Ruta para registrar múltiples pagos
-Route::post('/mobile/promotor/pagos-multiples', [PagoRealController::class, 'storeMultiple']);
+Route::post('/mobile/promotor/pagos-multiples', [PagoRealController::class, 'storeMultiple'])
+    ->middleware(['auth', 'verified', 'role_hierarchy:promotor']);

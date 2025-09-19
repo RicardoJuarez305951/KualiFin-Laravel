@@ -10,7 +10,7 @@
 
       {{-- Botones principales --}}
       <div class="space-y-4">
-        @unlessrole('ejecutivo')
+        @unlessrole('ejecutivo|administrativo|superadmin')
         {{-- Mi Objetivo --}}
           <a href="{{ route("mobile.$role.objetivo") }}"
            class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
@@ -52,7 +52,7 @@
           <span>Mi Venta</span>
         </a>
 
-        @role('supervisor|ejecutivo')
+        @role('supervisor|ejecutivo|administrativo|superadmin')
           {{-- Busquedas --}}
           <a href="{{ route("mobile.$role.busqueda") }}"
             class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
@@ -64,7 +64,7 @@
             </svg>
             <span>Busquedas</span>
           </a>
-          @role('supervisor')
+          @role('supervisor|administrativo|superadmin')
           {{-- Apertura --}}
           <a href="{{ route("mobile.supervisor.apertura") }}"
            class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
@@ -79,7 +79,7 @@
           @endrole
         @endrole
 
-        @role('ejecutivo')
+        @role('ejecutivo|administrativo|superadmin')
         {{-- Informes --}}
         <a href="{{ route("mobile.$role.informes") }}"
            class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
@@ -110,3 +110,4 @@
     </div>
   </div>
 </x-layouts.mobile.mobile-layout>
+
