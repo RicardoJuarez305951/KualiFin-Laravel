@@ -105,4 +105,29 @@ class EjecutivoController extends Controller
     {
         return view('mobile.ejecutivo.cartera.cliente_historial', compact('cliente'));
     }
+
+    public function venta_supervisor()
+    {
+        return view('mobile.ejecutivo.venta.venta_supervisor');
+    }
+    
+    public function desembolso()
+    {
+        return view('mobile.ejecutivo.venta.desembolso');
+    }
+    
+    public function busqueda()
+    {
+        return view('mobile.ejecutivo.busqueda.busqueda');
+    }
+    
+    public function informes()
+    {
+        return view('mobile.ejecutivo.informes.informes');
+    }
+    
+    public function reportes()
+    {
+        return view('mobile.ejecutivo.informes.reportes');
+    }
 }

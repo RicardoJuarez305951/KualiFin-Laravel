@@ -79,7 +79,9 @@
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Cartera - Ejecutivo">
-  <div class="mx-auto w-[22rem] sm:w-[26rem] p-4 sm:p-6 space-y-6">
+  <div x-data="{ showHorarios:false }"
+       x-effect="document.body.style.overflow = showHorarios ? 'hidden' : ''"
+       class="mx-auto w-[22rem] sm:w-[26rem] p-4 sm:p-6 space-y-6">
 
     {{-- ===================== div1: Ejecutivo ===================== --}}
     <section class="bg-white rounded-2xl shadow-lg ring-1 ring-gray-900/5 overflow-hidden">
@@ -130,9 +132,9 @@
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
                   {{-- Botón detalles "D" --}}
-                  {!! $pill('#', 'D') !!}
+                  {!! $pill(route("mobile.$role.venta_supervisor"), 'D') !!}
                   {{-- Botón venta "V" --}}
-                  {!! $pill('#', 'V') !!}
+                  {!! $pill(route("mobile.$role.desembolso"), 'V') !!}
                 </div>
               </div>
 
@@ -170,8 +172,61 @@
     <section class="grid grid-cols-3 gap-3">
       {!! $btn(route('mobile.index'), 'Regresar', 'outline') !!}
       {!! $btn(url()->current(), 'Actualizar', 'primary') !!}
-      {!! $btn(route("mobile.$role.horarios"), 'Horarios', 'indigo') !!}
+      <button type="button"
+              @click="showHorarios = true"
+              class="inline-flex items-center justify-center rounded-2xl text-sm font-semibold px-3 py-2 shadow bg-indigo-600 text-white hover:bg-indigo-700">
+        Horarios
+      </button>
     </section>
+
+
+    {{-- ===================== Card de Horarios (toggle con Alpine) ===================== --}}
+    <div x-data="{ open: false }" x-show="open" x-cloak class="mt-6">
+      @include('mobile.ejecutivo.venta.cards.horarios')
+    </div>
+
+    {{-- ===================== Modal flotante: Horarios ===================== --}}
+<div x-show="showHorarios" x-cloak
+     @keydown.escape.window="showHorarios = false"
+     class="fixed inset-0 z-50 flex items-center justify-center px-4">
+
+  {{-- Backdrop --}}
+  <div class="fixed inset-0 bg-black/50 backdrop-blur-[1px]"
+       @click="showHorarios = false"
+       x-transition.opacity></div>
+
+  {{-- Contenido del modal --}}
+  <div x-transition
+       class="relative z-10 w-full max-w-md">
+    <div class="bg-white rounded-2xl shadow-2xl ring-1 ring-gray-900/10 overflow-hidden">
+      {{-- Header del modal --}}
+      <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        <h3 class="text-base font-semibold text-gray-900">Horarios de Cobro</h3>
+        <button type="button"
+                @click="showHorarios = false"
+                class="inline-flex items-center justify-center w-9 h-9 rounded-xl text-gray-500 hover:text-gray-700 hover:bg-gray-100">
+          <span class="sr-only">Cerrar</span>
+          &times;
+        </button>
+      </div>
+
+      {{-- Body: aquí va tu card --}}
+      <div class="max-h-[70vh] overflow-y-auto p-4">
+        @include('mobile.ejecutivo.venta.cards.horarios')
+      </div>
+
+      {{-- Footer opcional --}}
+      <div class="px-4 py-3 border-t border-gray-100 flex justify-end">
+        <button type="button"
+                @click="showHorarios = false"
+                class="inline-flex items-center justify-center rounded-xl text-sm font-semibold px-3 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
   </div>
 </x-layouts.mobile.mobile-layout>

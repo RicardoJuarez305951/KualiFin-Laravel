@@ -82,6 +82,11 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('cartera-vencida',  'cartera_vencida')  ->name('cartera_vencida');
                       Route::get('cartera-inactiva',  'cartera_inactiva')  ->name('cartera_inactiva');
                       Route::get('horarios',  'horarios')  ->name('horarios');
+                      Route::get('venta-supervisor',  'venta_supervisor')  ->name('venta_supervisor');
+                      Route::get('desembolso',  'desembolso')  ->name('desembolso');
+                      Route::get('busqueda',  'busqueda')  ->name('busqueda');
+                      Route::get('informes',  'informes')  ->name('informes');
+                      Route::get('reportes',  'reportes')  ->name('reportes');
                     });
 
                Route::prefix('supervisor')
