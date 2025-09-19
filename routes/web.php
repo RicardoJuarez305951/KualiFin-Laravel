@@ -77,7 +77,12 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('solicitar-venta',   'solicitar_venta')   ->name('solicitar_venta');
                       Route::get('ingresar-cliente',  'ingresar_cliente')  ->name('ingresar_cliente');
                       Route::get('cliente-historial/{cliente}', 'cliente_historial') ->name('cliente_historial');
-                  });
+                      Route::get('cartera-activa',  'cartera_activa')  ->name('cartera_activa');
+                      Route::get('cartera-falla',  'cartera_falla')  ->name('cartera_falla');
+                      Route::get('cartera-vencida',  'cartera_vencida')  ->name('cartera_vencida');
+                      Route::get('cartera-inactiva',  'cartera_inactiva')  ->name('cartera_inactiva');
+                      Route::get('horarios',  'horarios')  ->name('horarios');
+                    });
 
                Route::prefix('supervisor')
                     ->name('supervisor.')
