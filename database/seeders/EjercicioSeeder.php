@@ -6,6 +6,7 @@ use App\Models\Ejercicio;
 use App\Models\Ejecutivo;
 use App\Models\Supervisor;
 use App\Models\User;
+use Database\Seeders\Concerns\LatinoNameGenerator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -55,11 +56,13 @@ class EjercicioSeeder extends Seeder
         for ($i = 0; $i < self::EJECUTIVOS_MIN; $i++) {
             $user = User::factory()->create(['rol' => 'ejecutivo']);
 
+            [$nombre, $apellidoPaterno, $apellidoMaterno] = LatinoNameGenerator::person();
+
             $ejecutivo = Ejecutivo::create([
                 'user_id' => $user->id,
-                'nombre' => fake()->firstName(),
-                'apellido_p' => fake()->lastName(),
-                'apellido_m' => fake()->lastName(),
+                'nombre' => $nombre,
+                'apellido_p' => $apellidoPaterno,
+                'apellido_m' => $apellidoMaterno,
             ]);
 
             $this->assignRoleSafely($user, 'ejecutivo');
@@ -87,12 +90,14 @@ class EjercicioSeeder extends Seeder
             $user = User::factory()->create(['rol' => 'supervisor']);
             $ejecutivo = $ejecutivos->random();
 
+            [$nombre, $apellidoPaterno, $apellidoMaterno] = LatinoNameGenerator::person();
+
             $supervisor = Supervisor::create([
                 'user_id' => $user->id,
                 'ejecutivo_id' => $ejecutivo->id,
-                'nombre' => fake()->firstName(),
-                'apellido_p' => fake()->lastName(),
-                'apellido_m' => fake()->lastName(),
+                'nombre' => $nombre,
+                'apellido_p' => $apellidoPaterno,
+                'apellido_m' => $apellidoMaterno,
             ]);
 
             $this->assignRoleSafely($user, 'supervisor');

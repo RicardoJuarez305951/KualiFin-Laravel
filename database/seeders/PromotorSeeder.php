@@ -3,8 +3,9 @@
 namespace Database\Seeders;
 
 use App\Models\Promotor;
-use App\Models\User;
 use App\Models\Supervisor;
+use App\Models\User;
+use Database\Seeders\Concerns\LatinoNameGenerator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -25,9 +26,7 @@ class PromotorSeeder extends Seeder
             $email = "promotor{$i}@kualifin.com";
 
             // Generar nombre y apellidos primero
-            $nombre   = fake()->firstName();
-            $apellido_p = fake()->lastName();
-            $apellido_m = fake()->lastName();
+            [$nombre, $apellido_p, $apellido_m] = LatinoNameGenerator::person();
 
             // Crear usuario asociado
             $user = User::factory()->create([
