@@ -2,8 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\Garantia;
 use App\Models\Credito;
+use App\Models\Garantia;
+use Database\Seeders\Concerns\LatinoNameGenerator;
 use Illuminate\Database\Seeder;
 
 class GarantiaSeeder extends Seeder
@@ -15,7 +16,7 @@ class GarantiaSeeder extends Seeder
         for ($i = 0; $i < 20; $i++) {
             Garantia::create([
                 'credito_id' => $creditos->random()->id,
-                'propietario' => fake()->name(),
+                'propietario' => LatinoNameGenerator::fullName(),
                 'tipo' => fake()->word(),
                 'marca' => fake()->company(),
                 'modelo' => fake()->word(),
