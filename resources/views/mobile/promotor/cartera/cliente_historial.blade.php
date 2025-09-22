@@ -23,9 +23,12 @@
     $semanaActual = $proximoPago?->semana ?? ($pagos->last()?->semana ?? null);
     $semanaActualTexto = $semanaActual ? 'sem ' . $semanaActual : 'N/A';
 
-    $fechaCredito = optional($credito?->fecha_inicio)
-        ?->locale('es')
-        ->isoFormat('D [de] MMMM [de] YYYY');
+    $fechaCredito = $credito && $credito->fecha_inicio
+        ? $credito->fecha_inicio
+            ?->clone()
+            ?->locale('es')
+            ?->isoFormat('D [de] MMMM [de] YYYY')
+        : null;
 
     $formatCurrency = static function ($value): string {
         return '$' . number_format((float) $value, 2, '.', ',');
