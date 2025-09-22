@@ -109,7 +109,7 @@
 
         <div class="space-y-3">
           @forelse($supervisores as $s)
-            <a href="{{ route('mobile.'.$role.'.cartera_supervisor', $s->id ?? $s['id'] ?? null) }}"
+            <a href="{{ route('mobile.supervisor.cartera', ['supervisor' => $s->id ?? ($s['id'] ?? null)]) }}"
                class="block rounded-xl border border-gray-100 p-3 shadow-md hover:shadow transition">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">

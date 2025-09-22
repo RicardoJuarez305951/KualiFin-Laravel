@@ -367,12 +367,14 @@ class SupervisorController extends Controller
         ]);
     }
 
-    public function cartera()
+    public function cartera(Request $request)
     {
-        $user = auth()->user();
+        $user = $request->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+        $overrideSupervisorId = (int) $request->query('supervisor');
 
-        // Busca el perfil de supervisor por user_id
-        $supervisor = Supervisor::firstWhere('user_id', $user->id);
+        // Busca el perfil de supervisor por user_id o, si se proporciona, por override
+        $supervisor = $this->resolveSupervisorForCartera($primaryRole, $user?->id, $overrideSupervisorId);
 
         // Si no hay perfil de supervisor, devuelve colección vacía
         $promotores = $supervisor
@@ -455,6 +457,27 @@ class SupervisorController extends Controller
             'cartera_inactivaP',
             'nombre_supervisor'
         ));
+    }
+
+    private function resolveSupervisorForCartera(?string $primaryRole, ?int $userId, int $overrideId): ?Supervisor
+    {
+        if ($overrideId > 0 && in_array($primaryRole, ['ejecutivo', 'administrativo', 'superadmin'], true)) {
+            $query = Supervisor::query();
+
+            if ($primaryRole === 'ejecutivo' && $userId) {
+                $ejecutivo = Ejecutivo::firstWhere('user_id', $userId);
+                abort_if(!$ejecutivo, 403, 'Perfil de ejecutivo no configurado.');
+
+                $query->where('ejecutivo_id', $ejecutivo->id);
+            }
+
+            $supervisor = $query->whereKey($overrideId)->first();
+            abort_if(!$supervisor, 403, 'Supervisor fuera de tu alcance.');
+
+            return $supervisor;
+        }
+
+        return $userId ? Supervisor::firstWhere('user_id', $userId) : null;
     }
 
     public function carteraPromotor(Promotor $promotor)

@@ -2,8 +2,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cliente;
+use App\Models\Credito;
 use App\Models\Ejecutivo;
+use App\Models\Promotor;
+use App\Models\Supervisor;
+use App\Support\RoleHierarchy;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class EjecutivoController extends Controller
 {
@@ -96,9 +101,126 @@ class EjecutivoController extends Controller
         return view('mobile.ejecutivo.venta.ingresar_cliente');
     }
 
-    public function cartera()
+    public function cartera(Request $request)
     {
-        return view('mobile.ejecutivo.cartera.cartera');
+        $user = $request->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+
+        $ejecutivo = $this->resolveEjecutivoContext($primaryRole, $user?->id, (int) $request->query('ejecutivo_id'));
+        $nombre = $ejecutivo?->nombre;
+        $apellido_p = $ejecutivo?->apellido_p;
+        $apellido_m = $ejecutivo?->apellido_m;
+
+        $supervisores = $ejecutivo
+            ? $ejecutivo->supervisors()
+                ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+                ->orderBy('nombre')
+                ->get()
+            : collect();
+
+        [$cartera_activa, $cartera_vencida, $cartera_falla, $cartera_inactivaP] =
+            $this->buildCarteraMetrics($supervisores);
+
+        return view('mobile.ejecutivo.cartera.cartera', compact(
+            'ejecutivo',
+            'nombre',
+            'apellido_p',
+            'apellido_m',
+            'supervisores',
+            'cartera_activa',
+            'cartera_vencida',
+            'cartera_falla',
+            'cartera_inactivaP'
+        ));
+    }
+
+    private function resolveEjecutivoContext(?string $primaryRole, ?int $userId, int $overrideEjecutivoId = 0): ?Ejecutivo
+    {
+        if ($primaryRole === 'ejecutivo' && $userId) {
+            return Ejecutivo::firstWhere('user_id', $userId);
+        }
+
+        if (in_array($primaryRole, ['administrativo', 'superadmin'], true)) {
+            if ($overrideEjecutivoId > 0) {
+                return Ejecutivo::find($overrideEjecutivoId);
+            }
+
+            return Ejecutivo::first();
+        }
+
+        return null;
+    }
+
+    /**
+     * Calcula los totales básicos de cartera a partir de la lista de supervisores.
+     */
+    private function buildCarteraMetrics(Collection $supervisores): array
+    {
+        if ($supervisores->isEmpty()) {
+            return [0.0, 0.0, 0.0, 0.0];
+        }
+
+        $supervisorIds = $supervisores->pluck('id')->filter();
+        if ($supervisorIds->isEmpty()) {
+            return [0.0, 0.0, 0.0, 0.0];
+        }
+
+        $promotorIds = Promotor::whereIn('supervisor_id', $supervisorIds)->pluck('id');
+        if ($promotorIds->isEmpty()) {
+            return [0.0, 0.0, 0.0, 0.0];
+        }
+
+        $clienteIds = Cliente::whereIn('promotor_id', $promotorIds)->pluck('id');
+        if ($clienteIds->isEmpty()) {
+            return [0.0, 0.0, 0.0, 0.0];
+        }
+
+        $totalClientes = $clienteIds->count();
+        $inactivos = Cliente::whereIn('id', $clienteIds)
+            ->where(function ($query) {
+                $query->where('activo', false)->orWhereNull('activo');
+            })
+            ->count();
+        $cartera_inactivaP = $totalClientes > 0
+            ? round(($inactivos / max(1, (float) $totalClientes)) * 100, 2)
+            : 0.0;
+
+        $cartera_activa = (float) Credito::whereIn('cliente_id', $clienteIds)
+            ->where('estado', 'activo')
+            ->sum('monto_total');
+
+        $cartera_vencida = (float) Credito::whereIn('cliente_id', $clienteIds)
+            ->where('estado', 'vencido')
+            ->sum('monto_total');
+
+        $creditos = Credito::whereIn('cliente_id', $clienteIds)
+            ->with([
+                'pagosProyectados' => function ($query) {
+                    $query->where('fecha_limite', '<', now())
+                        ->with([
+                            'pagosReales.pagoCompleto',
+                            'pagosReales.pagoAnticipo',
+                            'pagosReales.pagoDiferido',
+                        ]);
+                },
+            ])
+            ->get();
+
+        $cartera_falla = 0.0;
+        foreach ($creditos as $credito) {
+            foreach ($credito->pagosProyectados as $pago) {
+                $proyectado = (float) ($pago->monto_proyectado ?? 0);
+                $pagado = (float) $pago->pagosReales->sum(fn ($real) => (float) ($real->monto ?? 0));
+                $cartera_falla += max(0, $proyectado - $pagado);
+            }
+        }
+
+        return [
+            round($cartera_activa, 2),
+            round($cartera_vencida, 2),
+            round($cartera_falla, 2),
+            $cartera_inactivaP,
+        ];
     }
 
     public function cliente_historial(Cliente $cliente)

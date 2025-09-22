@@ -47,7 +47,9 @@
                 <div class="hidden sm:grid grid-cols-8 gap-2 text-xs font-semibold text-gray-600 px-2 pb-2">
                     <div class="col-span-4 text-center">Cliente</div>
                     <div class="col-span-3 text-right">Monto</div>
+                    @role('ejecutivo|administrativo')
                     <div class="col-span-1 text-center">Búsqueda</div>
+                    @endrole
                 </div>
                 <div class="space-y-2">
                     @foreach ($clientes as $cliente)
@@ -64,6 +66,7 @@
                             <div class="col-span-3 text-right">
                                 <p class="text-sm font-semibold text-gray-900">{{ money_mx($cliente->credito->monto_total ?? $cliente->monto_maximo) }}</p>
                             </div>
+                            @role('ejecutivo|administrativo')
                             <div class="col-span-1">
                                 <a href="{{ route('consulta.deudores', ['cliente' => $nombreCompleto]) }}"
                                    target="_blank"
@@ -75,6 +78,7 @@
                                     </svg>
                                 </a>
                             </div>
+                            @endrole
                         </div>
                     @endforeach
                 </div>
