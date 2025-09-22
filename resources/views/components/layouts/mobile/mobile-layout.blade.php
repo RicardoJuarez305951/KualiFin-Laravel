@@ -60,6 +60,8 @@
   <div class="relative z-10 max-w-md mx-auto flex flex-col">
     {{ $slot }}
   </div>
+  @unlessrole('promotor')
   <x-floating-button />
+  @endunlessrole()
 </body>
 </html>
