@@ -54,14 +54,14 @@
                     <p class="text-gray-500 text-sm">Prospectados</p>
                     <p class="text-xl font-bold">{{ $clientesProspectados }}</p>
                 </div>
-                <a href="{{ route("mobile.$role.clientes_prospectados") }}" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
+                <a href="{{ route("mobile.$role.clientes_prospectados", array_merge($supervisorContextQuery ?? [], [])) }}" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
             </li>
             <li class="flex items-center justify-between py-2">
                 <div>
                     <p class="text-gray-500 text-sm">Por Supervisar</p>
                     <p class="text-xl font-bold">{{ $clientesPorSupervisar }}</p>
                 </div>
-                <a href="{{ route("mobile.$role.clientes_supervisados") }}" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
+                <a href="{{ route("mobile.$role.clientes_supervisados", array_merge($supervisorContextQuery ?? [], [])) }}" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
             </li>
         </ul>
     </div>
@@ -112,11 +112,11 @@
     </div>
 
     {{-- BotÃ³n regresar --}}
-    <a href="{{ route("mobile.$role.horarios") }}"
+    <a href="{{ route("mobile.$role.horarios", array_merge($supervisorContextQuery ?? [], [])) }}"
        class="block text-center py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
       Horarios
     </a>
-    <a href="{{ route("mobile.$role.index") }}"
+    <a href="{{ route("mobile.$role.index", array_merge($supervisorContextQuery ?? [], [])) }}"
        class="block text-center py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
       Regresar
     </a>

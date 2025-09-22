@@ -95,6 +95,7 @@ class SupervisorController extends Controller
     public function venta()
     {
         $user = auth()->user();
+        $this->resolveSupervisorContext(request());
 
         $context = $this->resolveSupervisorsForUser($user);
         $supervisores = $context['supervisors'];
@@ -201,42 +202,46 @@ class SupervisorController extends Controller
     }
 
 
-    public function horarios()
+    public function horarios(Request $request)
     {
-        $user = auth()->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($request->user());
 
-        $context = $this->resolveSupervisorsForUser($user);
-        $supervisores = $context['supervisors'];
-        $primaryRole = $context['primaryRole'];
+        $supervisor = $this->resolveSupervisorContext($request, [
+            'promotores' => function ($query) {
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m')
+                    ->orderBy('nombre')
+                    ->orderBy('apellido_p')
+                    ->orderBy('apellido_m');
+            },
+        ]);
 
-        if ($primaryRole === 'supervisor' && $supervisores->isEmpty()) {
-            abort(403, 'Perfil de supervisor no configurado.');
+        if ($primaryRole === 'supervisor') {
+            abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
         }
 
-        $supervisores = $supervisores instanceof \Illuminate\Support\Collection ? $supervisores : collect($supervisores);
+        $promotores = $supervisor?->promotores ?? collect();
+        $promotores = $promotores instanceof \Illuminate\Support\Collection ? $promotores : collect($promotores);
 
-        $promotores = $supervisores
-            ->flatMap(function (Supervisor $supervisor) {
-                return $supervisor->promotores ?? collect();
-            })
+        $promotores = $promotores
             ->map(function (Promotor $promotor) {
                 $promotor->nombre_completo = trim(($promotor->nombre ?? '') . ' ' . ($promotor->apellido_p ?? '') . ' ' . ($promotor->apellido_m ?? ''));
+
                 return $promotor;
             })
             ->values();
 
-        $supervisorIds = $supervisores->pluck('id')->filter()->values();
-
-        $ventaFecha = $supervisorIds->isEmpty()
-            ? null
-            : Ejercicio::whereIn('supervisor_id', $supervisorIds)
+        $ventaFecha = $supervisor?->id
+            ? Ejercicio::where('supervisor_id', $supervisor->id)
                 ->orderByDesc('fecha_inicio')
-                ->value('fecha_inicio');
+                ->value('fecha_inicio')
+            : null;
 
         $ventaFecha = $ventaFecha ? Carbon::parse($ventaFecha) : now();
 
+        $supervisorContextQuery = $request->attributes->get('supervisor_context_query', []);
+
         $definirRoute = Route::has('mobile.supervisor.horarios.definir')
-            ? fn ($promotorId) => route('mobile.supervisor.horarios.definir', ['promotor' => $promotorId])
+            ? fn ($promotorId) => route('mobile.supervisor.horarios.definir', array_merge($supervisorContextQuery, ['promotor' => $promotorId]))
             : fn ($promotorId = null) => '#';
 
         return view('mobile.supervisor.venta.horarios', [
@@ -251,9 +256,9 @@ class SupervisorController extends Controller
         return view('mobile.supervisor.venta.ingresar_cliente');
     }
 
-    public function clientes_prospectados()
+    public function clientes_prospectados(Request $request)
     {
-        [, $promotores] = $this->resolveSupervisorPromotoresConClientes();
+        [, $promotores] = $this->resolveSupervisorPromotoresConClientes($request);
 
         $nuevoStatuses = ['activo', 'desembolsado', 'regularizado', 'inactivo'];
         $recreditoStatuses = ['moroso'];
@@ -278,9 +283,9 @@ class SupervisorController extends Controller
         ]);
     }
 
-    public function clientes_supervisados()
+    public function clientes_supervisados(Request $request)
     {
-        [, $promotores] = $this->resolveSupervisorPromotoresConClientes();
+        [, $promotores] = $this->resolveSupervisorPromotoresConClientes($request);
 
         $supervisionStatuses = ['moroso', 'desembolsado', 'regularizado'];
         $recreditoStatuses = ['moroso'];
@@ -371,83 +376,82 @@ class SupervisorController extends Controller
     {
         $user = $request->user();
         $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
-        $overrideSupervisorId = (int) $request->query('supervisor');
 
-        // Busca el perfil de supervisor por user_id o, si se proporciona, por override
-        $supervisor = $this->resolveSupervisorForCartera($primaryRole, $user?->id, $overrideSupervisorId);
+        $supervisor = $this->resolveSupervisorContext($request, [
+            'promotores' => function ($query) {
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m')
+                    ->orderBy('nombre')
+                    ->orderBy('apellido_p')
+                    ->orderBy('apellido_m');
+            },
+        ]);
 
-        // Si no hay perfil de supervisor, devuelve colección vacía
-        $promotores = $supervisor
-            ? Promotor::where('supervisor_id', $supervisor->id)
-                ->select('id', 'nombre', 'apellido_p', 'apellido_m')
-                ->orderBy('nombre')
-                ->get()
+        if ($primaryRole === 'supervisor') {
+            abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
+        }
+
+        $promotores = $supervisor?->promotores ?? collect();
+        $promotores = $promotores instanceof \Illuminate\Support\Collection ? $promotores : collect($promotores);
+        $promotores = $promotores->values();
+
+        $promotorIds = $promotores->pluck('id')->filter()->values();
+        $clienteIds = $promotorIds->isNotEmpty()
+            ? Cliente::whereIn('promotor_id', $promotorIds)->pluck('id')
             : collect();
 
-        // Métricas de cartera (valores por defecto)
-        $cartera_activa     = 0.0;
-        $cartera_vencida    = 0.0;
-        $cartera_falla      = 0.0;
-        $cartera_inactivaP  = 0.0;
-        $nombre_supervisor  = $user?->name ?? 'Supervisor';
+        $totalClientes = $clienteIds->count();
+        $inactivos = $totalClientes > 0
+            ? Cliente::whereIn('id', $clienteIds)
+                ->where(function ($q) {
+                    $q->where('activo', false)->orWhereNull('activo');
+                })
+                ->count()
+            : 0;
 
-        if ($supervisor) {
-            // Nombre amigable del supervisor
-            $nombre_supervisor = collect([
-                $supervisor->nombre,
-                $supervisor->apellido_p,
-                $supervisor->apellido_m,
-            ])->filter()->implode(' ');
+        $cartera_inactivaP = $totalClientes > 0
+            ? round(($inactivos / max(1, (float) $totalClientes)) * 100, 2)
+            : 0.0;
 
-            // Alcance de clientes bajo este supervisor
-            $promotorIds = $promotores->pluck('id');
-            $clienteIds  = Cliente::whereIn('promotor_id', $promotorIds)->pluck('id');
-
-            // % de inactivos
-            $totalClientes = $clienteIds->count();
-            $inactivos = $totalClientes > 0
-                ? Cliente::whereIn('id', $clienteIds)
-                    ->where(function ($q) {
-                        $q->where('activo', false)->orWhereNull('activo');
-                    })
-                    ->count()
-                : 0;
-            $cartera_inactivaP = $totalClientes > 0
-                ? round(($inactivos / max(1, (float) $totalClientes)) * 100, 2)
-                : 0.0;
-
-            // Cartera activa (créditos activos)
-            $cartera_activa = (float) Credito::whereIn('cliente_id', $clienteIds)
+        $cartera_activa = $clienteIds->isNotEmpty()
+            ? (float) Credito::whereIn('cliente_id', $clienteIds)
                 ->where('estado', 'activo')
-                ->sum('monto_total');
+                ->sum('monto_total')
+            : 0.0;
 
-            // Cartera vencida (créditos marcados como vencidos)
-            $cartera_vencida = (float) Credito::whereIn('cliente_id', $clienteIds)
+        $cartera_vencida = $clienteIds->isNotEmpty()
+            ? (float) Credito::whereIn('cliente_id', $clienteIds)
                 ->where('estado', 'vencido')
-                ->sum('monto_total');
+                ->sum('monto_total')
+            : 0.0;
 
-            // Falla actual (semanas vencidas con saldo pendiente)
-            if ($clienteIds->isNotEmpty()) {
-                $creditos = Credito::whereIn('cliente_id', $clienteIds)
-                    ->with(['pagosProyectados' => function ($q) {
-                        $q->where('fecha_limite', '<', now())
-                          ->with(['pagosReales.pagoCompleto', 'pagosReales.pagoAnticipo', 'pagosReales.pagoDiferido']);
-                    }])
-                    ->get();
+        $cartera_falla = 0.0;
+        if ($clienteIds->isNotEmpty()) {
+            $creditos = Credito::whereIn('cliente_id', $clienteIds)
+                ->with(['pagosProyectados' => function ($q) {
+                    $q->where('fecha_limite', '<', now())
+                        ->with(['pagosReales.pagoCompleto', 'pagosReales.pagoAnticipo', 'pagosReales.pagoDiferido']);
+                }])
+                ->get();
 
-                $cartera_falla = 0.0;
-                foreach ($creditos as $cr) {
-                    foreach ($cr->pagosProyectados as $pp) {
-                        $proyectado = (float) $pp->monto_proyectado;
-                        $pagado = (float) $pp->pagosReales->sum(function ($pr) {
-                            return (float) ($pr->monto ?? 0);
-                        });
-                        $deficit = max(0, $proyectado - $pagado);
-                        $cartera_falla += $deficit;
-                    }
+            foreach ($creditos as $cr) {
+                foreach ($cr->pagosProyectados as $pp) {
+                    $proyectado = (float) $pp->monto_proyectado;
+                    $pagado = (float) $pp->pagosReales->sum(function ($pr) {
+                        return (float) ($pr->monto ?? 0);
+                    });
+                    $deficit = max(0, $proyectado - $pagado);
+                    $cartera_falla += $deficit;
                 }
             }
         }
+
+        $nombre_supervisor = $supervisor
+            ? collect([
+                $supervisor->nombre,
+                $supervisor->apellido_p,
+                $supervisor->apellido_m,
+            ])->filter()->implode(' ')
+            : ($user?->name ?? 'Supervisor');
 
         return view('mobile.supervisor.cartera.cartera', compact(
             'promotores',
@@ -459,34 +463,20 @@ class SupervisorController extends Controller
         ));
     }
 
-    private function resolveSupervisorForCartera(?string $primaryRole, ?int $userId, int $overrideId): ?Supervisor
+    public function carteraPromotor(Request $request, Promotor $promotor)
     {
-        if ($overrideId > 0 && in_array($primaryRole, ['ejecutivo', 'administrativo', 'superadmin'], true)) {
-            $query = Supervisor::query();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($request->user());
+        $supervisor = $this->resolveSupervisorContext($request);
 
-            if ($primaryRole === 'ejecutivo' && $userId) {
-                $ejecutivo = Ejecutivo::firstWhere('user_id', $userId);
-                abort_if(!$ejecutivo, 403, 'Perfil de ejecutivo no configurado.');
+        if (!$supervisor) {
+            $message = $primaryRole === 'supervisor'
+                ? 'Perfil de supervisor no configurado.'
+                : 'Supervisor fuera de tu alcance.';
 
-                $query->where('ejecutivo_id', $ejecutivo->id);
-            }
-
-            $supervisor = $query->whereKey($overrideId)->first();
-            abort_if(!$supervisor, 403, 'Supervisor fuera de tu alcance.');
-
-            return $supervisor;
+            abort(403, $message);
         }
 
-        return $userId ? Supervisor::firstWhere('user_id', $userId) : null;
-    }
-
-    public function carteraPromotor(Promotor $promotor)
-    {
-        $user = auth()->user();
-        $supervisor = Supervisor::firstWhere('user_id', $user->id);
-
-        abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
-        abort_unless($promotor->supervisor_id === $supervisor->id, 403);
+        abort_unless($promotor->supervisor_id === $supervisor->id, 403, 'Promotor fuera de tu alcance.');
 
         $clientes = Cliente::where('promotor_id', $promotor->id)
             ->with('credito')
@@ -500,12 +490,18 @@ class SupervisorController extends Controller
         return view('mobile.supervisor.cartera.reporte');
     }
 
-    public function cliente_historial(Cliente $cliente)
+    public function cliente_historial(Request $request, Cliente $cliente)
     {
-        $user = auth()->user();
-        $supervisor = Supervisor::firstWhere('user_id', $user?->id);
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($request->user());
+        $supervisor = $this->resolveSupervisorContext($request);
 
-        abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
+        if (!$supervisor) {
+            $message = $primaryRole === 'supervisor'
+                ? 'Perfil de supervisor no configurado.'
+                : 'Supervisor fuera de tu alcance.';
+
+            abort(403, $message);
+        }
 
         $cliente->load([
             'promotor.supervisor',
@@ -516,7 +512,7 @@ class SupervisorController extends Controller
             'documentos',
         ]);
 
-        abort_unless(optional($cliente->promotor)->supervisor_id === $supervisor->id, 403);
+        abort_unless(optional($cliente->promotor)->supervisor_id === $supervisor->id, 403, 'Cliente fuera de tu alcance.');
 
         $credito = $cliente->credito;
 
@@ -701,12 +697,18 @@ class SupervisorController extends Controller
         ));
     }
 
-    public function cartera_activa()
+    public function cartera_activa(Request $request)
     {
-        $user = auth()->user();
-        $supervisor = Supervisor::firstWhere('user_id', $user?->id);
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($request->user());
+        $supervisor = $this->resolveSupervisorContext($request);
 
-        abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
+        if (!$supervisor) {
+            $message = $primaryRole === 'supervisor'
+                ? 'Perfil de supervisor no configurado.'
+                : 'Supervisor fuera de tu alcance.';
+
+            abort(403, $message);
+        }
 
         $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
             ->select('id', 'nombre', 'apellido_p', 'apellido_m')
@@ -775,11 +777,18 @@ class SupervisorController extends Controller
         ]);
     }
 
-    public function cartera_vencida()
+    public function cartera_vencida(Request $request)
     {
-        $user = auth()->user();
-        $supervisor = Supervisor::firstWhere('user_id', $user?->id);
-        abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($request->user());
+        $supervisor = $this->resolveSupervisorContext($request);
+
+        if (!$supervisor) {
+            $message = $primaryRole === 'supervisor'
+                ? 'Perfil de supervisor no configurado.'
+                : 'Supervisor fuera de tu alcance.';
+
+            abort(403, $message);
+        }
 
         $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
             ->select('id', 'nombre', 'apellido_p', 'apellido_m')
@@ -837,11 +846,18 @@ class SupervisorController extends Controller
         ]);
     }
 
-    public function cartera_inactiva()
+    public function cartera_inactiva(Request $request)
     {
-        $user = auth()->user();
-        $supervisor = Supervisor::firstWhere('user_id', $user?->id);
-        abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($request->user());
+        $supervisor = $this->resolveSupervisorContext($request);
+
+        if (!$supervisor) {
+            $message = $primaryRole === 'supervisor'
+                ? 'Perfil de supervisor no configurado.'
+                : 'Supervisor fuera de tu alcance.';
+
+            abort(403, $message);
+        }
 
         $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
             ->select('id', 'nombre', 'apellido_p', 'apellido_m')
@@ -895,11 +911,18 @@ class SupervisorController extends Controller
         ]);
     }
 
-    public function cartera_falla()
+    public function cartera_falla(Request $request)
     {
-        $user = auth()->user();
-        $supervisor = Supervisor::firstWhere('user_id', $user?->id);
-        abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($request->user());
+        $supervisor = $this->resolveSupervisorContext($request);
+
+        if (!$supervisor) {
+            $message = $primaryRole === 'supervisor'
+                ? 'Perfil de supervisor no configurado.'
+                : 'Supervisor fuera de tu alcance.';
+
+            abort(403, $message);
+        }
 
         $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
             ->select('id', 'nombre', 'apellido_p', 'apellido_m')
@@ -976,58 +999,164 @@ class SupervisorController extends Controller
         return view('mobile.supervisor.apertura.apertura');
     }
 
-    private function resolveSupervisorPromotoresConClientes(): array
+    private function resolveSupervisorPromotoresConClientes(Request $request): array
     {
-        $context = $this->resolveSupervisorsForUser(auth()->user());
-        $supervisores = $context['supervisors'];
-        $primaryRole = $context['primaryRole'];
+        $with = [
+            'promotores' => function ($query) {
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo')
+                    ->with([
+                        'clientes' => function ($clienteQuery) {
+                            $clienteQuery->select('id', 'promotor_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'fecha_nacimiento', 'tiene_credito_activo', 'monto_maximo', 'activo')
+                                ->with([
+                                    'documentos',
+                                    'credito' => function ($creditoQuery) {
+                                        $creditoQuery->select('creditos.id', 'creditos.cliente_id', 'creditos.monto_total', 'creditos.estado', 'creditos.periodicidad', 'creditos.fecha_inicio', 'creditos.fecha_final')
+                                            ->with([
+                                                'datoContacto',
+                                                'ocupacion' => function ($ocupacionQuery) {
+                                                    $ocupacionQuery->select('id', 'credito_id', 'actividad', 'nombre_empresa', 'calle', 'numero', 'colonia', 'municipio', 'telefono', 'antiguedad', 'monto_percibido', 'periodo_pago')
+                                                        ->with(['ingresosAdicionales' => function ($ingresoQuery) {
+                                                            $ingresoQuery->select('id', 'ocupacion_id', 'concepto', 'monto', 'frecuencia');
+                                                        }]);
+                                                },
+                                                'informacionFamiliar' => function ($familiarQuery) {
+                                                    $familiarQuery->select('id', 'credito_id', 'nombre_conyuge', 'celular_conyuge', 'actividad_conyuge', 'ingresos_semanales_conyuge', 'domicilio_trabajo_conyuge', 'personas_en_domicilio', 'dependientes_economicos', 'conyuge_vive_con_cliente');
+                                                },
+                                                'garantias' => function ($garantiaQuery) {
+                                                    $garantiaQuery->select('id', 'credito_id', 'propietario', 'tipo', 'marca', 'modelo', 'num_serie', 'antiguedad', 'monto_garantizado', 'foto_url');
+                                                },
+                                                'avales' => function ($avalQuery) {
+                                                    $avalQuery->select('id', 'credito_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'telefono', 'direccion');
+                                                },
+                                            ]);
+                                    },
+                                ])
+                                ->orderBy('nombre');
+                        },
+                    ])
+                    ->orderBy('nombre');
+            },
+        ];
 
-        if ($primaryRole === 'supervisor' && $supervisores->isEmpty()) {
-            abort(403, 'Perfil de supervisor no configurado.');
+        $supervisor = $this->resolveSupervisorContext($request, $with);
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($request->user());
+
+        if ($primaryRole === 'supervisor') {
+            abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
         }
 
-        $supervisores = $supervisores instanceof \Illuminate\Support\Collection ? $supervisores : collect($supervisores);
-        $supervisorIds = $supervisores->pluck('id')->filter()->values();
-
-        if ($supervisorIds->isEmpty()) {
-            return [$supervisores, collect()];
+        if (!$supervisor) {
+            return [null, collect()];
         }
 
-        $promotores = Promotor::whereIn('supervisor_id', $supervisorIds)
-            ->with([
-                'clientes' => function ($clienteQuery) {
-                    $clienteQuery->select('id', 'promotor_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'fecha_nacimiento', 'tiene_credito_activo', 'monto_maximo', 'activo')
-                        ->with([
-                            'documentos',
-                            'credito' => function ($creditoQuery) {
-                                $creditoQuery->select('creditos.id', 'creditos.cliente_id', 'creditos.monto_total', 'creditos.estado', 'creditos.periodicidad', 'creditos.fecha_inicio', 'creditos.fecha_final')
-                                    ->with([
-                                        'datoContacto',
-                                        'ocupacion' => function ($ocupacionQuery) {
-                                            $ocupacionQuery->select('id', 'credito_id', 'actividad', 'nombre_empresa', 'calle', 'numero', 'colonia', 'municipio', 'telefono', 'antiguedad', 'monto_percibido', 'periodo_pago')
-                                                ->with(['ingresosAdicionales' => function ($ingresoQuery) {
-                                                    $ingresoQuery->select('id', 'ocupacion_id', 'concepto', 'monto', 'frecuencia');
-                                                }]);
-                                        },
-                                        'informacionFamiliar' => function ($familiarQuery) {
-                                            $familiarQuery->select('id', 'credito_id', 'nombre_conyuge', 'celular_conyuge', 'actividad_conyuge', 'ingresos_semanales_conyuge', 'domicilio_trabajo_conyuge', 'personas_en_domicilio', 'dependientes_economicos', 'conyuge_vive_con_cliente');
-                                        },
-                                        'garantias' => function ($garantiaQuery) {
-                                            $garantiaQuery->select('id', 'credito_id', 'propietario', 'tipo', 'marca', 'modelo', 'num_serie', 'antiguedad', 'monto_garantizado', 'foto_url');
-                                        },
-                                        'avales' => function ($avalQuery) {
-                                            $avalQuery->select('id', 'credito_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'telefono', 'direccion');
-                                        },
-                                    ]);
-                            },
-                        ])
-                        ->orderBy('nombre');
-                },
-            ])
+        $promotores = $supervisor->promotores ?? collect();
+        $promotores = $promotores instanceof \Illuminate\Support\Collection ? $promotores : collect($promotores);
+
+        return [$supervisor, $promotores->values()];
+    }
+
+    private function shareSupervisorContext(Request $request, ?Supervisor $supervisor): void
+    {
+        $supervisorId = $supervisor?->id;
+        $contextQuery = $supervisorId ? ['supervisor' => $supervisorId] : [];
+
+        $request->attributes->set('acting_supervisor_id', $supervisorId);
+        $request->attributes->set('acting_supervisor', $supervisor);
+        $request->attributes->set('supervisor_context_query', $contextQuery);
+
+        view()->share([
+            'actingSupervisor' => $supervisor,
+            'actingSupervisorId' => $supervisorId,
+            'supervisorContextQuery' => $contextQuery,
+        ]);
+    }
+
+    private function resolveSupervisorContext(Request $request, array $with = []): ?Supervisor
+    {
+        $user = $request->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+        $sessionKey = 'mobile.supervisor_context';
+        $requestedId = (int) $request->query('supervisor');
+
+        $request->attributes->set('acting_supervisor_role', $primaryRole);
+
+        if ($primaryRole === 'supervisor') {
+            $supervisor = Supervisor::query()
+                ->with($with)
+                ->firstWhere('user_id', $user?->id);
+
+            if ($supervisor) {
+                $request->session()->put($sessionKey, $supervisor->id);
+                $this->shareSupervisorContext($request, $supervisor);
+
+                return $supervisor;
+            }
+
+            $request->session()->forget($sessionKey);
+            $this->shareSupervisorContext($request, null);
+
+            return null;
+        }
+
+        $query = Supervisor::query();
+
+        if ($primaryRole === 'ejecutivo') {
+            $ejecutivo = Ejecutivo::firstWhere('user_id', $user?->id);
+            abort_if(!$ejecutivo, 403, 'Perfil de ejecutivo no configurado.');
+
+            $query->where('ejecutivo_id', $ejecutivo->id);
+        } elseif (!in_array($primaryRole, ['administrativo', 'superadmin'], true)) {
+            $request->session()->forget($sessionKey);
+            $this->shareSupervisorContext($request, null);
+
+            return null;
+        }
+
+        $loader = function (int $id) use ($query, $with) {
+            if ($id <= 0) {
+                return null;
+            }
+
+            return (clone $query)->with($with)->find($id);
+        };
+
+        if ($requestedId > 0) {
+            $supervisor = $loader($requestedId);
+            abort_if(!$supervisor, 403, 'Supervisor fuera de tu alcance.');
+
+            $request->session()->put($sessionKey, $supervisor->id);
+            $this->shareSupervisorContext($request, $supervisor);
+
+            return $supervisor;
+        }
+
+        $sessionId = (int) $request->session()->get($sessionKey);
+        if ($sessionId > 0) {
+            $supervisor = $loader($sessionId);
+            if ($supervisor) {
+                $this->shareSupervisorContext($request, $supervisor);
+
+                return $supervisor;
+            }
+
+            $request->session()->forget($sessionKey);
+        }
+
+        $supervisor = (clone $query)->with($with)
             ->orderBy('nombre')
-            ->get();
+            ->orderBy('apellido_p')
+            ->orderBy('apellido_m')
+            ->first();
 
-        return [$supervisores, $promotores];
+        if ($supervisor) {
+            $request->session()->put($sessionKey, $supervisor->id);
+        } else {
+            $request->session()->forget($sessionKey);
+        }
+
+        $this->shareSupervisorContext($request, $supervisor);
+
+        return $supervisor;
     }
 
     private function resolveSupervisorsForUser($user): array

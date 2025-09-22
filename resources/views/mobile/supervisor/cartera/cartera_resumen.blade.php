@@ -8,7 +8,7 @@
         {!! $statRow('Cartera Activa:', null, '
         <div class="flex items-center gap-2">
             <span class="text-sm font-semibold text-gray-900">'.money_mx($cartera_activa).'</span>'.
-            $pillLink(route('mobile.'.$role.'.cartera_activa'), 'D').'
+            $pillLink(route('mobile.'.$role.'.cartera_activa', array_merge($supervisorContextQuery ?? [], [])), 'D').'
         </div>
         ') !!}
 
@@ -18,21 +18,21 @@
             '.$porcentaje_fallo.'%
             </span>
             <span class="text-sm font-semibold text-gray-900">'.money_mx($cartera_falla).'</span>'.
-            $pillLink(route('mobile.'.$role.'.cartera_falla'), 'D').'
+            $pillLink(route('mobile.'.$role.'.cartera_falla', array_merge($supervisorContextQuery ?? [], [])), 'D').'
         </div>
         ') !!}
 
         {!! $statRow('Cartera Vencida:', null, '
         <div class="flex items-center gap-2">
             <span class="text-sm font-semibold text-gray-900">'.money_mx($cartera_vencida).'</span>'.
-            $pillLink(route('mobile.'.$role.'.cartera_vencida'), 'D').'
+            $pillLink(route('mobile.'.$role.'.cartera_vencida', array_merge($supervisorContextQuery ?? [], [])), 'D').'
         </div>
         ') !!}
 
         {!! $statRow('Cartera Inactiva:', null, '
         <div class="flex items-center gap-2">
             <span class="text-sm font-semibold text-gray-900">'.$cartera_inactivaP.'%</span>'.
-            $pillLink(route('mobile.'.$role.'.cartera_inactiva'), 'D').'
+            $pillLink(route('mobile.'.$role.'.cartera_inactiva', array_merge($supervisorContextQuery ?? [], [])), 'D').'
         </div>
         ') !!}
     </div>
