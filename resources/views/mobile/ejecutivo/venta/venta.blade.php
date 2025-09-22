@@ -1,81 +1,58 @@
-﻿{{-- resources/views/mobile/ejecutivo/cartera.blade.php --}}
+{{-- resources/views/mobile/ejecutivo/cartera.blade.php --}}
 @php
-  use Carbon\Carbon;
+    use Carbon\Carbon;
 
-  /** ================= Vars esperadas (con defaults y faker si no vienen) ================= */
-  $role       = $role       ?? 'ejecutivo';
-  $nombre     = $nombre     ?? 'Ricardo';
-  $apellido_p = $apellido_p ?? 'Juárez';
-  $apellido_m = $apellido_m ?? 'Ramírez';
+    $role       = $role       ?? 'ejecutivo';
+    $nombre     = $nombre     ?? '—';
+    $apellido_p = $apellido_p ?? '';
+    $apellido_m = $apellido_m ?? '';
 
-  // Fecha mostrada en "Venta Registrada para fecha: DD/MM/YY"
-  $fechaVenta = isset($fechaVenta) ? Carbon::parse($fechaVenta) : Carbon::now();
-  $fechaVentaStr = $fechaVenta->format('d/m/y');
+    $fechaVenta = isset($fechaVenta) && $fechaVenta
+        ? ($fechaVenta instanceof Carbon ? $fechaVenta : Carbon::parse($fechaVenta))
+        : null;
+    $fechaVentaStr = $fechaVenta ? $fechaVenta->format('d/m/Y') : '—';
 
-  // Si no vienen métricas globales, generamos faker coherente
-  if (!isset($debeOperativo))  $debeOperativo  = mt_rand(40_000, 120_000) / 1.0;
-  if (!isset($debeProyectado)) $debeProyectado = mt_rand(80_000, 160_000) / 1.0;
-  if (!isset($fallaReal))      $fallaReal      = mt_rand(5_000, 35_000) / 1.0;
-  if (!isset($cobranza))       $cobranza       = max(0, $debeProyectado - $fallaReal - mt_rand(0, 10_000));
+    $debeOperativo  = (float) ($debeOperativo  ?? 0);
+    $debeProyectado = (float) ($debeProyectado ?? 0);
+    $fallaReal      = (float) ($fallaReal      ?? 0);
+    $cobranza       = (float) ($cobranza       ?? 0);
 
-  // % Falla y % Cobranza basados en "Debe Proyectado"
-  $pct = fn($num, $den) => $den > 0 ? max(0, min(100, round(($num / $den) * 100, 2))) : 0;
-  $fallaPct     = $pct($fallaReal, $debeProyectado);
-  $cobranzaPct  = $pct($cobranza,  $debeProyectado);
+    $pct = fn($num, $den) => $den > 0 ? max(0, min(100, round(($num / $den) * 100, 2))) : 0;
+    $fallaPct    = isset($fallaPct) ? (float) $fallaPct : $pct($fallaReal, $debeProyectado);
+    $cobranzaPct = isset($cobranzaPct) ? (float) $cobranzaPct : $pct($cobranza, $debeProyectado);
 
-  // Helpers de UI
-  if (!function_exists('mx_money')) {
-    function mx_money($v){ return '$' . number_format((float)$v, 2, '.', ','); }
-  }
+    $supervisores = collect($supervisores ?? []);
 
-  $statSimple = function(string $title, string $value, string $sub = '') {
-    return <<<HTML
+    if (!function_exists('mx_money')) {
+        function mx_money($v){ return '$' . number_format((float)$v, 2, '.', ','); }
+    }
+
+    $statSimple = function(string $title, string $value, string $sub = '') {
+        return <<<HTML
       <div class="rounded-xl border border-gray-100 p-3 shadow-sm">
         <p class="text-[12px] font-semibold text-gray-600">$title</p>
         <p class="text-[15px] font-bold text-gray-900">$value</p>
         {$sub}
       </div>
     HTML;
-  };
-
-  $pill = function(string $href, string $text) {
-    return '<a href="'.e($href).'"
-             class="inline-flex items-center justify-center text-xs font-bold rounded-full w-7 h-7 bg-blue-600 text-white hover:bg-blue-700"
-             title="'.e($text).'">'.e($text).'</a>';
-  };
-
-  $btn = function(string $href, string $text, string $variant = 'primary') {
-    $base   = 'inline-flex items-center justify-center rounded-2xl text-sm font-semibold px-3 py-2 shadow';
-    $styles = match($variant) {
-      'outline'  => 'bg-white border border-blue-600 text-blue-700 hover:bg-blue-50',
-      'indigo'   => 'bg-indigo-600 text-white hover:bg-indigo-700',
-      default    => 'bg-blue-600 text-white hover:bg-blue-700',
     };
-    return '<a href="'.e($href).'" class="'.$base.' '.$styles.'">'.e($text).'</a>';
-  };
 
-  /** ================= Faker de supervisores si no viene del back ================= */
-  if (!isset($supervisores) || empty($supervisores)) {
-    $n = 6; // para llenar 3x2 bonito también si quieres reusar
-    $supervisores = collect(range(1, $n))->map(function($i) use ($pct) {
-      $debeOp  = mt_rand(10_000, 70_000);
-      $debePro = mt_rand($debeOp, $debeOp + 80_000);
-      $falla   = mt_rand(1_000, max(2_000, (int)($debePro * 0.35)));
-      $cobran  = max(0, $debePro - $falla - mt_rand(0, (int)($debePro * 0.1)));
+    $pill = function(string $href, string $text) {
+        return '<a href="'.e($href).'"'
+             . ' class="inline-flex items-center justify-center text-xs font-bold rounded-full w-7 h-7 bg-blue-600 text-white hover:bg-blue-700"'
+             . ' title="'.e($text).'">'.e($text).'</a>';
+    };
 
-      return [
-        'id'             => $i,
-        'nombre'         => "Supervisor $i",
-        'fecha'          => Carbon::now()->subDays(mt_rand(0, 3))->format('d/m/y'),
-        'horario'        => (mt_rand(0,1) ? '09:00–17:00' : '11:00–19:00'),
-        'ventaRegistrada'=> mt_rand(15_000, 80_000),
-        'debeOperativo'  => $debeOp,
-        'debeProyectado' => $debePro,
-        'cobranzaPct'    => $pct($cobran, $debePro),
-        'fallaPct'       => $pct($falla,  $debePro),
-      ];
-    });
-  }
+    $btn = function(string $href, string $text, string $variant = 'primary') {
+        $base   = 'inline-flex items-center justify-center rounded-2xl text-sm font-semibold px-3 py-2 shadow';
+        $styles = match($variant) {
+            'outline' => 'bg-white border border-blue-600 text-blue-700 hover:bg-blue-50',
+            'indigo'  => 'bg-indigo-600 text-white hover:bg-indigo-700',
+            default   => 'bg-blue-600 text-white hover:bg-blue-700',
+        };
+
+        return '<a href="'.e($href).'" class="'.$base.' '.$styles.'">'.e($text).'</a>';
+    };
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Cartera - Ejecutivo">
@@ -87,10 +64,14 @@
     <section class="bg-white rounded-2xl shadow-lg ring-1 ring-gray-900/5 overflow-hidden">
       <div class="p-5 space-y-1">
         <h2 class="text-base font-bold text-gray-900">Ejecutivo</h2>
-        <p class="text-sm text-gray-700">
+        <p class="text-sm text-gray-700 flex flex-wrap gap-1">
           <span class="font-semibold">{{ $nombre }}</span>
-          <span>{{ $apellido_p }}</span>
-          <span>{{ $apellido_m }}</span>
+          @if($apellido_p !== '')
+            <span>{{ $apellido_p }}</span>
+          @endif
+          @if($apellido_m !== '')
+            <span>{{ $apellido_m }}</span>
+          @endif
         </p>
       </div>
 
@@ -122,19 +103,19 @@
         <h2 class="text-base font-bold text-gray-900 mb-3">Supervisores</h2>
 
         <div class="space-y-3">
-          @forelse(collect($supervisores) as $s)
+          @forelse($supervisores as $s)
             <div class="rounded-xl border border-gray-100 p-3 shadow-sm">
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                   <p class="text-sm font-semibold text-gray-900">{{ $s['nombre'] ?? 'Sin nombre' }}</p>
-                  <p class="text-[12px] text-gray-600">Fecha: <span class="font-semibold text-gray-800">{{ $s['fecha'] ?? '--/--/--' }}</span></p>
+                  <p class="text-[12px] text-gray-600">Fecha: <span class="font-semibold text-gray-800">{{ $s['fecha'] ?? '—' }}</span></p>
                   <p class="text-[12px] text-gray-600">Horario: <span class="font-semibold text-gray-800">{{ $s['horario'] ?? '—' }}</span></p>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
                   {{-- Botón detalles "D" --}}
-                  {!! $pill(route("mobile.supervisor.venta"), 'D') !!}
+                  {!! $pill(!empty($s['id']) ? route('mobile.supervisor.venta', array_merge($supervisorContextQuery ?? [], ['supervisor' => $s['id']])) : '#', 'D') !!}
                   {{-- Botón venta "V" --}}
-                  {!! $pill(route("mobile.ejecutivo.desembolso"), 'V') !!}
+                  {!! $pill(route('mobile.ejecutivo.desembolso', $supervisorContextQuery ?? []), 'V') !!}
                 </div>
               </div>
 
@@ -170,7 +151,7 @@
 
     {{-- ===================== div3: Botones ===================== --}}
     <section class="grid grid-cols-3 gap-3">
-      {!! $btn(route('mobile.index'), 'Regresar', 'outline') !!}
+      {!! $btn(route('mobile.index', $supervisorContextQuery ?? []), 'Regresar', 'outline') !!}
       {!! $btn(url()->current(), 'Actualizar', 'primary') !!}
       <button type="button"
               @click="showHorarios = true"
