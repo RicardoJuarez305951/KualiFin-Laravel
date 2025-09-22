@@ -78,9 +78,9 @@
 
     {{-- ===================== Acciones ===================== --}}
     <section class="grid grid-cols-3 gap-3">
-      {!! $btn(route('mobile.index'), 'Regresar', 'outline-primary') !!}
-      {!! $btn(url()->current(), 'Actualizar', 'primary') !!}
-      {!! $btn(url()->current(), 'Reporte', 'indigo') !!}
+      {!! $btn(route('mobile.index', array_merge($supervisorContextQuery ?? [], [])), 'Regresar', 'outline-primary') !!}
+      {!! $btn(route('mobile.supervisor.cartera', array_merge($supervisorContextQuery ?? [], [])), 'Actualizar', 'primary') !!}
+      {!! $btn(route('mobile.supervisor.reporte', array_merge($supervisorContextQuery ?? [], [])), 'Reporte', 'indigo') !!}
     </section>
 
   </div>
