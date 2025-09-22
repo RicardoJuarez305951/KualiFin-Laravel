@@ -1,148 +1,86 @@
-{{-- resources/views/mobile/supervisor/dashboard.blade.php (o donde lo necesites) --}}
+{{-- resources/views/mobile/supervisor/dashboard.blade.php --}}
 @php
-    use Faker\Factory as Faker;
+  /** Vars esperadas desde el controlador (con defaults seguros) */
+  $role               = $role              ?? 'supervisor';
+  $nombre_supervisor  = $nombre_supervisor ?? (auth()->user()->name ?? 'Supervisor');
+  $cartera_activa     = $cartera_activa    ?? 0;
+  $cartera_falla      = $cartera_falla     ?? 0;
+  $cartera_vencida    = $cartera_vencida   ?? 0;
+  $cartera_inactivaP  = $cartera_inactivaP ?? 0;
 
-    /** @var string $role */
-    $role = $role ?? 'promotor';
-    $faker = Faker::create('es_MX');
+  $porcentaje_fallo   = $cartera_activa > 0
+      ? round(($cartera_falla / max(1, (float)$cartera_activa)) * 100, 2)
+      : 0;
 
-    // Supervisor y métricas
-    $nombre_supervisor = $faker->name();
-    $cartera_activa    = $faker->randomFloat(2, 80000, 250000);
-    $cartera_falla     = $faker->randomFloat(2,  5000,  60000);
-    $cartera_vencida   = $faker->randomFloat(2, 10000, 120000);
-    $cartera_inactivaP = $faker->numberBetween(1, 35); // porcentaje
+  if (!function_exists('money_mx')) {
+    function money_mx($v){ return '$' . number_format((float)$v, 2, '.', ','); }
+  }
 
-    // Porcentaje de fallo (ajusta la fórmula si quieres otra)
-    $porcentaje_fallo  = $cartera_activa > 0 ? round(($cartera_falla / $cartera_activa) * 100, 2) : 0;
+  /** Helpers inline (reemplazo sencillo de X-Components) */
+  $statRow = function(string $label, $value = null, $slotHtml = null) {
+      $left  = '<span class="text-sm text-gray-600">'.e($label).'</span>';
+      $right = !is_null($value)
+          ? '<span class="text-sm font-semibold text-gray-900">'.e($value).'</span>'
+          : ($slotHtml ?? '');
+      return '<div class="flex items-center justify-between">'.$left.$right.'</div>';
+  };
 
-    // Promotores
-    $promotores = collect(range(1, 8))->map(fn($i) => [
-        'name'     => $faker->name(),
-        'progress' => $faker->numberBetween(5, 100), // %
-    ]);
-    function money_mx($v){ return '$' . number_format($v, 2, '.', ','); }
+  $pillLink = function(string $href, string $text = 'D') {
+      return '<a href="'.e($href).'"
+                class="inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded-full bg-blue-600 text-white hover:bg-blue-700 transition"
+                title="Detalles">'.$text.'</a>';
+  };
+
+  $btn = function(string $href, string $text, string $variant = 'primary') {
+      $base   = 'inline-flex items-center justify-center rounded-xl text-sm font-semibold px-3 py-2 shadow';
+      $styles = match($variant) {
+        'outline-primary' => 'border border-gray-300 text-white bg-blue-600 hover:bg-blue-700 shadow-sm',
+        'indigo'          => 'bg-indigo-600 text-white hover:bg-indigo-700',
+        default           => 'bg-blue-600 text-white hover:bg-blue-700',
+      };
+      return '<a href="'.e($href).'" class="'.$base.' '.$styles.'">'.$text.'</a>';
+  };
 @endphp
 
-<x-layouts.mobile.mobile-layout title="Panel Supervisor">
+<x-layouts.mobile.mobile-layout title="Cartera Supervisor">
   <div class="mx-auto w-[22rem] sm:w-[26rem] p-4 sm:p-6 space-y-6">
 
-    {{-- =======================
-         DIV1: Resumen
-       ======================= --}}
-    <section class="bg-white rounded-2xl shadow-lg ring-1 ring-gray-900/5 overflow-hidden">
-      <div class="p-5 space-y-4">
-        <h2 class="text-base font-bold text-gray-900">Resumen</h2>
+    {{-- ===================== Resumen ===================== --}}
+    @include('mobile.supervisor.cartera.cartera_resumen')
 
-        <div class="space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-sm text-gray-600">Supervisor:</span>
-            <span class="text-sm font-semibold text-gray-900">{{ $nombre_supervisor }}</span>
-          </div>
-
-          <div class="flex items-center justify-between">
-            <span class="text-sm text-gray-600">Cartera Activa:</span>
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-semibold text-gray-900">{{ money_mx($cartera_activa) }}</span>
-              <a href="{{ route("mobile.$role.cartera_activa") }}"
-                 class="inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded-full bg-blue-600 text-white hover:bg-blue-700 transition"
-                 title="Detalles">D</a>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-between">
-            <span class="text-sm text-gray-600">Falla Actual:</span>
-            <div class="flex items-center gap-2">
-              <span class="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 ring-1 ring-yellow-200">
-                {{ $porcentaje_fallo }}%
-              </span>
-              <span class="text-sm font-semibold text-gray-900">{{ money_mx($cartera_falla) }}</span>
-              <a href="{{ route("mobile.$role.cartera_falla") }}"
-                 class="inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded-full bg-blue-600 text-white hover:bg-blue-700 transition"
-                 title="Detalles">D</a>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-between">
-            <span class="text-sm text-gray-600">Cartera Vencida:</span>
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-semibold text-gray-900">{{ money_mx($cartera_vencida) }}</span>
-              <a href="{{ route("mobile.$role.cartera_vencida") }}"
-                 class="inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded-full bg-blue-600 text-white hover:bg-blue-700 transition"
-                 title="Detalles">D</a>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-between">
-            <span class="text-sm text-gray-600">Cartera Inactiva:</span>
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-semibold text-gray-900">{{ $cartera_inactivaP }}%</span>
-              <a href="{{ route("mobile.$role.cartera_inactiva") }}"
-                 class="inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded-full bg-blue-600 text-white hover:bg-blue-700 transition"
-                 title="Detalles">D</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    {{-- =======================
-         DIV2: Promotores
-       ======================= --}}
+    {{-- ===================== Promotores ===================== --}}
     <section class="bg-white rounded-2xl shadow-lg ring-1 ring-gray-900/5 overflow-hidden">
       <div class="p-5">
         <h2 class="text-base font-bold text-gray-900 mb-3">Promotores</h2>
 
         <div class="space-y-3">
-          @foreach($promotores as $i => $p)
-            <a href="{{ route('mobile.promotor.cartera', ['id' => $loop->iteration]) }}"
-              class="block rounded-xl border border-gray-100 p-3 shadow-md hover:shadow transition">
+          @forelse($promotores as $p)
+            <a href="{{ route('mobile.supervisor.cartera_promotor', $p->id) }}"
+               class="block rounded-xl border border-gray-100 p-3 shadow-md hover:shadow transition">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <span class="inline-flex items-center justify-center w-6 h-6 text-[11px] font-bold rounded-full bg-indigo-100 text-indigo-700">
                     {{ $loop->iteration }}
                   </span>
-                  <span class="text-sm font-semibold text-gray-900">{{ $p['name'] }}</span>
+                  <span class="text-sm font-semibold text-gray-900">
+                    {{ $p->nombre }} {{ $p->apellido_p }} {{ $p->apellido_m }}
+                  </span>
                 </div>
               </div>
-
-              {{-- Progress bar --}}
-              <div class="mt-2">
-                <div class="h-2 w-full rounded-full bg-gray-200 overflow-hidden">
-                  <div class="h-2 rounded-full bg-gradient-to-r from-indigo-600 to-blue-500"
-                        style="width: {{ $p['progress'] }}%"></div>
-                </div>
-                <div class="mt-1 flex items-center justify-between text-[11px] text-gray-600">
-                  <span>Progreso</span>
-                  <span class="font-semibold">{{ $p['progress'] }}%</span>
-                </div>
-              </div>
+              {{-- Si luego quieres barra de progreso por promotor, calcúlala en el controlador y expón $p->progress --}}
             </a>
-          @endforeach
+          @empty
+            <p class="text-sm text-gray-500">No hay promotores registrados.</p>
+          @endforelse
         </div>
       </div>
     </section>
 
-    {{-- =======================
-         DIV3: Acciones
-       ======================= --}}
+    {{-- ===================== Acciones ===================== --}}
     <section class="grid grid-cols-3 gap-3">
-      <a href="{{ url()->previous() }}"
-          class="flex items-center justify-center rounded-xl border border-gray-300 text-white text-sm font-semibold px-3 py-2 bg-blue-600 hover:bg-blue-700 shadow-sm">
-          Regresar
-      </a>
-
-      {{-- Actualizar: recarga la misma URL --}}
-      <a href="{{ url()->current() }}"
-         class="inline-flex items-center justify-center rounded-xl bg-blue-600 text-white text-sm font-semibold px-3 py-2 hover:bg-blue-700 shadow">
-        Actualizar
-      </a>
-
-      {{-- Reporte: ajusta la ruta a la que uses para reportes --}}
-      <a href="{{ route("mobile.$role.reporte") }}"
-         class="inline-flex items-center justify-center rounded-xl bg-indigo-600 text-white text-sm font-semibold px-3 py-2 hover:bg-indigo-700 shadow">
-        Reporte
-      </a>
+      {!! $btn(route('mobile.index'), 'Regresar', 'outline-primary') !!}
+      {!! $btn(url()->current(), 'Actualizar', 'primary') !!}
+      {!! $btn(url()->current(), 'Reporte', 'indigo') !!}
     </section>
 
   </div>

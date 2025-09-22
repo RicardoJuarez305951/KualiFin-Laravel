@@ -55,7 +55,7 @@
 
         <div class="space-y-3">
           @forelse($promotores as $p)
-            <a href="{{ route('mobile.supervisor.cartera_promotor', $p->id) }}"
+            <a href="{{ route('mobile.promotor.cartera', array_merge($supervisorContextQuery ?? [], ['promotor' => $p->id])) }}"
                class="block rounded-xl border border-gray-100 p-3 shadow-md hover:shadow transition">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
@@ -78,9 +78,9 @@
 
     {{-- ===================== Acciones ===================== --}}
     <section class="grid grid-cols-3 gap-3">
-      {!! $btn(route('mobile.index'), 'Regresar', 'outline-primary') !!}
-      {!! $btn(url()->current(), 'Actualizar', 'primary') !!}
-      {!! $btn(url()->current(), 'Reporte', 'indigo') !!}
+      {!! $btn(route('mobile.index', array_merge($supervisorContextQuery ?? [], [])), 'Regresar', 'outline-primary') !!}
+      {!! $btn(route('mobile.supervisor.cartera', array_merge($supervisorContextQuery ?? [], [])), 'Actualizar', 'primary') !!}
+      {!! $btn(route('mobile.supervisor.reporte', array_merge($supervisorContextQuery ?? [], [])), 'Reporte', 'indigo') !!}
     </section>
 
   </div>

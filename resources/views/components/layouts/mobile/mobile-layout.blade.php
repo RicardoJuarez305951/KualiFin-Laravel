@@ -18,6 +18,18 @@
       --color-secondary: #A6D9F6;
       --color-background: #FAF6EA;
       @endrole
+
+      @role('ejecutivo')
+      --color-primary: #7880B5;
+      --color-secondary: #6987C9;
+      --color-background: #bbe5ed;
+      @endrole
+
+      @role('administrativo|superadmin')
+      --color-primary: #7880B5;
+      --color-secondary: #6987C9;
+      --color-background: #bbe5ed;
+      @endrole
     }
     .triangulo {
       position: absolute;
@@ -48,6 +60,8 @@
   <div class="relative z-10 max-w-md mx-auto flex flex-col">
     {{ $slot }}
   </div>
+  @unlessrole('promotor')
   <x-floating-button />
+  @endunlessrole()
 </body>
 </html>

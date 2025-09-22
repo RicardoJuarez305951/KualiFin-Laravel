@@ -10,6 +10,7 @@
 
       {{-- Botones principales --}}
       <div class="space-y-4">
+        @unlessrole('ejecutivo|administrativo|superadmin')
         {{-- Mi Objetivo --}}
           <a href="{{ route("mobile.$role.objetivo") }}"
            class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
@@ -21,6 +22,7 @@
           </svg>
           <span>Mi Objetivo</span>
         </a>
+        @endunlessrole
 
         {{-- Mi Cartera --}}
           <a href="{{ route("mobile.$role.cartera") }}"
@@ -50,9 +52,9 @@
           <span>Mi Venta</span>
         </a>
 
-        @role('supervisor')
+        @role('supervisor|ejecutivo|administrativo|superadmin')
           {{-- Busquedas --}}
-          <a href="{{ route('mobile.supervisor.busqueda') }}"
+          <a href="{{ route("mobile.$role.busqueda") }}"
             class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
             {{-- Icono Lupa --}}
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
@@ -62,6 +64,7 @@
             </svg>
             <span>Busquedas</span>
           </a>
+          @role('supervisor|administrativo|superadmin')
           {{-- Apertura --}}
           <a href="{{ route("mobile.supervisor.apertura") }}"
            class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
@@ -72,8 +75,26 @@
                     d="M15 11V7a3 3 0 00-6 0v4m-3 0h12v9H6v-9z" />
             </svg>
           <span>Apertura</span>
+          </a>
+          @endrole
+        @endrole
+
+        @role('ejecutivo|administrativo|superadmin')
+        {{-- Informes --}}
+        <a href="{{ route("mobile.$role.informes") }}"
+           class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
+          {{-- Icono: Document / Report --}}
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
+              viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round"
+            d="M19.5 8.25V19.5a2.25 2.25 0 01-2.25 2.25h-10.5A2.25 2.25 0 014.5 19.5V4.5A2.25 2.25 0 016.75 2.25h6.75L19.5 8.25z" />
+            <path stroke-linecap="round" stroke-linejoin="round"
+            d="M9 12h6m-6 3.75h6" />
+          </svg>
+          <span>Informes</span>
         </a>
         @endrole
+
       </div>
 
       {{-- Divider --}}
@@ -89,3 +110,4 @@
     </div>
   </div>
 </x-layouts.mobile.mobile-layout>
+

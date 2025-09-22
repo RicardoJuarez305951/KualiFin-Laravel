@@ -176,7 +176,7 @@
     </div>
 
     {{-- BOTÓN REGRESAR --}}
-    <a href="{{ route('mobile.supervisor.cartera') }}"
+    <a href="{{ route('mobile.supervisor.cartera', array_merge($supervisorContextQuery ?? [], [])) }}"
        class="block w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-3 rounded-xl text-center shadow-md transition">REGRESAR</a>
 
     {{-- ===== MODAL FOTOGRAFÍAS ===== --}}

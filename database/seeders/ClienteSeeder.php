@@ -25,6 +25,11 @@ class ClienteSeeder extends Seeder
         'regularizado',
         'inactivo',
     ];
+    
+    // activo
+    // acvivo con deuda
+    // inactivo con deuda
+    // liquidado
 
     private const MONTO_OPCIONES = [
         3000,

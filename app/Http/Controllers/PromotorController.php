@@ -5,7 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Aval;
 use App\Models\Cliente;
 use App\Models\Credito;
+use App\Models\Ejecutivo;
 use App\Models\Promotor;
+use App\Models\Supervisor;
+use App\Services\ExcelReaderService;
+use App\Support\RoleHierarchy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -31,8 +35,10 @@ class PromotorController extends Controller
         'desembolsado',
     ];
 
-    public function index()
+    public function index(Request $request)
     {
+        $this->resolvePromotorContext($request);
+
         return view('mobile.index');
     }
 
@@ -41,21 +47,23 @@ class PromotorController extends Controller
         return view('mobile.promotor.objetivo.objetivo');
     }
 
-    public function venta()
+    public function venta(Request $request)
     {
-        $user = Auth::user();
-
-        $user->load([
-            'promotor.supervisor.ejecutivo.user',
-            'promotor.clientes' => fn ($query) => $query->with('credito')->orderBy('nombre'),
+        $promotor = $this->resolvePromotorContext($request, [
+            'supervisor.user',
+            'supervisor.ejecutivo.user',
+            'clientes' => fn ($query) => $query->with('credito')->orderBy('nombre'),
         ]);
 
-        $promotor = $user->promotor;
-        $fecha = now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
-        $supervisor = $promotor?->supervisor?->user?->name;
-        $ejecutivo = $promotor?->supervisor?->ejecutivo?->user?->name;
+        if (!$promotor) {
+            abort(403, 'No tienes acceso a la venta de promotores.');
+        }
 
-        $clientes = $promotor?->clientes ?? collect();
+        $fecha = now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
+        $supervisor = $promotor->supervisor?->user?->name;
+        $ejecutivo = $promotor->supervisor?->ejecutivo?->user?->name;
+
+        $clientes = $promotor->clientes ?? collect();
         $total = $clientes->sum(fn ($cliente) => $cliente->credito->monto_total ?? $cliente->monto_maximo);
 
         return view('mobile.promotor.venta.venta', compact(
@@ -75,9 +83,10 @@ class PromotorController extends Controller
     public function enviarVentas(Request $request)
     {
         try {
-            $promotor = Auth::user()->promotor;
+            $promotor = $this->resolvePromotorContext($request);
+
             if (!$promotor) {
-                Log::warning('Usuario sin perfil de promotor intento enviar ventas.', ['user_id' => Auth::id()]);
+                Log::warning('Usuario sin acceso a promotor intento enviar ventas.', ['user_id' => Auth::id()]);
                 return response()->json(['success' => false, 'message' => 'Perfil de promotor no encontrado.'], 404);
             }
 
@@ -118,16 +127,26 @@ class PromotorController extends Controller
         }
     }
 
+
     public function ingresar_cliente()
     {
         return view('mobile.promotor.venta.ingresar_cliente');
     }
 
-    public function storeCliente(Request $request)
+    public function storeCliente(Request $request, ExcelReaderService $excel)
     {
-        try {
-            $promotor = Promotor::where('user_id', Auth::id())->firstOrFail();
+        $promotor = $this->resolvePromotorContext($request);
 
+        if (!$promotor) {
+            Log::warning('Intento de creacion de cliente por usuario sin contexto de promotor.', ['user_id' => Auth::id()]);
+            $message = 'No tienes un perfil de promotor asignado.';
+
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => $message], 403)
+                : back()->with('error', $message);
+        }
+
+        try {
             $data = $request->validate([
                 'nombre' => 'required|string|max:100',
                 'apellido_p' => 'required|string|max:100',
@@ -152,6 +171,20 @@ class PromotorController extends Controller
                 throw ValidationException::withMessages([
                     'aval_CURP' => 'El aval tiene un credito activo o en proceso y no puede respaldar esta solicitud.',
                 ]);
+            }
+
+            $nombreCompleto = $this->formatFullName(
+                $data['nombre'],
+                $data['apellido_p'],
+                $data['apellido_m'] ?? ''
+            );
+            if ($nombreCompleto !== '') {
+                $registrosDeudores = $excel->searchDebtors($nombreCompleto);
+                if (!empty($registrosDeudores)) {
+                    throw ValidationException::withMessages([
+                        'nombre' => 'El cliente aparece en la lista de deudores y no puede registrarse.',
+                    ]);
+                }
             }
 
             DB::transaction(function () use ($data, $promotor) {
@@ -195,12 +228,6 @@ class PromotorController extends Controller
             return $request->expectsJson()
                 ? response()->json(['success' => true, 'message' => $message])
                 : redirect()->route('mobile.promotor.ingresar_cliente')->with('success', $message);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $exception) {
-            Log::warning('Intento de creacion de cliente por usuario sin perfil de promotor.', ['user_id' => Auth::id()]);
-            $message = 'No tienes un perfil de promotor asignado.';
-            return $request->expectsJson()
-                ? response()->json(['success' => false, 'message' => $message], 403)
-                : back()->with('error', $message);
         } catch (ValidationException $exception) {
             Log::warning('Error de validacion al crear cliente.', ['errors' => $exception->errors(), 'user_id' => Auth::id()]);
 
@@ -220,9 +247,9 @@ class PromotorController extends Controller
         }
     }
 
-    public function storeRecredito(Request $request)
+    public function storeRecredito(Request $request, ExcelReaderService $excel)
     {
-        $promotor = Auth::user()->promotor;
+        $promotor = $this->resolvePromotorContext($request);
         if (!$promotor) {
             $message = 'No tienes un perfil de promotor asignado.';
             return $request->expectsJson()
@@ -250,11 +277,31 @@ class PromotorController extends Controller
         try {
             $data = $request->validate($rules);
 
+            $clienteRegistro = Cliente::where('CURP', $data['CURP'])->first();
+
+            if ($clienteRegistro) {
+                $nombreCompleto = $this->formatFullName(
+                    $clienteRegistro->nombre,
+                    $clienteRegistro->apellido_p,
+                    $clienteRegistro->apellido_m
+                );
+
+                if ($nombreCompleto !== '') {
+                    $registrosDeudores = $excel->searchDebtors($nombreCompleto);
+
+                    if (!empty($registrosDeudores)) {
+                        throw ValidationException::withMessages([
+                            'CURP' => 'El cliente aparece en la lista de deudores y no puede solicitar un recredito.',
+                        ]);
+                    }
+                }
+            }
+
             $avalCurp = null;
             if ($isNewAval) {
                 $avalCurp = $data['aval_CURP'];
             } else {
-                $cliente = Cliente::where('CURP', $data['CURP'])->first();
+                $cliente = $clienteRegistro;
                 if ($cliente) {
                     $prevAval = Aval::whereHas('credito', fn ($query) => $query->where('cliente_id', $cliente->id))
                         ->latest('creado_en')
@@ -366,9 +413,30 @@ class PromotorController extends Controller
         }
     }
 
-        public function cartera()
+        
+
+        public function cartera(Request $request)
     {
-        $promotor = Auth::user()->promotor;
+        $promotor = $this->resolvePromotorContext($request, [
+            'clientes' => function ($query) {
+                $query->with([
+                    'credito' => function ($creditQuery) {
+                        $creditQuery->with([
+                            'pagosProyectados' => fn ($subQuery) => $subQuery->orderBy('semana'),
+                            'avales' => fn ($subQuery) => $subQuery->orderByDesc('id'),
+                            'datoContacto',
+                        ]);
+                    },
+                    'creditos' => function ($creditosQuery) {
+                        $creditosQuery->with([
+                            'avales' => fn ($subQuery) => $subQuery->orderByDesc('id'),
+                            'datoContacto',
+                        ])->orderByDesc('id')->limit(1);
+                    },
+                ])->orderBy('nombre');
+            },
+        ]);
+
         if (!$promotor) {
             return view('mobile.promotor.cartera.cartera', [
                 'activos' => collect(),
@@ -377,24 +445,7 @@ class PromotorController extends Controller
             ]);
         }
 
-        $clientes = $promotor->clientes()
-            ->with([
-                'credito' => function ($query) {
-                    $query->with([
-                        'pagosProyectados' => fn ($subQuery) => $subQuery->orderBy('semana'),
-                        'avales' => fn ($subQuery) => $subQuery->orderByDesc('id'),
-                        'datoContacto',
-                    ]);
-                },
-                'creditos' => function ($query) {
-                    $query->with([
-                        'avales' => fn ($subQuery) => $subQuery->orderByDesc('id'),
-                        'datoContacto',
-                    ])->orderByDesc('id')->limit(1);
-                },
-            ])
-            ->orderBy('nombre')
-            ->get();
+        $clientes = $promotor->clientes ?? collect();
 
         $activos = collect();
         $vencidos = collect();
@@ -463,18 +514,9 @@ class PromotorController extends Controller
                 'nombre' => $cliente->nombre,
                 'apellido_p' => $cliente->apellido_p,
                 'apellido_m' => $cliente->apellido_m,
-                'CURP' => $cliente->CURP,
-                'curp' => $cliente->CURP,
                 'direccion' => $clienteDireccion,
                 'telefono' => $clienteTelefono,
-                'fecha_ultimo_credito' => $fechaUltimoCredito ?: '',
-                'cliente' => array_merge($clienteResumen, [
-                    'nombre_completo' => $this->formatFullName(
-                        $cliente->apellido_p,
-                        $cliente->apellido_m,
-                        $cliente->nombre
-                    ),
-                ]),
+                'fecha_ultimo_credito' => $fechaUltimoCredito,
                 'aval' => array_merge($aval, [
                     'nombre_completo' => $avalNombreCompleto,
                 ]),
@@ -494,6 +536,9 @@ class PromotorController extends Controller
                     'fecha_final' => optional($ultimoCredito->fecha_final)->format('Y-m-d'),
                     'dato_contacto' => $contacto ? $contacto->toArray() : null,
                 ] : null,
+                'cliente_resumen' => $clienteResumen,
+                'promotor' => $promotor->nombre ?? '',
+                'promotor_id' => $promotor->id,
             ]);
         }
 
@@ -502,6 +547,131 @@ class PromotorController extends Controller
             'vencidos' => $vencidos->values(),
             'inactivos' => $inactivos->values(),
         ]);
+    }
+
+        
+
+    private function sharePromotorContext(Request $request, ?Promotor $promotor): void
+    {
+        if ($promotor) {
+            $request->attributes->set('acting_promotor_id', $promotor->id);
+            $request->attributes->set('acting_promotor', $promotor);
+            view()->share([
+                'actingPromotor' => $promotor,
+                'actingPromotorId' => $promotor->id,
+                'promotorContextQuery' => ['promotor' => $promotor->id],
+            ]);
+        } else {
+            $request->attributes->set('acting_promotor_id', null);
+            $request->attributes->set('acting_promotor', null);
+            view()->share([
+                'actingPromotor' => null,
+                'actingPromotorId' => null,
+                'promotorContextQuery' => [],
+            ]);
+        }
+    }
+
+    private function resolvePromotorContext(Request $request, array $with = []): ?Promotor
+    {
+        $user = $request->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+        $sessionKey = 'mobile.promotor_context';
+        $requestedId = (int) $request->query('promotor');
+
+        if ($primaryRole === 'promotor') {
+            $promotor = $user?->promotor;
+            if ($promotor) {
+                $promotor->loadMissing($with);
+                $request->session()->put($sessionKey, $promotor->id);
+            } else {
+                $request->session()->forget($sessionKey);
+            }
+
+            $this->sharePromotorContext($request, $promotor);
+
+            return $promotor;
+        }
+
+        $query = Promotor::query();
+
+        if ($primaryRole === 'supervisor') {
+            $supervisor = Supervisor::firstWhere('user_id', $user?->id);
+            if (!$supervisor) {
+                $request->session()->forget($sessionKey);
+                $this->sharePromotorContext($request, null);
+
+                return null;
+            }
+            $query->where('supervisor_id', $supervisor->id);
+        } elseif ($primaryRole === 'ejecutivo') {
+            $ejecutivo = Ejecutivo::firstWhere('user_id', $user?->id);
+            if (!$ejecutivo) {
+                $request->session()->forget($sessionKey);
+                $this->sharePromotorContext($request, null);
+
+                return null;
+            }
+
+            $supervisorIds = $ejecutivo->supervisors()->pluck('id');
+            if ($supervisorIds->isEmpty()) {
+                $request->session()->forget($sessionKey);
+                $this->sharePromotorContext($request, null);
+
+                return null;
+            }
+
+            $query->whereIn('supervisor_id', $supervisorIds);
+        } elseif (!in_array($primaryRole, ['administrativo', 'superadmin'], true)) {
+            $request->session()->forget($sessionKey);
+            $this->sharePromotorContext($request, null);
+
+            return null;
+        }
+
+        $loader = function (int $id) use ($query, $with) {
+            if ($id <= 0) {
+                return null;
+            }
+
+            return (clone $query)->with($with)->find($id);
+        };
+
+        if ($requestedId > 0) {
+            $promotor = $loader($requestedId);
+            if ($promotor) {
+                $request->session()->put($sessionKey, $promotor->id);
+                $this->sharePromotorContext($request, $promotor);
+
+                return $promotor;
+            }
+        }
+
+        $sessionId = (int) $request->session()->get($sessionKey);
+        if ($sessionId > 0) {
+            $promotor = $loader($sessionId);
+            if ($promotor) {
+                $this->sharePromotorContext($request, $promotor);
+
+                return $promotor;
+            }
+        }
+
+        $promotor = (clone $query)->with($with)
+            ->orderBy('nombre')
+            ->orderBy('apellido_p')
+            ->orderBy('apellido_m')
+            ->first();
+
+        if ($promotor) {
+            $request->session()->put($sessionKey, $promotor->id);
+        } else {
+            $request->session()->forget($sessionKey);
+        }
+
+        $this->sharePromotorContext($request, $promotor);
+
+        return $promotor;
     }
 
     private function buildDireccionFromContacto($contacto): string
@@ -549,13 +719,21 @@ class PromotorController extends Controller
             ->implode(' ');
     }
 
-    public function cliente_historial(Cliente $cliente)
+    public function cliente_historial(Request $request, Cliente $cliente)
     {
-        if ($cliente->promotor_id !== Auth::user()->promotor?->id) {
+        $promotor = $this->resolvePromotorContext($request);
+
+        if (!$promotor || $cliente->promotor_id !== $promotor->id) {
             abort(403, 'No autorizado');
         }
 
-        $cliente->load('credito.pagosProyectados');
+        $cliente->load([
+            'promotor.user',
+            'promotor.supervisor.user',
+            'credito.pagosProyectados' => function ($query) {
+                $query->orderBy('semana');
+            },
+        ]);
 
         return view('mobile.promotor.cartera.cliente_historial', compact('cliente'));
     }
@@ -593,10 +771,3 @@ class PromotorController extends Controller
         return false;
     }
 }
-
-
-
-
-
-
-

@@ -33,7 +33,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         // Redirigir todos los roles permitidos a mobile
-        if (Auth::user()->hasAnyRole(['promotor', 'supervisor', 'ejecutivo'])) {
+        if (Auth::user()->hasAnyRole(['promotor', 'supervisor', 'ejecutivo', 'administrativo', 'superadmin'])) {
             return redirect()->intended(route('mobile.index'));
         }
 

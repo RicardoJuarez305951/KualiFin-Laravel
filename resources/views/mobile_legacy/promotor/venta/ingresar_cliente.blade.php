@@ -1,10 +1,12 @@
 <x-layouts.mobile.mobile-layout title="Ingresar Cliente">
-  <div x-data="{
+  <div
+    x-data="{
         showCliente: false,
         showRecredito: false,
         showViabilidad: false,
         viable: false,
         errores: [],
+        showError: false,
         clientCurpUploaded: false,
         clientDomUploaded: false,
         clientIneUploaded: false,
@@ -15,7 +17,6 @@
         avalCompUploaded: false,
         r_newAval: false,
 
-
         // Recrédito (usar flags separados si quieres aislarlos del modal cliente)
         r_clientCurpUploaded: false,
         r_clientDomUploaded: false,
@@ -25,6 +26,11 @@
         r_avalDomUploaded: false,
         r_avalIneUploaded: false,
         r_avalCompUploaded: false,
+
+        // Estado de inserción
+        showResultado: false,
+        resultadoMensaje: '',
+        resultadoExito: false,
 
         resetClienteForm() {
           this.showCliente = false;
@@ -48,6 +54,78 @@
           this.r_avalIneUploaded = false;
           this.r_avalCompUploaded = false;
         },
+        validateMonto(valor, max = 3000) {
+          const monto = parseFloat(valor);
+          return !(isNaN(monto) || monto < 0 || monto > max);
+        },
+        submitNuevoCliente(e) {
+          const f = e.target;
+          const valido =
+            f.nombre.value.trim() &&
+            f.apellido_p.value.trim() &&
+            f['CURP'].value.trim().length === 18 &&
+            this.validateMonto(f.monto.value);
+          if (!valido) {
+            this.resultadoExito = false;
+            this.resultadoMensaje = 'Datos incorrectos o incompletos. Por favor, verifica el formulario.';
+            this.showResultado = true;
+            return;
+          }
+
+          const formData = new FormData(f);
+          fetch('{{ route('mobile.promotor.store_cliente') }}', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+            body: formData
+          })
+          .then(res => res.json())
+          .then(data => {
+            this.resultadoExito = data.success;
+            this.resultadoMensaje = data.message;
+            this.showResultado = true;
+            if (data.success) {
+              f.reset();
+              this.resetClienteForm();
+            }
+          })
+          .catch(() => {
+            this.resultadoExito = false;
+            this.resultadoMensaje = 'Error de conexión. Inténtalo de nuevo.';
+            this.showResultado = true;
+          });
+        },
+        submitRecredito(e) {
+          const f = e.target;
+          const valido =
+            f['CURP'].value.trim().length === 18 &&
+            this.validateMonto(f.monto.value);
+          if (!valido) {
+            this.showError = true;
+            return;
+          }
+
+          const formData = new FormData(f);
+          fetch('{{ route('mobile.promotor.store_recredito') }}', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+            body: formData
+          })
+          .then(res => res.json())
+          .then(data => {
+            this.resultadoExito = data.success;
+            this.resultadoMensaje = data.message;
+            this.showResultado = true;
+            if (data.success) {
+              f.reset();
+              this.resetRecreditoForm();
+            }
+          })
+          .catch(() => {
+            this.resultadoExito = false;
+            this.resultadoMensaje = 'Error de conexión. Inténtalo de nuevo.';
+            this.showResultado = true;
+          });
+        },
         checkViabilidad() {
           const posiblesErrores = [
             'Cliente o Aval con deuda',
@@ -63,7 +141,19 @@
           }
           this.showViabilidad = true;
         }
-      }">
+      }"
+    x-init="
+        @if(session('success'))
+            showResultado = true;
+            resultadoMensaje = @js(session('success'));
+            resultadoExito = true;
+        @elseif(session('error'))
+            showResultado = true;
+            resultadoMensaje = @js(session('error'));
+            resultadoExito = false;
+        @endif
+    "
+  >
 
     <div class="bg-white rounded-2xl shadow-md p-10 w-full max-w-md space-y-4">
       <h2 class="text-center text-lg font-semibold text-gray-900 uppercase">Ingresar Cliente</h2>
@@ -97,5 +187,8 @@
 
     @include('mobile.promotor.venta.modal_recredito')
 
-    @include('mobile.promotor.venta.modal_viabilidad')
+    @include('mobile.promotor.venta.modal_resultado')
+
+  </div>
+  
 </x-layouts.mobile.mobile-layout>
