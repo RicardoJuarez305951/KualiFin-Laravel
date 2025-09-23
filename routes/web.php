@@ -18,7 +18,7 @@ use App\Http\Controllers\ExcelController;
 // Test
 use App\Http\Controllers\KanbanController;
 Route::get('/kanban', [KanbanController::class, 'index'])->name('kanban.index');
-Route::post('/kanban/tasks/update', [KanbanController::class, 'updateTaskStatus'])->name('kanban.tasks.update');
+Route::post('/kanban/update', [KanbanController::class, 'updateTaskStatus'])->name('kanban.update');
 
 /*
 |--------------------------------------------------------------------------

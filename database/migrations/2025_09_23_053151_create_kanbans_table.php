@@ -13,6 +13,12 @@ return new class extends Migration
     {
         Schema::create('kanbans', function (Blueprint $table) {
             $table->id();
+            $table->string('content');
+            $table->string('module');
+            $table->string('functionality');
+            $table->string('assigned');
+            $table->string('status')->default('todo'); // 'todo', 'in-progress-ricardo', etc.
+            $table->integer('order')->default(0); // Para el orden vertical
             $table->timestamps();
         });
     }
