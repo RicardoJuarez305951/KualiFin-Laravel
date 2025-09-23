@@ -26,7 +26,7 @@ document.addEventListener('alpine:init', () => {
 
             if (typeof value === 'string') {
                 const trimmed = value.trim();
-                if (trimmed === '') {
+                if (!trimmed.length) {
                     return null;
                 }
 
@@ -37,195 +37,95 @@ document.addEventListener('alpine:init', () => {
             return null;
         },
 
-        idsAreEqual(a, b) {
-            const normalizedA = this.normalizeId(a);
-            const normalizedB = this.normalizeId(b);
-
-            return normalizedA !== null && normalizedB !== null && normalizedA === normalizedB;
-        },
-
         resolveId(target) {
             if (typeof target === 'object' && target !== null) {
-                if ('id' in target && target.id !== undefined) {
-                    return this.normalizeId(target.id);
-                }
+                const keys = ['id', 'ID', 'pago_proyectado_id', 'pagoProyectadoId', 'pago_proyectadoID'];
 
-                if ('ID' in target && target.ID !== undefined) {
-                    return this.normalizeId(target.ID);
-                }
-
-                if ('pago_proyectado_id' in target && target.pago_proyectado_id !== undefined) {
-                    return this.normalizeId(target.pago_proyectado_id);
+                for (const key of keys) {
+                    if (key in target) {
+                        const normalized = this.normalizeId(target[key]);
+                        if (normalized !== null) {
+                            return normalized;
+                        }
+                    }
                 }
             }
 
             return this.normalizeId(target);
         },
 
-        find(clienteOrId) {
+        findIndex(clienteOrId) {
             const targetId = this.resolveId(clienteOrId);
             if (targetId === null) {
-                return undefined;
+                return -1;
             }
 
-            return this.clients.find((client) => this.idsAreEqual(client.id, targetId));
+            return this.clients.findIndex((client) => this.resolveId(client.id) === targetId);
         },
 
         isSelected(clienteOrId) {
-            return Boolean(this.find(clienteOrId));
+            return this.findIndex(clienteOrId) !== -1;
         },
 
-        resolveName(cliente) {
-            if (!cliente || typeof cliente !== 'object') {
-                return '';
+        extractPagoId(candidate) {
+            if (candidate === null || candidate === undefined) {
+                return null;
             }
 
-            if (typeof cliente.name === 'string' && cliente.name.trim()) {
-                return cliente.name.trim();
+            if (Array.isArray(candidate)) {
+                for (let index = candidate.length - 1; index >= 0; index -= 1) {
+                    const value = this.extractPagoId(candidate[index]);
+                    if (value !== null) {
+                        return value;
+                    }
+                }
+
+                return null;
             }
 
-            const parts = [
-                cliente.apellido_p ?? cliente.apellido ?? '',
-                cliente.apellido_m ?? '',
-                cliente.nombre ?? cliente.nombre_cliente ?? '',
-            ]
-                .map((part) => (typeof part === 'string' ? part.trim() : ''))
-                .filter(Boolean);
-
-            const composed = parts.join(' ');
-
-            if (composed) {
-                return composed;
+            if (typeof candidate === 'object') {
+                return this.resolveId(candidate);
             }
 
-            const fallbackId = this.resolveId(cliente);
-            return fallbackId !== null ? `Cliente ${fallbackId}` : '';
+            return this.normalizeId(candidate);
         },
 
-        resolvePago(cliente) {
+        resolvePagoProyectadoId(cliente) {
             if (!cliente || typeof cliente !== 'object') {
                 return null;
             }
 
-            const candidates = [
+            const directCandidates = [
+                cliente.pago_proyectado_id,
+                cliente.pagoProyectadoId,
+                cliente.pago_proyectadoID,
+                cliente.pagoPendienteId,
+            ];
+
+            for (const candidate of directCandidates) {
+                const normalized = this.normalizeId(candidate);
+                if (normalized !== null) {
+                    return normalized;
+                }
+            }
+
+            const nestedCandidates = [
                 cliente.pago_proyectado_pendiente,
                 cliente.pagoPendiente,
                 cliente.pago_proyectado,
                 cliente.credito?.pago_proyectado_pendiente,
+                cliente.credito?.pago_proyectado,
                 cliente.credito?.pagos_proyectados,
             ];
 
-            for (const candidate of candidates) {
-                if (!candidate) {
-                    continue;
-                }
-
-                if (Array.isArray(candidate)) {
-                    if (!candidate.length) {
-                        continue;
-                    }
-
-                    const last = candidate[candidate.length - 1];
-                    if (last && typeof last === 'object') {
-                        return last;
-                    }
-
-                    continue;
-                }
-
-                if (typeof candidate === 'object') {
-                    return candidate;
+            for (const candidate of nestedCandidates) {
+                const value = this.extractPagoId(candidate);
+                if (value !== null) {
+                    return value;
                 }
             }
 
             return null;
-        },
-
-        toNumber(value, fallback = null) {
-            const numeric = Number.parseFloat(value);
-            return Number.isFinite(numeric) ? numeric : fallback;
-        },
-
-        roundCurrency(value) {
-            return Math.round((Number(value) || 0) * 100) / 100;
-        },
-
-        sanitizeMonto(entry, monto) {
-            const numericMonto = this.toNumber(monto, 0) ?? 0;
-            const limit = entry.pendingDebt ?? entry.projectedAmount ?? null;
-
-            let sanitized = Math.max(numericMonto, 0);
-
-            if (limit !== null && Number.isFinite(limit)) {
-                sanitized = Math.min(sanitized, limit);
-            }
-
-            return this.roundCurrency(sanitized);
-        },
-
-        buildEntry(cliente) {
-            if (!cliente || typeof cliente !== 'object') {
-                return null;
-            }
-
-            const clientId = this.resolveId(cliente);
-            if (clientId === null) {
-                return null;
-            }
-
-            const pago = this.resolvePago(cliente);
-            if (!pago || typeof pago !== 'object') {
-                return null;
-            }
-
-            const pagoId = this.resolveId(pago) ?? this.resolveId(pago?.pago_proyectado_id);
-            if (pagoId === null) {
-                return null;
-            }
-
-            const projectedRaw = this.toNumber(
-                pago.monto_proyectado ??
-                    pago.monto ??
-                    pago.monto_total ??
-                    cliente.monto_semanal ??
-                    cliente.amount ??
-                    cliente.deuda_total,
-                0
-            ) ?? 0;
-
-            const pendingCandidates = [
-                pago.deuda_vencida ?? null,
-                pago.deuda_total ?? null,
-                pago.deuda ?? null,
-                cliente.deuda_total ?? null,
-                cliente.deuda ?? null,
-            ];
-
-            let pendingRaw = null;
-            for (const candidate of pendingCandidates) {
-                const numeric = this.toNumber(candidate, null);
-                if (numeric !== null) {
-                    pendingRaw = numeric;
-                    break;
-                }
-            }
-
-            const projectedAmount = this.roundCurrency(Math.max(projectedRaw, 0));
-            const pendingDebt = this.roundCurrency(
-                Math.max(pendingRaw !== null ? pendingRaw : projectedAmount, 0)
-            );
-
-            const defaultMonto = pendingDebt > 0 ? pendingDebt : projectedAmount;
-
-            return {
-                id: clientId,
-                name: this.resolveName(cliente),
-                pagoProyectadoId: pagoId,
-                projectedAmount,
-                pendingDebt,
-                tipo: 'completo',
-                monto: this.roundCurrency(Math.max(defaultMonto, 0)),
-            };
         },
 
         toggle(cliente) {
@@ -233,79 +133,58 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            const existing = this.find(cliente);
-            if (existing) {
-                this.remove(existing.id);
+            const clientId = this.resolveId(cliente);
+            if (clientId === null) {
                 return;
             }
 
-            const entry = this.buildEntry(cliente);
-            if (!entry) {
-                console.warn('No se encontró un pago proyectado pendiente para el cliente seleccionado.', cliente);
+            const existingIndex = this.findIndex(clientId);
+            if (existingIndex !== -1) {
+                this.clients.splice(existingIndex, 1);
                 return;
             }
 
-            this.clients.push(entry);
+            const pagoProyectadoId = this.resolvePagoProyectadoId(cliente);
+            if (pagoProyectadoId === null) {
+                console.warn('No se pudo determinar el pago proyectado para el cliente seleccionado.', cliente);
+                return;
+            }
+
+            this.clients.push({
+                id: clientId,
+                pago_proyectado_id: pagoProyectadoId,
+            });
         },
 
         remove(clienteOrId) {
-            const targetId = this.resolveId(clienteOrId);
-            if (targetId === null) {
+            const index = this.findIndex(clienteOrId);
+            if (index === -1) {
                 return;
             }
 
-            this.clients = this.clients.filter((client) => !this.idsAreEqual(client.id, targetId));
-        },
-
-        setType(clienteOrId, tipo) {
-            const entry = this.find(clienteOrId);
-            if (!entry) {
-                return;
-            }
-
-            entry.tipo = tipo;
-
-            if (tipo === 'completo') {
-                entry.monto = this.sanitizeMonto(entry, entry.pendingDebt ?? entry.projectedAmount ?? entry.monto ?? 0);
-            } else if (tipo === 'diferido' && (!entry.monto || entry.monto <= 0)) {
-                entry.monto = this.sanitizeMonto(entry, entry.pendingDebt ?? entry.projectedAmount ?? 0);
-            }
-        },
-
-        setMonto(clienteOrId, monto) {
-            const entry = this.find(clienteOrId);
-            if (!entry) {
-                return;
-            }
-
-            entry.monto = this.sanitizeMonto(entry, monto);
-        },
-
-        get total() {
-            return this.clients.reduce((sum, client) => sum + (Number(client.monto) || 0), 0);
+            this.clients.splice(index, 1);
         },
 
         get payload() {
+            const ids = this.clients
+                .map((client) => this.normalizeId(client.pago_proyectado_id))
+                .filter((id) => id !== null);
+
+            const uniqueIds = Array.from(new Set(ids));
+
             return {
-                pagos: this.clients.map((client) => ({
-                    pago_proyectado_id: client.pagoProyectadoId,
-                    tipo: client.tipo,
-                    monto: this.roundCurrency(Number(client.monto) || 0),
-                })),
+                pago_proyectado_ids: uniqueIds,
             };
         },
 
         confirm() {
-            if (!this.clients.length) {
+            const { pago_proyectado_ids: ids } = this.payload;
+            if (!ids.length) {
                 return Promise.resolve();
             }
 
-            this.clients.forEach((client) => {
-                client.monto = this.sanitizeMonto(client, client.monto);
-            });
-
             return axios
-                .post('/mobile/promotor/pagos-multiples', this.payload)
+                .post('/mobile/promotor/pagos-multiples', { pago_proyectado_ids: ids })
                 .then((response) => {
                     this.cancel();
                     return response;

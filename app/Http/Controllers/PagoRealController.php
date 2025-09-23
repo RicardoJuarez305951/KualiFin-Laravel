@@ -4,11 +4,9 @@ namespace App\Http\Controllers;
 use App\Models\PagoReal;
 use App\Models\PagoProyectado;
 use App\Models\PagoCompleto;
-use App\Models\PagoDiferido;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 
 class PagoRealController extends Controller
 {
@@ -65,51 +63,32 @@ class PagoRealController extends Controller
     public function storeMultiple(Request $request)
     {
         $data = $request->validate([
-            'pagos' => ['required', 'array', 'min:1'],
-            'pagos.*.pago_proyectado_id' => ['required', 'exists:pagos_proyectados,id'],
-            'pagos.*.tipo' => ['required', Rule::in(['completo', 'diferido'])],
-            'pagos.*.monto' => ['required', 'numeric', 'min:0'],
-            'pagos.*.comentario' => ['nullable', 'string'],
+            'pago_proyectado_ids' => ['required', 'array', 'min:1'],
+            'pago_proyectado_ids.*' => ['required', 'integer', 'distinct', 'exists:pagos_proyectados,id'],
         ]);
 
         $fechaPago = Carbon::now()->toDateString();
 
         $pagos = DB::transaction(function () use ($data, $fechaPago) {
-            return collect($data['pagos'])
-                ->map(function (array $pago) use ($fechaPago) {
-                    $pagoProyectado = PagoProyectado::findOrFail($pago['pago_proyectado_id']);
-                    $tipo = $pago['tipo'];
-                    $montoIngresado = round(max((float) $pago['monto'], 0), 2);
+            return array_map(function (int $pagoProyectadoId) use ($fechaPago) {
+                $pagoProyectado = PagoProyectado::findOrFail($pagoProyectadoId);
 
-                    $pagoRealData = [
-                        'pago_proyectado_id' => $pagoProyectado->id,
-                        'tipo' => $tipo,
-                        'fecha_pago' => $fechaPago,
-                        'comentario' => $pago['comentario'] ?? null,
-                        // 'estado' => $pago['estado'] ?? null, // Espacio reservado para futuros campos
-                    ];
+                $pagoReal = PagoReal::create([
+                    'pago_proyectado_id' => $pagoProyectado->id,
+                    'tipo' => 'completo',
+                    'fecha_pago' => $fechaPago,
+                    'comentario' => null,
+                ]);
 
-                    $pagoReal = PagoReal::create($pagoRealData);
+                $monto = (float) ($pagoProyectado->deuda_total ?? $pagoProyectado->monto_proyectado ?? 0);
 
-                    if ($tipo === 'completo') {
-                        $montoCompleto = $montoIngresado > 0
-                            ? $montoIngresado
-                            : (float) ($pagoProyectado->deuda_total ?? $pagoProyectado->monto_proyectado ?? 0);
+                PagoCompleto::create([
+                    'pago_real_id' => $pagoReal->id,
+                    'monto_completo' => round(max($monto, 0), 2),
+                ]);
 
-                        PagoCompleto::create([
-                            'pago_real_id' => $pagoReal->id,
-                            'monto_completo' => round($montoCompleto, 2),
-                        ]);
-                    } else {
-                        PagoDiferido::create([
-                            'pago_real_id' => $pagoReal->id,
-                            'monto_diferido' => $montoIngresado,
-                        ]);
-                    }
-
-                    return $pagoReal->loadMissing(['pagoCompleto', 'pagoDiferido']);
-                })
-                ->values();
+                return $pagoReal->loadMissing('pagoCompleto');
+            }, $data['pago_proyectado_ids']);
         });
 
         return response()->json($pagos, 201);
