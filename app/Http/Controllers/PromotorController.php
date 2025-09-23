@@ -7,6 +7,7 @@ use App\Models\Cliente;
 use App\Models\Credito;
 use App\Models\Ejecutivo;
 use App\Models\Promotor;
+use App\Models\PagoProyectado;
 use App\Models\Supervisor;
 use App\Services\ExcelReaderService;
 use App\Support\RoleHierarchy;
@@ -527,12 +528,19 @@ class PromotorController extends Controller
             $credito = $cliente->credito;
             $estadoCartera = $cliente->cartera_estado ?? $this->mapCreditoEstadoACartera($credito) ?? 'inactivo';
 
+            $pagoPendiente = $credito?->pagosProyectados?->firstWhere('estado', 'pendiente');
+            $pagoPendienteData = $this->buildPendingPaymentData($pagoPendiente, $cliente);
+
+            $cliente->pago_proyectado_pendiente = $pagoPendienteData;
+            if ($pagoPendienteData && (!isset($cliente->deuda_total) || $cliente->deuda_total === null)) {
+                $cliente->deuda_total = $pagoPendienteData['deuda_vencida'];
+            }
+
             $cliente->cartera_estado = $estadoCartera;
             $cliente->tiene_credito_activo = in_array($estadoCartera, ['activo', 'moroso', 'desembolsado'], true);
             unset($cliente->semana_credito, $cliente->monto_semanal);
 
             if (in_array($estadoCartera, ['activo', 'desembolsado'], true)) {
-                $pagoPendiente = $credito?->pagosProyectados?->firstWhere('estado', 'pendiente');
                 if ($pagoPendiente) {
                     $cliente->semana_credito = $pagoPendiente->semana;
                     $cliente->monto_semanal = $pagoPendiente->monto_proyectado;
@@ -621,7 +629,34 @@ class PromotorController extends Controller
         ]);
     }
 
-        
+    private function buildPendingPaymentData(?PagoProyectado $pagoProyectado, $cliente): ?array
+    {
+        if (!$pagoProyectado) {
+            return null;
+        }
+
+        $montoProyectado = (float) ($pagoProyectado->monto_proyectado ?? 0);
+
+        $deudaVencida = collect([
+            $pagoProyectado->deuda_total ?? null,
+            $pagoProyectado->deuda_vencida ?? null,
+            $cliente->deuda_total ?? null,
+            $cliente->deuda ?? null,
+        ])
+            ->filter(fn ($value) => is_numeric($value))
+            ->map(fn ($value) => (float) $value)
+            ->first();
+
+        if ($deudaVencida === null) {
+            $deudaVencida = $montoProyectado;
+        }
+
+        return [
+            'id' => $pagoProyectado->id,
+            'monto_proyectado' => $montoProyectado,
+            'deuda_vencida' => $deudaVencida,
+        ];
+    }
 
     private function sharePromotorContext(Request $request, ?Promotor $promotor): void
     {
