@@ -19,7 +19,9 @@
         </section>
 
         <section class="p-2">
-            <h2 class="text-sm font-semibold text-gray-800 mb-1">Mi Objetivo P/Ejercicio</h2>
+            <h2 class="text-sm font-semibold text-gray-800 mb-1">
+                Mi Objetivo P/Ejercicio
+            </h2>
             <p class="text-lg font-bold">{{ $formatCurrency($objetivoEjercicio ?? 0) }}</p>
         </section>
 
