@@ -5,7 +5,7 @@
 
     $objetivoSemanal     = $faker->randomFloat(2, 10000, 50000);
     $ventaActual         = $faker->randomFloat(2, 0, $objetivoSemanal);
-    $objetivoEjecutivo   = $faker->randomFloat(2, 50000, 200000);
+    $objetivoEjercicio   = $faker->randomFloat(2, 50000, 200000);
 
     $ventasPorSemana = [];
     for ($i = 1; $i <= 4; $i++) {
@@ -32,8 +32,8 @@
         </section>
 
         <section class="p-2">
-            <h2 class="text-sm font-semibold text-gray-800 mb-1">Mi Objetivo P/ejecutivo</h2>
-            <p class="text-lg font-bold">{{ formatCurrency($objetivoEjecutivo) }}</p>
+            <h2 class="text-sm font-semibold text-gray-800 mb-1">Mi Objetivo P/Ejercicio</h2>
+            <p class="text-lg font-bold">{{ formatCurrency($objetivoEjercicio) }}</p>
         </section>
 
         <section class="p-2">
