@@ -12,7 +12,7 @@ class KanbanSeeder extends Seeder
     {
         $tasks = [
             // Módulo Promotor
-            ['content' => 'Programar cálculo de Mi Objetivo P/ejecutivo > Mi Objetivo P/ejercicio.', 'module' => 'Promotor', 'functionality' => 'Objetivos', 'assigned' => 'Ricardo'],
+            ['content' => 'Programar cálculo de Mi Objetivo P/Ejercicio.', 'module' => 'Promotor', 'functionality' => 'Objetivos', 'assigned' => 'Ricardo'],
             ['content' => 'Conectar ventas registradas con las ventas semanales de la promotora.', 'module' => 'Promotor', 'functionality' => 'Objetivos', 'assigned' => 'Ricardo'],
             ['content' => 'Ajustar cálculo para considerar semanas de paro.', 'module' => 'Promotor', 'functionality' => 'Objetivos', 'assigned' => 'Ricardo'],
             ['content' => 'Generar frase inspiracional según % de objetivo alcanzado.', 'module' => 'Promotor', 'functionality' => 'Motivación', 'assigned' => 'Adair'],
