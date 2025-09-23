@@ -86,9 +86,185 @@ class SupervisorController extends Controller
         return view('mobile.index');
     }
 
-    public function objetivo()
+    public function objetivo(Request $request)
     {
-        return view('mobile.supervisor.objetivo.objetivo');
+        $user = $request->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+        $supervisor = $this->resolveSupervisorContext($request);
+
+        if ($primaryRole === 'supervisor') {
+            abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
+        }
+
+        $now = now();
+        $weekStart = $now->copy()->startOfWeek();
+        $weekEnd = $now->copy()->endOfWeek();
+
+        $ejercicioInicio = null;
+        $ejercicioFin = null;
+
+        if ($supervisor) {
+            $ejercicioActual = Ejercicio::where('supervisor_id', $supervisor->id)
+                ->orderByDesc('fecha_inicio')
+                ->first();
+
+            if ($ejercicioActual?->fecha_inicio) {
+                $ejercicioInicio = $ejercicioActual->fecha_inicio instanceof Carbon
+                    ? $ejercicioActual->fecha_inicio->copy()
+                    : Carbon::parse($ejercicioActual->fecha_inicio);
+            }
+
+            if ($ejercicioActual?->fecha_final) {
+                $ejercicioFin = $ejercicioActual->fecha_final instanceof Carbon
+                    ? $ejercicioActual->fecha_final->copy()
+                    : Carbon::parse($ejercicioActual->fecha_final);
+            }
+        }
+
+        if (!$ejercicioInicio) {
+            $ejercicioInicio = $now->copy()->startOfMonth();
+        }
+
+        if (!$ejercicioFin) {
+            $ejercicioFin = $now->copy()->endOfMonth();
+        }
+
+        $exerciseRangeEnd = $ejercicioFin->copy()->endOfDay();
+        $nowEnd = $now->copy()->endOfDay();
+
+        if ($exerciseRangeEnd->greaterThan($nowEnd)) {
+            $exerciseRangeEnd = $nowEnd;
+        }
+
+        if ($supervisor) {
+            $supervisor->load([
+                'promotores' => function ($query) use ($ejercicioInicio, $exerciseRangeEnd) {
+                    $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo')
+                        ->with([
+                            'clientes' => function ($clienteQuery) use ($ejercicioInicio, $exerciseRangeEnd) {
+                                $clienteQuery->select('id', 'promotor_id', 'nombre', 'apellido_p', 'apellido_m')
+                                    ->with(['creditos' => function ($creditosQuery) use ($ejercicioInicio, $exerciseRangeEnd) {
+                                        $creditosQuery->select('id', 'cliente_id', 'monto_total', 'fecha_inicio')
+                                            ->whereNotNull('fecha_inicio')
+                                            ->whereBetween('fecha_inicio', [
+                                                $ejercicioInicio->copy()->startOfDay()->toDateTimeString(),
+                                                $exerciseRangeEnd->copy()->toDateTimeString(),
+                                            ])
+                                            ->orderBy('fecha_inicio');
+                                    }]);
+                            },
+                        ])
+                        ->orderBy('nombre')
+                        ->orderBy('apellido_p')
+                        ->orderBy('apellido_m');
+                },
+            ]);
+        }
+
+        $promotores = $supervisor?->promotores ?? collect();
+        $promotores = $promotores instanceof \Illuminate\Support\Collection ? $promotores : collect($promotores);
+
+        $supervisorContextQuery = $request->attributes->get('supervisor_context_query', []);
+
+        $promotoresResumen = $promotores->map(function (Promotor $promotor) use ($weekStart, $weekEnd, $supervisorContextQuery) {
+            $objetivoSemanal = (float) ($promotor->venta_maxima ?? 0);
+            $objetivoEjercicio = (float) ($promotor->venta_proyectada_objetivo ?? 0);
+
+            $clientes = $promotor->clientes ?? collect();
+            $clientes = $clientes instanceof \Illuminate\Support\Collection ? $clientes : collect($clientes);
+
+            $creditos = $clientes->flatMap(function ($cliente) {
+                $creditosCliente = $cliente->creditos ?? collect();
+
+                return $creditosCliente instanceof \Illuminate\Support\Collection
+                    ? $creditosCliente
+                    : collect($creditosCliente);
+            });
+
+            $ventaSemanal = $creditos->filter(function ($credito) use ($weekStart, $weekEnd) {
+                $fecha = $credito->fecha_inicio;
+
+                if (!$fecha) {
+                    return false;
+                }
+
+                if (!$fecha instanceof Carbon) {
+                    $fecha = Carbon::parse($fecha);
+                }
+
+                return $fecha->greaterThanOrEqualTo($weekStart)
+                    && $fecha->lessThanOrEqualTo($weekEnd);
+            })->sum(function ($credito) {
+                return (float) ($credito->monto_total ?? 0);
+            });
+
+            $ventaEjercicio = $creditos->sum(function ($credito) {
+                return (float) ($credito->monto_total ?? 0);
+            });
+
+            $faltanteSemanal = max(0.0, $objetivoSemanal - $ventaSemanal);
+            $faltanteEjercicio = max(0.0, $objetivoEjercicio - $ventaEjercicio);
+
+            $porcentajeSemanal = $objetivoSemanal > 0
+                ? min(100, round(($ventaSemanal / $objetivoSemanal) * 100, 2))
+                : 0.0;
+
+            $route = Route::has('mobile.promotor.objetivo')
+                ? route('mobile.promotor.objetivo', array_merge($supervisorContextQuery, ['promotor' => $promotor->id]))
+                : '#';
+
+            return [
+                'id' => $promotor->id,
+                'nombre' => trim(collect([
+                    $promotor->nombre,
+                    $promotor->apellido_p,
+                    $promotor->apellido_m,
+                ])->filter()->implode(' ')),
+                'objetivo' => $objetivoSemanal,
+                'objetivo_ejercicio' => $objetivoEjercicio,
+                'venta' => $ventaSemanal,
+                'venta_ejercicio' => $ventaEjercicio,
+                'faltante' => $faltanteSemanal,
+                'faltante_ejercicio' => $faltanteEjercicio,
+                'porcentaje' => $porcentajeSemanal,
+                'route' => $route,
+            ];
+        })->values();
+
+        $objetivoSemanalTotal = (float) $promotoresResumen->sum('objetivo');
+        $ventaSemanalTotal = (float) $promotoresResumen->sum('venta');
+        $faltanteSemanalTotal = max(0.0, $objetivoSemanalTotal - $ventaSemanalTotal);
+        $porcentajeSemanalTotal = $objetivoSemanalTotal > 0
+            ? min(100, round(($ventaSemanalTotal / $objetivoSemanalTotal) * 100, 2))
+            : 0.0;
+
+        $objetivoEjercicioTotal = (float) $promotoresResumen->sum('objetivo_ejercicio');
+        $ventaEjercicioTotal = (float) $promotoresResumen->sum('venta_ejercicio');
+        $faltanteEjercicioTotal = max(0.0, $objetivoEjercicioTotal - $ventaEjercicioTotal);
+        $porcentajeEjercicioTotal = $objetivoEjercicioTotal > 0
+            ? min(100, round(($ventaEjercicioTotal / $objetivoEjercicioTotal) * 100, 2))
+            : 0.0;
+
+        $supervisorNombre = $supervisor
+            ? collect([
+                $supervisor->nombre,
+                $supervisor->apellido_p,
+                $supervisor->apellido_m,
+            ])->filter()->implode(' ')
+            : ($user?->name ?? 'Supervisor');
+
+        return view('mobile.supervisor.objetivo.objetivo', [
+            'supervisorNombre' => $supervisorNombre,
+            'objetivoSemanalTotal' => $objetivoSemanalTotal,
+            'ventaSemanalTotal' => $ventaSemanalTotal,
+            'faltanteSemanalTotal' => $faltanteSemanalTotal,
+            'porcentajeSemanalTotal' => $porcentajeSemanalTotal,
+            'objetivoEjercicioTotal' => $objetivoEjercicioTotal,
+            'ventaEjercicioTotal' => $ventaEjercicioTotal,
+            'faltanteEjercicioTotal' => $faltanteEjercicioTotal,
+            'porcentajeEjercicioTotal' => $porcentajeEjercicioTotal,
+            'promotoresResumen' => $promotoresResumen,
+        ]);
     }
 
 
