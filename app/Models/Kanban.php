@@ -2,10 +2,25 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Kanban extends Model
 {
+    use HasFactory;
+
+    /**
+     * The connection name for the model.
+     *
+     * @var string
+     */
+    protected $connection = 'kanban';
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'content',
         'module',
@@ -13,20 +28,5 @@ class Kanban extends Model
         'assigned',
         'status',
         'order',
-        ];
-
-    public function up()
-    {
-        Schema::create('tasks', function (Blueprint $table) {
-            $table->id();
-            $table->string('content');
-            $table->string('module');
-            $table->string('functionality');
-            $table->string('assigned');
-            $table->string('status')->default('todo');
-            $table->integer('order')->default(0);
-            $table->timestamps();
-        });
-        
-    }
+    ];
 }

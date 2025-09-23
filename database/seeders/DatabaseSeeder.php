@@ -485,5 +485,9 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
         }
+        // Test
+        $this->call([
+            KanbanSeeder::class,
+        ]);
     }
 }

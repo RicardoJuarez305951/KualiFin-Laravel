@@ -9,7 +9,7 @@ class KanbanController extends Controller
 {
     public function index()
     {
-        $tasks = Task::orderBy('order')->get()->groupBy('status');
+        $tasks = Kanban::orderBy('order')->get()->groupBy('status');
 
         $groupedTasks = [
             'todo' => $tasks->get('todo', []),
@@ -24,17 +24,17 @@ class KanbanController extends Controller
     public function updateTaskStatus(Request $request)
     {
         $request->validate([
-            'task_id' => 'required|exists:tasks,id',
+            'task_id' => 'required|exists:kanban.kanbans,id',
             'status' => 'required|string',
             'order' => 'required|array',
         ]);
 
-        $task = Task::find($request->task_id);
+        $task = Kanban::find($request->task_id);
         $task->status = $request->status;
         $task->save();
 
         foreach ($request->order as $index => $taskId) {
-            Task::where('id', $taskId)->update(['order' => $index]);
+            Kanban::where('id', $taskId)->update(['order' => $index]);
         }
 
         return response()->json(['status' => 'success']);
