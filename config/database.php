@@ -42,6 +42,17 @@ return [
             'synchronous' => null,
         ],
 
+        'kanban' => [
+            'driver' => env('KANBAN_DB_CONNECTION', 'sqlite'),
+            'url' => env('KANBAN_DB_URL'),
+            'database' => env('KANBAN_DB_DATABASE', database_path('kanban.sqlite')),
+            'prefix' => '',
+            'foreign_key_constraints' => env('KANBAN_DB_FOREIGN_KEYS', true),
+            'busy_timeout' => env('KANBAN_DB_BUSY_TIMEOUT'),
+            'journal_mode' => env('KANBAN_DB_JOURNAL_MODE'),
+            'synchronous' => env('KANBAN_DB_SYNCHRONOUS'),
+        ],
+
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DB_URL'),

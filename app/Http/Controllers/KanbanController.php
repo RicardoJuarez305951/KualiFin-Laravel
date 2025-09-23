@@ -24,7 +24,7 @@ class KanbanController extends Controller
     public function updateTaskStatus(Request $request)
     {
         $request->validate([
-            'task_id' => 'required|exists:kanbans,id',
+            'task_id' => 'required|exists:kanban.kanbans,id',
             'status' => 'required|string',
             'order' => 'required|array',
         ]);

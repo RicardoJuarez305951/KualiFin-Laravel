@@ -10,6 +10,13 @@ class Kanban extends Model
     use HasFactory;
 
     /**
+     * The connection name for the model.
+     *
+     * @var string
+     */
+    protected $connection = 'kanban';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
