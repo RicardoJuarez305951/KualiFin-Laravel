@@ -230,6 +230,48 @@
             </button>
         </div>
 
+        <div
+            x-show="$store.multiPay.active && $store.multiPay.clients.length"
+            x-cloak
+            class="mt-4 space-y-3"
+        >
+            <h4 class="text-lg font-semibold text-gray-700">Clientes seleccionados</h4>
+
+            <ul class="space-y-2">
+                <template x-for="cliente in $store.multiPay.clients" :key="cliente.pago_proyectado_id ?? cliente.id">
+                    <li
+                        class="border rounded-xl px-3 py-2 shadow-sm flex items-start justify-between gap-3"
+                        :class="$store.multiPay.summaryItemClasses(cliente.tipo)"
+                    >
+                        <div class="space-y-1">
+                            <p class="text-base font-semibold text-gray-900" x-text="cliente.nombre"></p>
+                            <span
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide"
+                                :class="$store.multiPay.summaryTypeTextClasses(cliente.tipo)"
+                                x-text="$store.multiPay.typeLabel(cliente.tipo)"
+                            ></span>
+                        </div>
+
+                        <div class="text-right">
+                            <p
+                                class="text-sm font-semibold"
+                                :class="$store.multiPay.summaryAmountClasses(cliente.tipo)"
+                                x-text="formatCurrency(cliente.monto)"
+                            ></p>
+                        </div>
+                    </li>
+                </template>
+            </ul>
+        </div>
+
+        <div
+            x-show="$store.multiPay.active && !$store.multiPay.clients.length"
+            x-cloak
+            class="mt-4 text-sm text-gray-500"
+        >
+            Selecciona clientes para ver el resumen de pagos.
+        </div>
+
         <div class="mt-8">
             <a href="{{ route('mobile.promotor.index') }}"
                class="block w-full text-center text-blue-800 hover:text-blue-900 font-medium py-3">
