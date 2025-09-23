@@ -8,14 +8,14 @@
     }
 @endphp
 
-<x-layouts.mobile.mobile-layout title="Venta">
+<x-layouts.mobile.mobile-layout title="Venta registrada – {{ $fecha }}">
     <div class="mx-auto w-[22rem] sm:w-[26rem] p-4 sm:p-6">
         <section class="bg-white/95 backdrop-blur rounded-2xl shadow-lg ring-1 ring-gray-900/5 overflow-hidden">
             {{-- Header --}}
             <div class="p-6">
                 <div class="flex items-start justify-center gap-4">
                     <div>
-                        <h1 class="text-lg font-bold text-gray-900">Venta registrada</h1>
+                        <h1 class="text-lg font-bold text-gray-900">Venta registrada – {{ $fecha }}</h1>
                         <p class="mt-1 text-sm text-gray-600 flex items-center gap-2">
                             <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 text-blue-700 px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ring-blue-200">
                                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
