@@ -216,114 +216,18 @@
             class="mt-2 flex gap-2"
         >
             <button
-                type="button"
-                class="flex-1 py-2 text-white rounded"
-                :class="$store.multiPay.clients.length ? 'bg-green-600 hover:bg-green-700' : 'bg-green-300 cursor-not-allowed'"
+                class="flex-1 py-2 bg-green-600 text-white rounded"
                 @click="$store.multiPay.confirm()"
-                :disabled="!$store.multiPay.clients.length"
             >
                 Registrar Pagos
             </button>
 
             <button
-                type="button"
-                class="flex-1 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                class="flex-1 py-2 bg-red-600 text-white rounded"
                 @click="$store.multiPay.cancel()"
             >
                 Cancelar
             </button>
-        </div>
-
-        <div
-            x-show="$store.multiPay.active"
-            x-cloak
-            class="mt-4 space-y-4"
-        >
-            <template x-if="!$store.multiPay.clients.length">
-                <p class="text-sm text-gray-500">
-                    Selecciona clientes de la cartera activa o vencida para agregarlos a los pagos múltiples.
-                </p>
-            </template>
-
-            <template x-for="cliente in $store.multiPay.clients" :key="cliente.id">
-                <div class="border border-blue-200 rounded-xl bg-blue-50 p-4 space-y-3">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="space-y-1">
-                            <p class="font-semibold text-gray-800" x-text="cliente.name"></p>
-                            <p class="text-xs text-gray-500">
-                                Pago proyectado #<span x-text="cliente.pagoProyectadoId"></span>
-                            </p>
-                            <p class="text-xs text-gray-500">
-                                Proyectado: <span x-text="formatCurrency(cliente.projectedAmount)"></span>
-                                · Deuda: <span x-text="formatCurrency(cliente.pendingDebt)"></span>
-                            </p>
-                        </div>
-                        <button
-                            type="button"
-                            class="text-sm text-blue-700 hover:underline"
-                            @click="$store.multiPay.remove(cliente.id)"
-                        >
-                            Quitar
-                        </button>
-                    </div>
-
-                    <div class="space-y-2">
-                        <div class="flex items-center gap-4">
-                            <label class="flex items-center gap-1 text-sm text-gray-700">
-                                <input
-                                    type="radio"
-                                    :name="`tipo-${cliente.id}`"
-                                    value="completo"
-                                    :checked="cliente.tipo === 'completo'"
-                                    @change="$store.multiPay.setType(cliente.id, 'completo')"
-                                >
-                                <span>Completo</span>
-                            </label>
-
-                            <label class="flex items-center gap-1 text-sm text-gray-700">
-                                <input
-                                    type="radio"
-                                    :name="`tipo-${cliente.id}`"
-                                    value="diferido"
-                                    :checked="cliente.tipo === 'diferido'"
-                                    @change="$store.multiPay.setType(cliente.id, 'diferido')"
-                                >
-                                <span>Diferido</span>
-                            </label>
-                        </div>
-
-                        <div x-show="cliente.tipo === 'diferido'" x-cloak class="space-y-1">
-                            <label class="text-xs uppercase tracking-wide text-gray-500">Monto diferido</label>
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                :max="cliente.pendingDebt || cliente.projectedAmount"
-                                x-model.number="cliente.monto"
-                                @input="$store.multiPay.setMonto(cliente.id, cliente.monto)"
-                                class="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-blue-200"
-                            >
-                            <p class="text-xs text-gray-500">
-                                Máximo permitido: <span x-text="formatCurrency(cliente.pendingDebt || cliente.projectedAmount)"></span>
-                            </p>
-                        </div>
-
-                        <div x-show="cliente.tipo === 'completo'" class="text-sm text-gray-600">
-                            Se registrará un pago completo por
-                            <span class="font-semibold text-gray-800" x-text="formatCurrency(cliente.monto)"></span>.
-                        </div>
-                    </div>
-                </div>
-            </template>
-
-            <div
-                x-show="$store.multiPay.clients.length"
-                x-cloak
-                class="flex items-center justify-between border-t border-blue-200 pt-3"
-            >
-                <span class="text-sm font-semibold text-gray-700">Total a registrar</span>
-                <span class="text-lg font-bold text-blue-600" x-text="formatCurrency($store.multiPay.total)"></span>
-            </div>
         </div>
 
         <div class="mt-8">
