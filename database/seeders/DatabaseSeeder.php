@@ -114,5 +114,10 @@ class DatabaseSeeder extends Seeder
             'venta_proyectada_objetivo' => 5000,
             'bono' => 500,
         ]);
+
+        // Test
+        $this->call([
+            KanbanSeeder::class,
+        ]);
     }
 }
