@@ -15,18 +15,28 @@
             <div class="p-6">
                 <div class="flex items-start justify-center gap-4">
                     <div>
-                        <h1 class="text-lg font-bold text-gray-900">Venta registrada</h1>
+                        <h1 class="text-lg font-bold text-gray-900 text-center">Venta registrada</h1>
                         <p class="mt-1 text-sm text-gray-600 flex items-center gap-2">
                             <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 text-blue-700 px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ring-blue-200">
                                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
                                           d="M8 2v3M16 2v3M3 10h18M4 7h16a1 1 0 011 1v11a2 2 0 01-2 2H5a2 2 0 01-2-2V8a1 1 0 011-1z" />
                                 </svg>
-                                {{ $fecha }}
+                                Hoy es: {{ $fecha }}
                             </span>
                         </p>
-                    </div>
-                    
+                    </div>    
+                </div>
+
+                <div class="p-2 flex justify-center gap-4">
+                    <h1 class="inline-flex items-center gap-1 rounded-full bg-orange-50 text-orange-700 px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ring-orange-200">
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                            d="M8 2v3M16 2v3M3 10h18M4 7h16a1 1 0 011 1v11a2 2 0 01-2 2H5a2 2 0 01-2-2V8a1 1 0 011-1z" />
+                        </svg>
+                        {{-- Se necesita obtener del EJECUTIVO --}}
+                        Fecha limite: {{ $fecha }}
+                    </h1>
                 </div>
 
                 {{-- Supervisor/Ejecutivo --}}
