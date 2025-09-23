@@ -1,0 +1,96 @@
+{{-- resources/views/kanban/index.blade.php --}}
+
+{{-- ... (head y header del HTML original) ... --}}
+
+<div id="kanban-board" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+    <!-- Columna: Por Hacer -->
+    <div class="kanban-column bg-gray-200 rounded-xl shadow-inner" data-column-id="todo">
+        <h2 class="text-xl font-semibold ...">Por Hacer</h2>
+        <div class="p-4 space-y-4 task-list">
+            @foreach ($tasks['todo'] as $task)
+                @include('components.task-card', ['task' => $task])
+            @endforeach
+        </div>
+    </div>
+
+    <!-- Columna: En Progreso (Ricardo) -->
+    <div class="kanban-column bg-blue-100 rounded-xl shadow-inner" data-column-id="in-progress-ricardo">
+        <h2 class="text-xl font-semibold ...">En Progreso (Ricardo)</h2>
+        <div class="p-4 space-y-4 task-list">
+            @foreach ($tasks['in-progress-ricardo'] as $task)
+                @include('components.task-card', ['task' => $task])
+            @endforeach
+        </div>
+    </div>
+    
+    {{-- Repetir para las otras dos columnas (Adair y Terminado) --}}
+
+</div>
+
+{{-- ... (Sección de Referencia) ... --}}
+
+// Dentro de la etiqueta <script> en kanban/index.blade.php
+
+document.addEventListener('DOMContentLoaded', () => {
+    setupDragAndDrop();
+});
+
+function setupDragAndDrop() {
+    // ... (el código de dragstart y getDragAfterElement es el mismo)
+    const cards = document.querySelectorAll('.task-card');
+    const columns = document.querySelectorAll('.kanban-column .task-list');
+
+    cards.forEach(card => {
+        card.addEventListener('dragstart', () => {
+            card.classList.add('dragging');
+        });
+        // Modificamos dragend para que llame a la API
+        card.addEventListener('dragend', (e) => {
+            card.classList.remove('dragging');
+            
+            const taskId = card.id;
+            const newColumnElement = card.closest('.kanban-column');
+            const newStatus = newColumnElement.dataset.columnId;
+
+            // Obtenemos el nuevo orden de las tarjetas en la columna
+            const taskIdsInOrder = [...newColumnElement.querySelectorAll('.task-card')].map(c => c.id);
+
+            updateTaskOnServer(taskId, newStatus, taskIdsInOrder);
+        });
+    });
+
+    columns.forEach(column => {
+        // ... (el evento dragover es el mismo)
+    });
+}
+
+// ... (getDragAfterElement es la misma función)
+
+async function updateTaskOnServer(taskId, status, order) {
+    try {
+        const response = await fetch('{{ route("kanban.tasks.update") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}' // ¡Muy importante para la seguridad en Laravel!
+            },
+            body: JSON.stringify({
+                task_id: taskId,
+                status: status,
+                order: order
+            })
+        });
+
+        if (!response.ok) {
+            console.error('Error al actualizar la tarea.');
+            // Aquí podrías añadir lógica para revertir el movimiento en la UI si falla
+        }
+
+        const result = await response.json();
+        console.log('Tarea actualizada:', result);
+
+    } catch (error) {
+        console.error('Error de red:', error);
+    }
+}
