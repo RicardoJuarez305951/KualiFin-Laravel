@@ -208,7 +208,7 @@ class SupervisorController extends Controller
 
         $supervisor = $this->resolveSupervisorContext($request, [
             'promotores' => function ($query) {
-                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m')
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
                     ->orderBy('nombre')
                     ->orderBy('apellido_p')
                     ->orderBy('apellido_m');
@@ -379,7 +379,7 @@ class SupervisorController extends Controller
 
         $supervisor = $this->resolveSupervisorContext($request, [
             'promotores' => function ($query) {
-                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m')
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
                     ->orderBy('nombre')
                     ->orderBy('apellido_p')
                     ->orderBy('apellido_m');
@@ -1003,7 +1003,7 @@ class SupervisorController extends Controller
     {
         $with = [
             'promotores' => function ($query) {
-                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo')
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo', 'dias_de_pago')
                     ->with([
                         'clientes' => function ($clienteQuery) {
                             $clienteQuery->select('id', 'promotor_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'fecha_nacimiento', 'tiene_credito_activo', 'monto_maximo', 'activo')
@@ -1207,7 +1207,7 @@ class SupervisorController extends Controller
     {
         return [
             'promotores' => function ($query) {
-                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo')
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo', 'dias_de_pago')
                     ->with(['clientes' => function ($clienteQuery) {
                         $clienteQuery->select('id', 'promotor_id', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'tiene_credito_activo')
                             ->orderBy('nombre');

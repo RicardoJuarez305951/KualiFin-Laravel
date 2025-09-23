@@ -22,6 +22,14 @@ class PromotorSeeder extends Seeder
 
         $this->command->info('Creando 20 promotores con logins de prueba...');
 
+        $diasPagoOptions = [
+            'lunes, miércoles',
+            'martes, jueves',
+            'viernes',
+            'lunes a viernes',
+            'martes a sábado',
+        ];
+
         for ($i = 1; $i <= 20; $i++) {
             $email = "promotor{$i}@kualifin.com";
 
@@ -47,6 +55,7 @@ class PromotorSeeder extends Seeder
                 'colonia' => fake()->streetName(),
                 'venta_proyectada_objetivo' => fake()->randomFloat(2, 1000, 10000),
                 'bono' => fake()->randomFloat(2, 100, 1000),
+                'dias_de_pago' => fake()->randomElement($diasPagoOptions),
             ]);
 
             $user->assignRole('promotor');

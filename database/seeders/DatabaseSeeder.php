@@ -97,6 +97,13 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $faker = fake();
+        $diasPagoOptions = [
+            'lunes, miércoles',
+            'martes, jueves',
+            'viernes',
+            'lunes a viernes',
+            'martes a sábado',
+        ];
 
         for ($i = 1; $i <= 10; $i++) {
             [$nombre, $apellidoPaterno, $apellidoMaterno] = LatinoNameGenerator::person();
@@ -161,6 +168,7 @@ class DatabaseSeeder extends Seeder
                 'colonia' => $faker->streetName(),
                 'venta_proyectada_objetivo' => $faker->randomElement([3000, 4000, 5000, 6000, 7000, 8000, 10000, 12000, 15000, 20000]),
                 'bono' => $faker->randomFloat(2, 200, 1500),
+                'dias_de_pago' => $faker->randomElement($diasPagoOptions),
             ]);
         }
 
@@ -184,6 +192,7 @@ class DatabaseSeeder extends Seeder
             'colonia' => 'Centro',
             'venta_proyectada_objetivo' => 5000,
             'bono' => 500,
+            'dias_de_pago' => 'lunes, miércoles',
         ]);
 
         $faker = fake();
