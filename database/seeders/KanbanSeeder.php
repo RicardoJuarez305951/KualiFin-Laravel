@@ -2,14 +2,20 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Models\Kanban;
+use App\Models\Kanban; // <-- Usamos el modelo 'Kanban'
 
-class KanbanSeeder extends Seeder
+class KanbanSeeder extends Seeder // <-- El nombre de la clase es KanbanSeeder
 {
-    public function run(): void
+    /**
+     * Run the database seeds.
+     *
+     * @return void
+     */
+    public function run()
     {
+        Kanban::truncate(); // Limpiamos la tabla antes de llenarla
+
         $tasks = [
             // Módulo Promotor
             ['content' => 'Programar cálculo de Mi Objetivo P/ejecutivo > Mi Objetivo P/ejercicio.', 'module' => 'Promotor', 'functionality' => 'Objetivos', 'assigned' => 'Ricardo'],
@@ -54,7 +60,7 @@ class KanbanSeeder extends Seeder
         ];
 
         foreach ($tasks as $index => $taskData) {
-            Kanban::create([
+            Kanban::create([ // <-- Usamos el modelo 'Kanban'
                 'content'       => $taskData['content'],
                 'module'        => $taskData['module'],
                 'functionality' => $taskData['functionality'],
