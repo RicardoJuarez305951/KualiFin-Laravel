@@ -136,6 +136,7 @@ function createPromotorContext(array $promotorOverrides = []): array
         'colonia' => 'Centro',
         'venta_proyectada_objetivo' => 10000,
         'bono' => 1000,
+        'dias_de_pago' => 'lunes, miércoles',
     ], $promotorOverrides));
 
     return [$promotorUser, $promotor];
