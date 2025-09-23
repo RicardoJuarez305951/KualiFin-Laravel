@@ -15,6 +15,10 @@ use Illuminate\Support\Facades\Auth;
 use App\Support\RoleHierarchy;
 use App\Http\Controllers\ExcelController;
 
+// Test
+use App\Http\Controllers\KanbanController;
+Route::get('/kanban', [KanbanController::class, 'index'])->name('kanban.index');
+Route::post('/kanban/tasks/update', [KanbanController::class, 'updateTaskStatus'])->name('kanban.tasks.update');
 
 /*
 |--------------------------------------------------------------------------
