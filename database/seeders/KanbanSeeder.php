@@ -3,9 +3,9 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Kanban; // <-- Usamos el modelo 'Kanban'
+use App\Models\Kanban;
 
-class KanbanSeeder extends Seeder // <-- El nombre de la clase es KanbanSeeder
+class KanbanSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -14,53 +14,49 @@ class KanbanSeeder extends Seeder // <-- El nombre de la clase es KanbanSeeder
      */
     public function run()
     {
-        Kanban::truncate(); // Limpiamos la tabla antes de llenarla
+        // Esto limpia la tabla antes de insertar los nuevos datos para evitar duplicados.
+        Kanban::truncate();
 
         $tasks = [
             // Módulo Promotor
-            ['content' => 'Programar cálculo de Mi Objetivo P/ejecutivo > Mi Objetivo P/ejercicio.', 'module' => 'Promotor', 'functionality' => 'Objetivos', 'assigned' => 'Ricardo'],
-            ['content' => 'Conectar ventas registradas con las ventas semanales de la promotora.', 'module' => 'Promotor', 'functionality' => 'Objetivos', 'assigned' => 'Ricardo'],
-            ['content' => 'Ajustar cálculo para considerar semanas de paro.', 'module' => 'Promotor', 'functionality' => 'Objetivos', 'assigned' => 'Ricardo'],
-            ['content' => 'Generar frase inspiracional según % de objetivo alcanzado.', 'module' => 'Promotor', 'functionality' => 'Motivación', 'assigned' => 'Adair'],
-            ['content' => 'Implementar carrusel/ciclado de frases en el menú principal.', 'module' => 'Promotor', 'functionality' => 'Motivación', 'assigned' => 'Adair'],
-            ['content' => 'Mostrar la fecha de la venta en el título.', 'module' => 'Promotor', 'functionality' => 'Ventas', 'assigned' => 'Ricardo'],
-            ['content' => 'Agregar mensaje de confirmación de venta.', 'module' => 'Promotor', 'functionality' => 'Ventas', 'assigned' => 'Ricardo'],
-            ['content' => 'Implementar lógica backend para pagos completos y diferidos.', 'module' => 'Promotor', 'functionality' => 'Pagos múltiples', 'assigned' => 'Adair'],
-            ['content' => 'Diseñar inputs dinámicos para múltiples pagos.', 'module' => 'Promotor', 'functionality' => 'Pagos múltiples', 'assigned' => 'Adair'],
-            ['content' => 'Aplicar colores de feedback (éxito, error, advertencia).', 'module' => 'Promotor', 'functionality' => 'Pagos múltiples', 'assigned' => 'Adair'],
-            ['content' => 'Revisar y estandarizar que todos los nombres estén en español en la UI.', 'module' => 'Promotor', 'functionality' => 'General', 'assigned' => 'Adair'],
+            ['module' => 'Promotor', 'functionality' => 'Objetivo', 'content' => 'Cambiar texto "Mi Objetivo P/Ejecutivo" > "Mi Objetivo P/Ejercicio".', 'assigned' => 'Adair'],
+            ['module' => 'Promotor', 'functionality' => 'Objetivo', 'content' => 'Hacerlo funcional -> Datos alimentados de las ventas en la semana.', 'assigned' => 'Ricardo'],
+            ['module' => 'Promotor', 'functionality' => 'Objetivo', 'content' => 'Frase inspiracional dependiendo que tan cerca este del objetivo.', 'assigned' => 'Adair'],
+            ['module' => 'Promotor', 'functionality' => 'Cartera', 'content' => 'Pagos múltiples: Manejar tanto pagos completos como diferidos.', 'assigned' => 'Ricardo'],
+            ['module' => 'Promotor', 'functionality' => 'Venta', 'content' => 'Agregar en el título la fecha en que se da la venta.', 'assigned' => 'Adair'],
+
             // Módulo Supervisor
-            ['content' => 'Hacer botones funcionales.', 'module' => 'Supervisor', 'functionality' => 'Objetivo', 'assigned' => 'Ricardo'],
-            ['content' => 'Calcular % de avance y monto total por promotor.', 'module' => 'Supervisor', 'functionality' => 'Cartera', 'assigned' => 'Adair'],
-            ['content' => 'Implementar barra visual de progreso por promotor.', 'module' => 'Supervisor', 'functionality' => 'Cartera', 'assigned' => 'Adair'],
-            ['content' => 'Definir lógica de horarios funcionales y BDD.', 'module' => 'Supervisor', 'functionality' => 'Venta', 'assigned' => 'Adair'],
-            ['content' => 'Diseñar UI para captura de horarios.', 'module' => 'Supervisor', 'functionality' => 'Venta', 'assigned' => 'Adair'],
-            ['content' => 'Mover formulario actual de Prospectados a Supervisar.', 'module' => 'Supervisor', 'functionality' => 'Prospectados', 'assigned' => 'Ricardo'],
-            ['content' => 'Implementar botones de actualizar y regresar.', 'module' => 'Supervisor', 'functionality' => 'Prospectados', 'assigned' => 'Ricardo'],
-            ['content' => 'Mostrar info capturada por promotora en check del supervisor.', 'module' => 'Supervisor', 'functionality' => 'Prospectados', 'assigned' => 'Ricardo'],
-            ['content' => 'Lógica backend de búsqueda (nombre, dirección, teléfono).', 'module' => 'Supervisor', 'functionality' => 'Búsqueda', 'assigned' => 'Adair'],
-            ['content' => 'Implementar búsquedas permisivas.', 'module' => 'Supervisor', 'functionality' => 'Búsqueda', 'assigned' => 'Adair'],
-            ['content' => 'Validar visibilidad de datos según rol.', 'module' => 'Supervisor', 'functionality' => 'Búsqueda', 'assigned' => 'Adair'],
-            ['content' => 'Maquetar formulario y tabla de resultados de búsqueda.', 'module' => 'Supervisor', 'functionality' => 'Búsqueda', 'assigned' => 'Adair'],
-            ['content' => 'Incluir apertura también para ejecutivo/supuesto.', 'module' => 'Supervisor', 'functionality' => 'Apertura', 'assigned' => 'Ricardo'],
+            ['module' => 'Supervisor', 'functionality' => 'Objetivo', 'content' => 'Botones Funcionales > Redirigen al promotor en cuestión.', 'assigned' => 'Ricardo'],
+            ['module' => 'Supervisor', 'functionality' => 'Cartera', 'content' => 'Agregar barra progreso por promotor, porcentajes y dinero.', 'assigned' => 'Adair'],
+            ['module' => 'Supervisor', 'functionality' => 'Venta.Horarios', 'content' => 'Permitir el manejo de Horarios (Promotor.DiasDePago y Cliente.HorarioDePago)', 'assigned' => 'Ricardo'],
+            ['module' => 'Supervisor', 'functionality' => 'Venta.Prospectados', 'content' => 'Agregar botón de actualizar y regresar.', 'assigned' => 'Adair'],
+            ['module' => 'Supervisor', 'functionality' => 'Venta.Prospectados', 'content' => 'Check de supervisor debe mostrar: Información que ingresó la promotora', 'assigned' => 'Ricardo'],
+            ['module' => 'Supervisor', 'functionality' => 'Venta.Supervisar', 'content' => 'Mover formulario actual de Prospectados en Supervisar.', 'assigned' => 'Ricardo'],
+            ['module' => 'Supervisor', 'functionality' => 'Búsqueda', 'content' => 'Permitir búsqueda de campos exactos como: Nombre, Dirección, Teléfono', 'assigned' => 'Adair'],
+
             // Módulo Ejecutivo
-            ['content' => 'Implementar botón “V” que redirija a Desembolso.', 'module' => 'Ejecutivo', 'functionality' => 'Supervisor.Venta', 'assigned' => 'Ricardo'],
-            ['content' => 'Maquetar formato grupal de clientes para desembolso.', 'module' => 'Ejecutivo', 'functionality' => 'Supervisor.Venta', 'assigned' => 'Ricardo'],
+            ['module' => 'Ejecutivo', 'functionality' => 'Supervisor.Venta', 'content' => 'Agregar el botón "V" para ir a "Desembolso" que genera un formato por promotor para todos sus clientes.', 'assigned' => 'Ricardo'],
+
             // Módulo Desembolso
-            ['content' => 'Programar selección de clientes, fecha y registro de falla.', 'module' => 'Desembolso', 'functionality' => 'Falla', 'assigned' => 'Ricardo'],
-            ['content' => 'Precargar datos desde sistema.', 'module' => 'Desembolso', 'functionality' => 'Préstamo', 'assigned' => 'Ricardo'],
-            ['content' => 'Agregar botones de confirmación y cancelación.', 'module' => 'Desembolso', 'functionality' => 'Préstamo', 'assigned' => 'Ricardo'],
-            ['content' => 'Diseñar UI tentativa (pendiente definición funcional).', 'module' => 'Desembolso', 'functionality' => 'Cobranza Semanal', 'assigned' => 'Adair'],
-            ['content' => 'Implementar lógica backend de Adelantos/Recuperación.', 'module' => 'Desembolso', 'functionality' => 'Adelantos/Recuperación', 'assigned' => 'Ricardo'],
-            ['content' => 'Maquetar interfaz para selección y registro.', 'module' => 'Desembolso', 'functionality' => 'Adelantos/Recuperación', 'assigned' => 'Ricardo'],
-            ['content' => 'Programar llenado automático de Desembolso Real.', 'module' => 'Desembolso', 'functionality' => 'Automáticos', 'assigned' => 'Ricardo'],
-            ['content' => 'Programar llenado automático de Recréditos.', 'module' => 'Desembolso', 'functionality' => 'Automáticos', 'assigned' => 'Ricardo'],
-            ['content' => 'Implementar canvas JS para captura de firmas.', 'module' => 'Desembolso', 'functionality' => 'Firmas', 'assigned' => 'Adair'],
-            ['content' => 'Implementar firma electrónica con validación de contraseña.', 'module' => 'Desembolso', 'functionality' => 'Firmas', 'assigned' => 'Ricardo'],
+            ['module' => 'Desembolso', 'functionality' => 'Fallo', 'content' => 'Usuario puede seleccionar los clientes, recuperar fecha y agregar falla.', 'assigned' => 'Ricardo'],
+            ['module' => 'Desembolso', 'functionality' => 'Préstamo', 'content' => 'Todo se saca del sistema. Agregar botón de Confirmación y Cancelación.', 'assigned' => 'Adair'],
+            ['module' => 'Desembolso', 'functionality' => 'Cobranza Semanal', 'content' => 'Diseñar UI para Cobranza Semanal (Tentativo).', 'assigned' => 'Adair'],
+            ['module' => 'Desembolso', 'functionality' => 'Adelantos/Recuperación', 'content' => 'Usuario selecciona el cliente y agrega sus adelantos o recuperaciones.', 'assigned' => 'Ricardo'],
+            ['module' => 'Desembolso', 'functionality' => 'Automáticos', 'content' => 'Desembolso Real: Llenado automático.', 'assigned' => 'Ricardo'],
+            ['module' => 'Desembolso', 'functionality' => 'Automáticos', 'content' => 'Recréditos: Llenado automático.', 'assigned' => 'Ricardo'],
+            ['module' => 'Desembolso', 'functionality' => 'Firmas', 'content' => 'Canvas para firmas (Promotor, Supervisor, Ejecutivo) y/o firma electrónica.', 'assigned' => 'Adair'],
+
+            // Generales
+            ['module' => 'General', 'functionality' => 'Menú Principal', 'content' => 'Ciclar frase inspiracional en el menú principal.', 'assigned' => 'Adair'],
+            ['module' => 'General', 'functionality' => 'UI/UX', 'content' => 'Estandarizar todos los textos a Español.', 'assigned' => 'Adair'],
+            ['module' => 'General', 'functionality' => 'Pagos', 'content' => 'Sistema de pagos de colores: Verde(Corriente), Naranja(En Tiempo), Rojo(Falla), Azul(Adelanto).', 'assigned' => 'Adair'],
+            ['module' => 'General', 'functionality' => 'UI/UX', 'content' => 'Implementar mensajes de confirmación en acciones críticas.', 'assigned' => 'Ricardo'],
+            ['module' => 'General', 'functionality' => 'Filtros', 'content' => 'Listado de filtros, con fórmulas y los datos que ocupan (Pendiente con Iván).', 'assigned' => 'Ricardo'],
+            ['module' => 'General', 'functionality' => 'Aperturas', 'content' => 'Hacer que las aperturas sean opcionales.', 'assigned' => 'Ricardo'],
         ];
 
         foreach ($tasks as $index => $taskData) {
-            Kanban::create([ // <-- Usamos el modelo 'Kanban'
+            Kanban::create([
                 'content'       => $taskData['content'],
                 'module'        => $taskData['module'],
                 'functionality' => $taskData['functionality'],
@@ -71,3 +67,4 @@ class KanbanSeeder extends Seeder // <-- El nombre de la clase es KanbanSeeder
         }
     }
 }
+

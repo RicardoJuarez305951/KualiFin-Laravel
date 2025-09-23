@@ -34,5 +34,7 @@
         </div>
 
         <x-floating-button />
+
+        @stack('scripts')
     </body>
 </html>
