@@ -384,7 +384,7 @@ class SupervisorController extends Controller
 
         $supervisor = $this->resolveSupervisorContext($request, [
             'promotores' => function ($query) {
-                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m')
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo')
                     ->orderBy('nombre')
                     ->orderBy('apellido_p')
                     ->orderBy('apellido_m');
@@ -571,6 +571,52 @@ class SupervisorController extends Controller
         $promotores = $promotores->values();
 
         $promotorIds = $promotores->pluck('id')->filter()->values();
+
+        $objetivosPromotores = $promotorIds->isNotEmpty()
+            ? Promotor::query()
+                ->whereIn('id', $promotorIds)
+                ->get(['id', 'venta_maxima', 'venta_proyectada_objetivo'])
+                ->keyBy('id')
+            : collect();
+
+        $now = now();
+        $weekStart = $now->copy()->startOfWeek();
+        $weekEnd = $now->copy()->endOfWeek();
+
+        $ventasSemanales = $promotorIds->isNotEmpty()
+            ? Credito::query()
+                ->selectRaw('clientes.promotor_id as promotor_id, SUM(creditos.monto_total) as total')
+                ->join('clientes', 'clientes.id', '=', 'creditos.cliente_id')
+                ->whereIn('clientes.promotor_id', $promotorIds)
+                ->whereNotNull('creditos.fecha_inicio')
+                ->whereBetween('creditos.fecha_inicio', [
+                    $weekStart->copy()->startOfDay()->toDateTimeString(),
+                    $weekEnd->copy()->endOfDay()->toDateTimeString(),
+                ])
+                ->whereIn('creditos.estado', ['desembolsado', 'activo'])
+                ->groupBy('clientes.promotor_id')
+                ->pluck('total', 'promotor_id')
+            : collect();
+
+        $promotores = $promotores->map(function (Promotor $promotor) use ($ventasSemanales, $objetivosPromotores) {
+            $objetivoDatos = $objetivosPromotores->get($promotor->id);
+            $objetivoSemanal = (float) ($objetivoDatos->venta_maxima ?? $promotor->venta_maxima ?? 0);
+            $objetivoEjercicio = (float) ($objetivoDatos->venta_proyectada_objetivo ?? $promotor->venta_proyectada_objetivo ?? 0);
+            $ventaSemanal = (float) ($ventasSemanales[$promotor->id] ?? 0);
+            $faltanteSemanal = max(0.0, $objetivoSemanal - $ventaSemanal);
+            $porcentajeSemanal = $objetivoSemanal > 0
+                ? min(100, round(($ventaSemanal / $objetivoSemanal) * 100, 2))
+                : 0.0;
+
+            $promotor->setAttribute('venta_maxima', $objetivoSemanal);
+            $promotor->setAttribute('venta_proyectada_objetivo', $objetivoEjercicio);
+            $promotor->setAttribute('venta_real_semana', $ventaSemanal);
+            $promotor->setAttribute('faltante_semana', $faltanteSemanal);
+            $promotor->setAttribute('porcentaje_semana', $porcentajeSemanal);
+
+            return $promotor;
+        });
+
         $clienteIds = $promotorIds->isNotEmpty()
             ? Cliente::whereIn('promotor_id', $promotorIds)->pluck('id')
             : collect();
