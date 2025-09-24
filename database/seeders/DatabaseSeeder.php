@@ -222,6 +222,7 @@ class DatabaseSeeder extends Seeder
                 'tiene_credito_activo' => $tieneCreditoActivo,
                 'cartera_estado' => $carteraEstado,
                 'monto_maximo' => $faker->randomElement([3000, 4000, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 10000, 12000, 15000, 20000]),
+                'horario_de_pago' => sprintf('%02d:00', random_int(8, 18)),
                 'creado_en' => Carbon::now(),
                 'actualizado_en' => Carbon::now(),
                 'activo' => $tieneCreditoActivo,
