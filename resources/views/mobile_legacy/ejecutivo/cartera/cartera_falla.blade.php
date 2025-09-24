@@ -14,13 +14,13 @@
                         <span class="inline-flex items-center justify-center w-7 h-7 text-[12px] font-bold rounded-full bg-red-100 text-red-700">
                             {{ $loop->iteration }}
                         </span>
-                        @php $diasPago = trim((string) data_get($promotor, 'dias_de_pago', '')); @endphp
+                        @php $horarioPago = trim((string) data_get($promotor, 'horario_pago', '')); @endphp
                         <div>
                             <span class="block text-[15px] font-semibold text-gray-900">{{ $promotor['nombre'] }}</span>
                             <span class="text-xs text-gray-500">Promotor</span>
-                            @if($diasPago !== '')
-                                <span class="text-[11px] text-gray-500">Días de pago: {{ $diasPago }}</span>
-                            @endif
+                                @if($horarioPago !== '')
+                                <span class="text-[11px] text-gray-500">Horario de pago: {{ $horarioPago }}</span>
+                                @endif
                         </div>
                     </div>
                     <div class="text-right">

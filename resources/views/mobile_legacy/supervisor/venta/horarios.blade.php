@@ -79,9 +79,9 @@
                   {{ trim(($p->nombre ?? '').' '.($p->apellido_p ?? '').' '.($p->apellido_m ?? '')) ?: ($p->nombre_completo ?? '—') }}
                 </span>
               </div>
-              @php $diasPago = trim((string) ($p->dias_de_pago ?? '')); @endphp
-              @if($diasPago !== '')
-                <p class="ml-8 text-xs text-gray-500">Días de pago: {{ $diasPago }}</p>
+              @php $horarioPago = trim((string) ($p->horario_pago_resumen ?? '')); @endphp
+              @if($horarioPago !== '')
+                <p class="ml-8 text-xs text-gray-500">Horario de pago: {{ $horarioPago }}</p>
               @endif
             </div>
             {!! $btn($definirRoute($p->id ?? 0), 'Definir', 'indigo', 'sm') !!}
