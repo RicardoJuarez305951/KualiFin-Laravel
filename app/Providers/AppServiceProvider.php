@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Config;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,6 +27,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        View::composer('mobile.index', function ($view) {
+            $mensajes = Config::get('mensajes_positivos.mensajes', []);
+            if (count($mensajes) > 0) {
+                $mensajeDelDia = $mensajes[array_rand($mensajes)];
+            } else {
+                $mensajeDelDia = "Cada día es una nueva oportunidad para crecer.";
+            }
+            $view->with('mensajeDelDia', $mensajeDelDia);
+        });
+
         // Prefetch de Vite
         \Illuminate\Support\Facades\Vite::prefetch(concurrency: 3);
 
