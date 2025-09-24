@@ -496,8 +496,8 @@ class DatabaseSeeder extends Seeder
             }
         }
         // Test
-        $this->call([
-            KanbanSeeder::class,
-        ]);
+        // $this->call([
+        //     KanbanSeeder::class,
+        // ]);
     }
 }
