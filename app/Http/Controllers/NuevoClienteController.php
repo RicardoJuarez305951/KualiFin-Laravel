@@ -93,6 +93,7 @@ class NuevoClienteController extends Controller
             'form.cliente.apellido_p' => ['required', 'string', 'max:100'],
             'form.cliente.apellido_m' => ['required', 'string', 'max:100'],
             'form.cliente.fecha_nacimiento' => ['required', 'date'],
+            'form.cliente.horario_de_pago' => ['required', 'date_format:H:i'],
 
             'form.credito.monto_total' => ['required', 'numeric', 'min:0'],
             'form.credito.periodicidad' => ['required', 'string', 'max:100'],
@@ -198,10 +199,11 @@ class NuevoClienteController extends Controller
         $form = $validated['form'];
 
         try {
-            $cliente = DB::transaction(function () use ($validated, $form, $garantiaFiles) {
-                $cliente = Cliente::lockForUpdate()->findOrFail($validated['cliente_id']);
-                $cliente->fecha_nacimiento = $form['cliente']['fecha_nacimiento'];
-                $cliente->save();
+                $cliente = DB::transaction(function () use ($validated, $form, $garantiaFiles) {
+                    $cliente = Cliente::lockForUpdate()->findOrFail($validated['cliente_id']);
+                    $cliente->fecha_nacimiento = $form['cliente']['fecha_nacimiento'];
+                    $cliente->horario_de_pago = $form['cliente']['horario_de_pago'];
+                    $cliente->save();
 
                 $credito = Credito::firstOrNew(['cliente_id' => $cliente->id]);
                 $credito->monto_total = (float) $form['credito']['monto_total'];

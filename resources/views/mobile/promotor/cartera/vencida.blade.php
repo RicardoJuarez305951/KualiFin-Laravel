@@ -2,7 +2,7 @@
     @forelse($vencidos as $c)
         <li
             x-data="{ cliente: @js($c) }"
-            :class="{ 'bg-blue-200': $store.multiPay.clients.some(c => c.id === cliente.id) }"
+            :class="{ 'bg-blue-200': $store.multiPay.isSelected(cliente) }"
             @click="$store.multiPay.active && $store.multiPay.toggle(cliente)"
             class="flex items-center justify-between py-2"
         >
@@ -13,12 +13,25 @@
                     type="checkbox"
                     class="mr-2"
                     @click.stop="$store.multiPay.toggle(cliente)"
-                    :checked="$store.multiPay.clients.some(c => c.id === cliente.id)"
+                    :checked="$store.multiPay.isSelected(cliente)"
                 >
                 <div>
                     <p class="text-base font-semibold text-gray-800">
                         {{ ($c['apellido_p'] ?? $c->apellido_p ?? '') }} {{ ($c['apellido_m'] ?? $c->apellido_m ?? '') }} {{ ($c['nombre'] ?? $c->nombre ?? '') }}
                     </p>
+                    @php
+                        $pagoPendiente = $c['pago_proyectado_pendiente'] ?? ($c->pago_proyectado_pendiente ?? null);
+                        $pagoPendienteId = is_array($pagoPendiente) ? ($pagoPendiente['id'] ?? null) : ($pagoPendiente->id ?? null);
+                        $pagoPendienteMonto = is_array($pagoPendiente) ? ($pagoPendiente['monto_proyectado'] ?? null) : ($pagoPendiente->monto_proyectado ?? null);
+                        $pagoPendienteDeuda = is_array($pagoPendiente)
+                            ? ($pagoPendiente['deuda_vencida'] ?? $pagoPendiente['deuda_total'] ?? null)
+                            : ($pagoPendiente->deuda_vencida ?? $pagoPendiente->deuda_total ?? null);
+                    @endphp
+                    @if($pagoPendienteId)
+                        <p class="text-xs text-gray-500">
+                            Pago #{{ $pagoPendienteId }} · Proyectado: ${{ number_format((float) ($pagoPendienteMonto ?? 0), 2) }} · Deuda: ${{ number_format((float) ($pagoPendienteDeuda ?? 0), 2) }}
+                        </p>
+                    @endif
                 </div>
             </div>
 
@@ -40,6 +53,7 @@
                 <a href="{{ route('mobile.' . $role . '.cliente_historial', $c['id'] ?? $c->id) }}"
                    class="w-8 h-8 border-2 border-yellow-500 text-yellow-500 rounded-full flex items-center justify-center"
                    title="Historial"
+                   @click.stop
                 >
                     H
                 </a>
@@ -47,7 +61,7 @@
                 <button
                    class="w-8 h-8 border-2 border-blue-500 text-blue-500 rounded-full flex items-center justify-center"
                    title="Detalle"
-                   @click="openVencidaDetail(@js($c))">
+                   @click.stop="openVencidaDetail(@js($c))">
                     D
                 </button>
             </div>

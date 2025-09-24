@@ -62,12 +62,41 @@
                   <span class="inline-flex items-center justify-center w-6 h-6 text-[11px] font-bold rounded-full bg-indigo-100 text-indigo-700">
                     {{ $loop->iteration }}
                   </span>
-                  <span class="text-sm font-semibold text-gray-900">
-                    {{ $p->nombre }} {{ $p->apellido_p }} {{ $p->apellido_m }}
-                  </span>
+                  <div class="flex flex-col">
+                    <span class="text-sm font-semibold text-gray-900">
+                      {{ $p->nombre }} {{ $p->apellido_p }} {{ $p->apellido_m }}
+                    </span>
+                    @php $diasPago = trim((string) ($p->dias_de_pago ?? '')); @endphp
+                    @if($diasPago !== '')
+                      <span class="text-[11px] text-gray-500">Días de pago: {{ $diasPago }}</span>
+                    @endif
+                  </div>
                 </div>
               </div>
-              {{-- Si luego quieres barra de progreso por promotor, calcúlala en el controlador y expón $p->progress --}}
+              <div class="mt-3 space-y-2">
+                {!! $statRow('Objetivo semanal', money_mx($p->venta_maxima ?? 0)) !!}
+                {!! $statRow('Venta semanal', money_mx($p->venta_real_semana ?? 0)) !!}
+                {!! $statRow('Faltante', money_mx($p->faltante_semana ?? 0)) !!}
+                {!! $statRow('Objetivo ejercicio', money_mx($p->venta_proyectada_objetivo ?? 0)) !!}
+
+                @php
+                  $porcentaje = number_format((float) ($p->porcentaje_semana ?? 0), 2);
+                  $width = min(100, (float) ($p->porcentaje_semana ?? 0));
+                @endphp
+
+                <div class="pt-1">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-600">Avance semanal</span>
+                    <span class="text-xs font-semibold text-gray-900">{{ $porcentaje }}%</span>
+                  </div>
+                  <div class="mt-1 h-2 w-full rounded-full bg-gray-200 overflow-hidden">
+                    <div class="h-2 bg-indigo-500" style="width: {{ $width }}%;"></div>
+                  </div>
+                  <p class="mt-1 text-xs text-gray-500">
+                    Faltan {{ money_mx($p->faltante_semana ?? 0) }} para alcanzar el objetivo semanal.
+                  </p>
+                </div>
+              </div>
             </a>
           @empty
             <p class="text-sm text-gray-500">No hay promotores registrados.</p>

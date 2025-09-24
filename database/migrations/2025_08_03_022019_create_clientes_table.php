@@ -19,6 +19,7 @@ class CreateClientesTable extends Migration
             $table->boolean('tiene_credito_activo');
             $table->string('cartera_estado', 100);
             $table->decimal('monto_maximo', 12, 2);
+            $table->string('horario_de_pago', 5);
             $table->timestamp('creado_en')->useCurrent();
             $table->timestamp('actualizado_en')->useCurrent()->useCurrentOnUpdate();
             $table->boolean('activo');
