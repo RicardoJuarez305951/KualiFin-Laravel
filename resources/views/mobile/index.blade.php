@@ -5,7 +5,7 @@
       {{-- Saludo dinámico --}}
       <div class="text-center space-y-1">
         <h1 class="text-2xl font-bold text-gray-900 uppercase">¡Hola {{ auth()->user()->name }}!</h1>
-        <p class="text-gray-600 text-sm">Cada día es una nueva oportunidad para crecer...</p>
+        <p class="text-gray-600 text-sm">{{ $mensajeDelDia }}</p>
       </div>
 
       {{-- Botones principales --}}
