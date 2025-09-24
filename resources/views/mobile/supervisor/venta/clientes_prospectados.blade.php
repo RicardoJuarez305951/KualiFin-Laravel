@@ -90,17 +90,7 @@
                 <p class="px-3 py-4 text-sm text-gray-500 text-center">Sin solicitudes de recredito</p>
               @endforelse
               
-              <div>
-                {{-- Seccion de Boton Actualizar y Regresar --}}
-                <a href="{{ route("mobile.$role.venta") }}"
-                  class="block text-center py-2 my-2 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
-                  ← Regresar
-                </a>
-                <a href="{{ route("mobile.$role.clientes_prospectados") }}"
-                  class="block text-center py-2 my-2 rounded-2xl bg-gradient-to-r from-gray-600 to-gray-500 text-white font-semibold shadow-lg hover:from-gray-700 hover:to-gray-600 transition">
-                  ↺ Actualizar
-                </a>
-              </div>
+              
 
             </div>
           </div>

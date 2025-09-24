@@ -1,7 +1,5 @@
 <x-layouts.mobile.mobile-layout title="Definir horario">
     @php
-        use Illuminate\Support\Str;
-
         $diasSemana = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
         $diaSeleccionado = old('dia_de_pago', $diaPago ?? '');
         $horaSeleccionada = old('hora_de_pago', $horaPago ?? '');
