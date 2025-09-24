@@ -11,7 +11,7 @@
                 <div class="p-6 text-gray-900">
                     
                     <header class="mb-8 text-center">
-                        <h1 class="text-4xl font-bold text-gray-900">Tablero de Módulos por Rol</h1>
+                        <h1 class=º"text-4xl font-bold text-gray-900">Tablero de Módulos por Rol</h1>
                         <p class="text-lg text-gray-600 mt-2">Seguimiento de Tareas</p>
                     </header>
 
