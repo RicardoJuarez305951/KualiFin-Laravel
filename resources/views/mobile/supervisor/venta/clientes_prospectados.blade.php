@@ -8,6 +8,10 @@
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Clientes Prospectados">
+  @php
+      $contextQuery = $supervisorContextQuery ?? [];
+  @endphp
+
   <div x-data="clientesProspectados()" x-init="init()" class="p-4 w-full max-w-md mx-auto space-y-6">
     @forelse($promotores as $promotor)
       <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
@@ -196,13 +200,13 @@
 
      {{-- ===================== Navegación ===================== --}}
     <section class="grid grid-cols-3 gap-3">
-      <a href="{{ url()->previous() }}" class="flex items-center justify-center rounded-xl border border-gray-300 text-white text-sm font-semibold px-3 py-2 bg-blue-600 hover:bg-blue-700 shadow-sm">
+      <a href="{{ route('mobile.supervisor.venta', $contextQuery) }}" class="flex items-center justify-center rounded-xl border border-gray-300 text-white text-sm font-semibold px-3 py-2 bg-blue-600 hover:bg-blue-700 shadow-sm">
         Regresar
       </a>
-      <a href="{{ url()->current() }}" class="inline-flex items-center justify-center rounded-xl bg-blue-600 text-white text-sm font-semibold px-3 py-2 hover:bg-blue-700 shadow">
+      <a href="{{ route('mobile.supervisor.clientes_prospectados', $contextQuery) }}" class="inline-flex items-center justify-center rounded-xl bg-blue-600 text-white text-sm font-semibold px-3 py-2 hover:bg-blue-700 shadow">
         Actualizar
       </a>
-      <a href="{{ route('mobile.supervisor.reporte') }}" class="inline-flex items-center justify-center rounded-xl bg-indigo-600 text-white text-sm font-semibold px-3 py-2 hover:bg-indigo-700 shadow">
+      <a href="{{ route('mobile.supervisor.reporte', $contextQuery) }}" class="inline-flex items-center justify-center rounded-xl bg-indigo-600 text-white text-sm font-semibold px-3 py-2 hover:bg-indigo-700 shadow">
         Reporte
       </a>
     </section>
