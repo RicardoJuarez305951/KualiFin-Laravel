@@ -1292,17 +1292,13 @@ class SupervisorController extends Controller
 
         $query = trim((string) $request->query('q', ''));
 
-        $promotores = $supervisor?->promotores ?? collect();
-        $promotores = $promotores instanceof Collection ? $promotores : collect($promotores);
-        $promotorIds = $promotores->pluck('id');
+        $resultados = null;
+        $totalResultados = 0;
 
-        $resultados = collect();
-
-        if ($query !== '' && $promotorIds->isNotEmpty()) {
+        if ($query !== '') {
             $pattern = '%' . str_replace(' ', '%', $query) . '%';
 
             $clientes = Cliente::query()
-                ->whereIn('promotor_id', $promotorIds->all())
                 ->where(function ($clienteQuery) use ($pattern) {
                     $clienteQuery
                         ->where('nombre', 'like', $pattern)
@@ -1341,16 +1337,21 @@ class SupervisorController extends Controller
                 ])
                 ->orderBy('nombre')
                 ->orderBy('apellido_p')
-                ->limit(30)
-                ->get();
+                ->paginate(30)
+                ->withQueryString();
 
-            $resultados = $clientes->map(fn (Cliente $cliente) => $this->mapBusquedaCliente($cliente, $supervisor));
+            $clientes->getCollection()->transform(
+                fn (Cliente $cliente) => $this->mapBusquedaCliente($cliente, $supervisor)
+            );
+
+            $resultados = $clientes;
+            $totalResultados = $clientes->total();
         }
 
         return view('mobile.supervisor.busqueda.busqueda', [
             'query' => $query,
             'resultados' => $resultados,
-            'puedeBuscar' => $promotorIds->isNotEmpty(),
+            'totalResultados' => $totalResultados,
         ]);
     }
 
@@ -1797,6 +1798,22 @@ class SupervisorController extends Controller
             ? (string) Str::of($estadoCredito)->replace('_', ' ')->title()
             : 'Sin crédito';
 
+        $supervisorNombre = $this->buildFullName($supervisor, 'Sin supervisor');
+
+        $response = [
+            'id' => $cliente->id,
+            'nombre' => $this->buildFullName($cliente, 'Sin nombre'),
+            'estatus_credito' => $estadoCreditoTexto,
+            'supervisor' => $supervisorNombre,
+            'promotor' => $this->buildFullName($promotor, 'Sin promotor'),
+            'puede_detallar' => $belongsToContext,
+            'detalle' => null,
+        ];
+
+        if (!$belongsToContext) {
+            return $response;
+        }
+
         $datoContacto = $credito?->datoContacto;
         $telefonosCliente = $datoContacto
             ? collect([$datoContacto->tel_cel, $datoContacto->tel_fijo])->filter()->unique()->values()->all()
@@ -1838,34 +1855,26 @@ class SupervisorController extends Controller
 
         $avalTelefonos = $aval ? collect([$aval->telefono])->filter()->unique()->values()->all() : [];
         $avalDireccion = $aval?->direccion;
-
-        $supervisorNombre = $this->buildFullName($supervisor, 'Sin supervisor');
         $avalNombre = $aval ? $this->buildFullName($aval, 'Sin aval') : 'Sin aval';
 
-        return [
-            'id' => $cliente->id,
-            'nombre' => $this->buildFullName($cliente, 'Sin nombre'),
-            'estatus_credito' => $estadoCreditoTexto,
+        $response['aval'] = $avalNombre;
+        $response['detalle'] = [
             'supervisor' => $supervisorNombre,
-            'aval' => $avalNombre,
-            'promotor' => $this->buildFullName($promotor, 'Sin promotor'),
-            'puede_detallar' => $belongsToContext,
-            'detalle' => [
-                'supervisor' => $supervisorNombre,
-                'estatus_credito' => $estadoCreditoTexto,
-                'cliente' => [
-                    'telefonos' => $telefonosCliente,
-                    'domicilio' => $domicilioCliente,
-                    'documentos' => $clienteDocs,
-                ],
-                'aval' => [
-                    'nombre' => $avalNombre,
-                    'telefonos' => $avalTelefonos,
-                    'domicilio' => $avalDireccion,
-                    'documentos' => $avalDocs,
-                ],
+            'estatus_credito' => $estadoCreditoTexto,
+            'cliente' => [
+                'telefonos' => $telefonosCliente,
+                'domicilio' => $domicilioCliente,
+                'documentos' => $clienteDocs,
+            ],
+            'aval' => [
+                'nombre' => $avalNombre,
+                'telefonos' => $avalTelefonos,
+                'domicilio' => $avalDireccion,
+                'documentos' => $avalDocs,
             ],
         ];
+
+        return $response;
     }
 
 }
