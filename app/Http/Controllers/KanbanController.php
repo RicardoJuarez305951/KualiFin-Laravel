@@ -39,4 +39,17 @@ class KanbanController extends Controller
 
         return response()->json(['status' => 'success']);
     }
+
+    public function deleteTask(Request $request)
+    {
+        $request->validate([
+            'task_id' => 'required|exists:kanban.kanbans,id',
+        ]);
+
+        $task = Kanban::find($request->task_id);
+        $task->status = 'eliminated';
+        $task->save();
+
+        return response()->json(['status' => 'success']);
+    }
 }
