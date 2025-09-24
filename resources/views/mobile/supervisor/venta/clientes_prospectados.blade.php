@@ -237,12 +237,16 @@
       </div>
     </template>
 
+    @php
+      $contextQuery = $supervisorContextQuery ?? [];
+    @endphp
+
     <div class="space-y-3">
-      <a href="{{ route('mobile.supervisor.clientes_prospectados', array_merge($supervisorContextQuery ?? [], [])) }}"
+      <a href="{{ route('mobile.supervisor.clientes_prospectados', $contextQuery) }}"
          class="block text-center py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
         Recargar
       </a>
-      <a href="{{ route('mobile.supervisor.venta', array_merge($supervisorContextQuery ?? [], [])) }}"
+      <a href="{{ route('mobile.supervisor.venta', $contextQuery) }}"
          class="block text-center py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
         Regresar a Venta
       </a>

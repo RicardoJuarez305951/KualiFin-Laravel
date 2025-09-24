@@ -15,14 +15,20 @@ beforeEach(function () {
 it('muestra los botones de recargar y regreso en clientes prospectados', function () {
     [$user, $supervisor] = createSupervisorClienteProspectadoContext();
 
+    $contextQuery = ['supervisor' => $supervisor->id];
+    $reloadRoute = route('mobile.supervisor.clientes_prospectados', $contextQuery);
+    $ventaRoute = route('mobile.supervisor.venta', $contextQuery);
+
     $response = $this->actingAs($user)->get(route('mobile.supervisor.clientes_prospectados'));
 
     $response
         ->assertOk()
         ->assertSeeText('Recargar')
-        ->assertSee(route('mobile.supervisor.clientes_prospectados', ['supervisor' => $supervisor->id]), false)
+        ->assertSee('href="' . $reloadRoute . '"', false)
         ->assertSeeText('Regresar a Venta')
-        ->assertSee(route('mobile.supervisor.venta', ['supervisor' => $supervisor->id]), false);
+        ->assertSee('href="' . $ventaRoute . '"', false);
+
+    expect(substr_count($response->getContent(), 'bg-gradient-to-r from-blue-600 to-blue-500'))->toBeGreaterThanOrEqual(2);
 });
 
 /**
