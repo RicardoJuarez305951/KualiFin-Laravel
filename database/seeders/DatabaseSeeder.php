@@ -97,12 +97,13 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $faker = fake();
-        $diasPagoOptions = [
-            'lunes, miércoles',
-            'martes, jueves',
-            'viernes',
-            'lunes a viernes',
-            'martes a sábado',
+        $horariosPago = [
+            ['dia' => 'Lunes', 'hora' => '08:00'],
+            ['dia' => 'Martes', 'hora' => '09:30'],
+            ['dia' => 'Miércoles', 'hora' => '11:00'],
+            ['dia' => 'Jueves', 'hora' => '13:30'],
+            ['dia' => 'Viernes', 'hora' => '16:00'],
+            ['dia' => 'Sábado', 'hora' => '12:00'],
         ];
 
         for ($i = 1; $i <= 10; $i++) {
@@ -158,6 +159,8 @@ class DatabaseSeeder extends Seeder
             ]);
             $promotorUser->assignRole('promotor');
 
+            $horario = $faker->randomElement($horariosPago);
+
             Promotor::create([
                 'user_id' => $promotorUser->id,
                 'supervisor_id' => $supervisor->id,
@@ -168,7 +171,8 @@ class DatabaseSeeder extends Seeder
                 'colonia' => $faker->streetName(),
                 'venta_proyectada_objetivo' => $faker->randomElement([3000, 4000, 5000, 6000, 7000, 8000, 10000, 12000, 15000, 20000]),
                 'bono' => $faker->randomFloat(2, 200, 1500),
-                'dias_de_pago' => $faker->randomElement($diasPagoOptions),
+                'dia_de_pago' => $horario['dia'],
+                'hora_de_pago' => $horario['hora'],
             ]);
         }
 
@@ -182,6 +186,8 @@ class DatabaseSeeder extends Seeder
             'rol' => 'promotor',
         ]);
         $user->assignRole('promotor');
+        $horarioPromotorDemo = $horariosPago[0];
+
         $promotor = Promotor::create([
             'user_id' => $user->id,
             'supervisor_id' => $supervisor->id,
@@ -192,7 +198,8 @@ class DatabaseSeeder extends Seeder
             'colonia' => 'Centro',
             'venta_proyectada_objetivo' => 5000,
             'bono' => 500,
-            'dias_de_pago' => 'lunes, miércoles',
+            'dia_de_pago' => $horarioPromotorDemo['dia'],
+            'hora_de_pago' => $horarioPromotorDemo['hora'],
         ]);
 
         $faker = fake();
