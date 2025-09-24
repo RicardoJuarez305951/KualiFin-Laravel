@@ -2,12 +2,10 @@
 <x-layouts.mobile.mobile-layout title="Alta de Promotor">
 @php
     $faker = \Faker\Factory::create('es_MX');
-    $diasPagoEjemplo = $faker->randomElement([
-        'lunes, miércoles',
-        'martes, jueves',
-        'viernes',
-        'lunes a viernes',
-    ]);
+    $diasPagoEjemplo = [
+        'dia' => $faker->randomElement(['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes']),
+        'hora' => $faker->randomElement(['08:00', '09:30', '11:00', '13:30', '16:00']),
+    ];
 @endphp
     <div
         x-data="{
@@ -15,7 +13,8 @@
             domicilio: '',
             telefono: '',
             correo: '',
-            diasPago: @json($diasPagoEjemplo),
+            diaPago: @json($diasPagoEjemplo['dia']),
+            horaPago: @json($diasPagoEjemplo['hora']),
             ineUploaded: false,
             compUploaded: false,
             submit() {
@@ -29,6 +28,14 @@
                 }
                 if (!this.correo.trim()) {
                     alert('Falta el campo Correo electrónico');
+                    return;
+                }
+                if (!this.diaPago.trim()) {
+                    alert('Falta seleccionar el día de pago');
+                    return;
+                }
+                if (!this.horaPago) {
+                    alert('Falta capturar la hora de pago');
                     return;
                 }
                 if (!this.ineUploaded) {
@@ -45,7 +52,8 @@
                 this.domicilio = '';
                 this.telefono = '';
                 this.correo = '';
-                this.diasPago = '';
+                this.diaPago = '';
+                this.horaPago = '';
                 this.ineUploaded = false;
                 this.compUploaded = false;
             }
@@ -94,15 +102,34 @@
                 />
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Días de pago</label>
-                <input
-                    type="text"
-                    x-model="diasPago"
-                    placeholder="Ej. lunes, miércoles"
-                    class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p class="mt-1 text-xs text-gray-500">Indica los días habituales de cobro separados por comas.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Día de pago</label>
+                    <select
+                        x-model="diaPago"
+                        class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="">Selecciona un día</option>
+                        <option value="Lunes">Lunes</option>
+                        <option value="Martes">Martes</option>
+                        <option value="Miércoles">Miércoles</option>
+                        <option value="Jueves">Jueves</option>
+                        <option value="Viernes">Viernes</option>
+                        <option value="Sábado">Sábado</option>
+                        <option value="Domingo">Domingo</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Elige el día habitual para realizar los cobros.</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Hora de pago</label>
+                    <input
+                        type="time"
+                        x-model="horaPago"
+                        class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <p class="mt-1 text-xs text-gray-500">Registra la hora (formato 24 hrs) en la que inicia la ruta.</p>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

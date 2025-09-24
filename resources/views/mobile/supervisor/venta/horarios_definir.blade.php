@@ -1,7 +1,8 @@
 <x-layouts.mobile.mobile-layout title="Definir horario">
     @php
         $diasSemana = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
-        $seleccionActual = old('dias_de_pago', $diasPago ?? '');
+        $diaSeleccionado = old('dia_de_pago', $diaPago ?? '');
+        $horaSeleccionada = old('hora_de_pago', $horaPago ?? '');
     @endphp
 
     <div class="mx-auto w-[22rem] sm:w-[26rem] p-4 sm:p-6 space-y-5">
@@ -24,7 +25,10 @@
                 </p>
                 <p>
                     <span class="font-semibold">Horario actual:</span>
-                    {{ $diasPago !== '' ? $diasPago : 'Sin horario definido' }}
+                    @php
+                        $horarioActual = trim((string) ($promotor->horario_pago_resumen ?? ''));
+                    @endphp
+                    {{ $horarioActual !== '' ? $horarioActual : 'Sin horario definido' }}
                 </p>
             </div>
         </section>
@@ -39,17 +43,17 @@
 
             <section class="bg-white rounded-2xl shadow ring-1 ring-gray-900/5 px-4 py-4 space-y-3">
                 <div class="space-y-2">
-                    <label for="dias_de_pago" class="text-sm font-semibold text-gray-800">Día de pago</label>
+                    <label for="dia_de_pago" class="text-sm font-semibold text-gray-800">Día de pago</label>
 
                     <select
-                        id="dias_de_pago"
-                        name="dias_de_pago"
+                        id="dia_de_pago"
+                        name="dia_de_pago"
                         class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
                         required
                     >
-                        <option value="" @selected($seleccionActual === '' )>Selecciona un día</option>
+                        <option value="" @selected($diaSeleccionado === '' )>Selecciona un día</option>
                         @foreach($diasSemana as $dia)
-                            <option value="{{ $dia }}" @selected(Str::lower($seleccionActual) === Str::lower($dia))>
+                            <option value="{{ $dia }}" @selected(Str::lower($diaSeleccionado) === Str::lower($dia))>
                                 {{ $dia }}
                             </option>
                         @endforeach
@@ -57,7 +61,26 @@
 
                     <p class="text-xs text-gray-500">Elige exactamente un día de la semana.</p>
 
-                    @error('dias_de_pago')
+                    @error('dia_de_pago')
+                        <p class="text-xs font-semibold text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div class="space-y-2">
+                    <label for="hora_de_pago" class="text-sm font-semibold text-gray-800">Hora de pago</label>
+
+                    <input
+                        id="hora_de_pago"
+                        name="hora_de_pago"
+                        type="time"
+                        class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        value="{{ $horaSeleccionada }}"
+                        required
+                    />
+
+                    <p class="text-xs text-gray-500">Registra la hora en formato 24 horas (HH:MM).</p>
+
+                    @error('hora_de_pago')
                         <p class="text-xs font-semibold text-red-600">{{ $message }}</p>
                     @enderror
                 </div>

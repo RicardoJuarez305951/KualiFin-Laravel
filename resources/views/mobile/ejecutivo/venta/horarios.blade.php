@@ -1,6 +1,7 @@
 {{-- resources/views/mobile/supervisor/venta/definir_horarios.blade.php --}}
 @php
   use Carbon\Carbon;
+  use Illuminate\Support\Str;
 
   /** ===== Vars con defaults seguros ===== */
   $role         = $role ?? 'supervisor';
@@ -66,14 +67,25 @@
                 {{ trim(($p->nombre ?? '').' '.($p->apellido_p ?? '').' '.($p->apellido_m ?? '')) ?: ($p->nombre_completo ?? '—') }}
               </span>
             </div>
-            <form method="POST" action="{{ $definirRoute($p->id ?? 0) }}" class="ml-8 flex items-center gap-2">
+            @php $horarioPago = trim((string) ($p->horario_pago_resumen ?? '')); @endphp
+            @if($horarioPago !== '')
+              <p class="ml-8 text-xs text-gray-500">Horario actual: {{ $horarioPago }}</p>
+            @endif
+            <form method="POST" action="{{ $definirRoute($p->id ?? 0) }}" class="ml-8 flex flex-wrap items-center gap-2">
               @csrf
-              <select name="dia_pago" class="text-sm rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+              <select name="dia_de_pago" class="text-sm rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                 <option value="">Seleccionar día</option>
                 @foreach($diasSemana as $dia)
-                  <option value="{{ $dia }}" @selected(($p->dias_de_pago ?? '') === $dia)>{{ $dia }}</option>
+                  <option value="{{ $dia }}" @selected(Str::lower($p->dia_de_pago ?? '') === Str::lower($dia))>{{ $dia }}</option>
                 @endforeach
               </select>
+              <input
+                type="time"
+                name="hora_de_pago"
+                value="{{ $p->hora_de_pago }}"
+                class="text-sm rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                required
+              />
               <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded-lg shadow">
                 Guardar
               </button>

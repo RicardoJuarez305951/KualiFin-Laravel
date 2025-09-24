@@ -24,50 +24,53 @@
 
         @if($query !== '')
             <div class="space-y-4">
-                @if(!$puedeBuscar)
-                    <p class="text-sm text-gray-500">No hay promotores asociados al supervisor seleccionado.</p>
+                @if(!$resultados || $totalResultados === 0)
+                    <p class="text-center text-gray-500">No se encontraron resultados.</p>
                 @else
                     <p class="text-sm text-gray-500">
-                        Se encontraron <span class="font-semibold text-gray-700">{{ $resultados->count() }}</span> coincidencias para "{{ $query }}".
+                        Se encontraron <span class="font-semibold text-gray-700">{{ $totalResultados }}</span> coincidencias para "{{ $query }}".
                     </p>
 
-                    @if($resultados->isEmpty())
-                        <p class="text-center text-gray-500">No se encontraron resultados.</p>
-                    @else
-                        <div class="space-y-3">
-                            @foreach($resultados as $resultado)
-                                @php $detailEnabled = (bool) ($resultado['puede_detallar'] ?? false); @endphp
-                                <div x-data="{ detail: false }" class="border border-gray-200 rounded-xl shadow-sm">
-                                    <div class="flex items-start justify-between gap-3 p-3">
-                                        <div class="min-w-0 space-y-1">
-                                            <p class="text-sm font-semibold text-gray-900">{{ $resultado['nombre'] }}</p>
-                                            <p class="text-xs text-gray-600">
-                                                Estatus del crédito: <span class="font-semibold text-gray-800">{{ $resultado['estatus_credito'] }}</span>
-                                            </p>
+                    <div class="space-y-3">
+                        @foreach($resultados as $resultado)
+                            @php $detailEnabled = (bool) ($resultado['puede_detallar'] ?? false); @endphp
+                            <div x-data="{ detail: false }" class="border border-gray-200 rounded-xl shadow-sm">
+                                <div class="flex items-start justify-between gap-3 p-3">
+                                    <div class="min-w-0 space-y-1">
+                                        <p class="text-sm font-semibold text-gray-900">{{ $resultado['nombre'] }}</p>
+                                        <p class="text-xs text-gray-600">
+                                            Estatus del crédito: <span class="font-semibold text-gray-800">{{ $resultado['estatus_credito'] }}</span>
+                                        </p>
+                                        <p class="text-[11px] text-gray-500">
+                                            Promotor: <span class="font-semibold text-gray-700">{{ $resultado['promotor'] }}</span>
+                                        </p>
+
+                                        @if($detailEnabled)
                                             <p class="text-xs text-gray-600">
                                                 Supervisor: <span class="font-semibold text-gray-800">{{ $resultado['supervisor'] }}</span>
                                             </p>
-                                            <p class="text-xs text-gray-600">
-                                                Aval: <span class="font-semibold text-gray-800">{{ $resultado['aval'] }}</span>
-                                            </p>
-                                            <p class="text-[11px] text-gray-500">
-                                                Promotor: <span class="font-semibold text-gray-700">{{ $resultado['promotor'] }}</span>
-                                            </p>
-                                        </div>
-                                        <div class="flex flex-col items-end gap-2">
-                                            <button
-                                                type="button"
-                                                @click="detail = true"
-                                                class="px-3 py-1 text-sm font-semibold rounded-lg shadow-sm transition
-                                                    {{ $detailEnabled ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed' }}"
-                                                {{ $detailEnabled ? '' : 'disabled' }}
-                                            >Detalles</button>
-                                            @unless($detailEnabled)
-                                                <p class="text-[11px] font-medium text-red-500">Asignado a otro supervisor</p>
-                                            @endunless
-                                        </div>
+                                            @if(!empty($resultado['aval'] ?? null))
+                                                <p class="text-xs text-gray-600">
+                                                    Aval: <span class="font-semibold text-gray-800">{{ $resultado['aval'] }}</span>
+                                                </p>
+                                            @endif
+                                        @endif
                                     </div>
+                                    <div class="flex flex-col items-end gap-2">
+                                        <button
+                                            type="button"
+                                            @click="detail = true"
+                                            class="px-3 py-1 text-sm font-semibold rounded-lg shadow-sm transition
+                                                {{ $detailEnabled ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed' }}"
+                                            {{ $detailEnabled ? '' : 'disabled' }}
+                                        >Detalles</button>
+                                        @unless($detailEnabled)
+                                            <p class="text-[11px] font-medium text-red-500">Asignado a otro supervisor</p>
+                                        @endunless
+                                    </div>
+                                </div>
 
+                                @if($detailEnabled && !empty($resultado['detalle']))
                                     <div x-show="detail" x-cloak @click.self="detail = false" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
                                         <div class="relative w-full max-w-md bg-white rounded-2xl shadow-xl p-5 space-y-4">
                                             <button
@@ -168,8 +171,14 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            @endforeach
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+
+                    @if($resultados->hasPages())
+                        <div class="pt-2">
+                            {{ $resultados->links('pagination::tailwind') }}
                         </div>
                     @endif
                 @endif

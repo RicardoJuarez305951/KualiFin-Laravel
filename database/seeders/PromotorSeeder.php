@@ -22,12 +22,13 @@ class PromotorSeeder extends Seeder
 
         $this->command->info('Creando 20 promotores con logins de prueba...');
 
-        $diasPagoOptions = [
-            'lunes, miércoles',
-            'martes, jueves',
-            'viernes',
-            'lunes a viernes',
-            'martes a sábado',
+        $horariosPago = [
+            ['dia' => 'Lunes', 'hora' => '08:00'],
+            ['dia' => 'Martes', 'hora' => '09:30'],
+            ['dia' => 'Miércoles', 'hora' => '11:00'],
+            ['dia' => 'Jueves', 'hora' => '13:30'],
+            ['dia' => 'Viernes', 'hora' => '16:00'],
+            ['dia' => 'Sábado', 'hora' => '12:00'],
         ];
 
         for ($i = 1; $i <= 20; $i++) {
@@ -45,6 +46,8 @@ class PromotorSeeder extends Seeder
             ]);
 
             // Crear promotor asociado
+            $horario = fake()->randomElement($horariosPago);
+
             Promotor::create([
                 'user_id' => $user->id,
                 'supervisor_id' => $supervisores->random()->id,
@@ -55,7 +58,8 @@ class PromotorSeeder extends Seeder
                 'colonia' => fake()->streetName(),
                 'venta_proyectada_objetivo' => fake()->randomFloat(2, 1000, 10000),
                 'bono' => fake()->randomFloat(2, 100, 1000),
-                'dias_de_pago' => fake()->randomElement($diasPagoOptions),
+                'dia_de_pago' => $horario['dia'],
+                'hora_de_pago' => $horario['hora'],
             ]);
 
             $user->assignRole('promotor');
