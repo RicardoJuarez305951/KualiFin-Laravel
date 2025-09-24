@@ -9,7 +9,7 @@ class KanbanController extends Controller
 {
     public function index()
     {
-        $tasks = Kanban::orderBy('order')->get()->groupBy('status');
+        $tasks = Kanban::orderBy('sort_order')->get()->groupBy('status');
 
         $groupedTasks = [
             'todo' => $tasks->get('todo', []),
@@ -34,7 +34,7 @@ class KanbanController extends Controller
         $task->save();
 
         foreach ($request->order as $index => $taskId) {
-            Kanban::where('id', $taskId)->update(['order' => $index]);
+            Kanban::where('id', $taskId)->update(['sort_order' => $index]);
         }
 
         return response()->json(['status' => 'success']);
@@ -51,5 +51,28 @@ class KanbanController extends Controller
         $task->save();
 
         return response()->json(['status' => 'success']);
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'content' => 'required|string',
+            'module' => 'required|string',
+            'functionality' => 'required|string',
+            'assigned' => 'required|string',
+        ]);
+
+        $maxSortOrder = Kanban::where('status', 'todo')->max('sort_order');
+
+        Kanban::create([
+            'content' => $request->content,
+            'module' => $request->module,
+            'functionality' => $request->functionality,
+            'assigned' => $request->assigned,
+            'status' => 'todo',
+            'sort_order' => $maxSortOrder + 1,
+        ]);
+
+        return redirect()->route('kanban.index');
     }
 }
