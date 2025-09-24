@@ -1,12 +1,21 @@
 {{-- resources/views/mobile/supervisor/Apertura/apertura.blade.php --}}
 <x-layouts.mobile.mobile-layout title="Alta de Promotor">
-@php($faker = \Faker\Factory::create('es_MX'))
+@php
+    $faker = \Faker\Factory::create('es_MX');
+    $diasPagoEjemplo = $faker->randomElement([
+        'lunes, miércoles',
+        'martes, jueves',
+        'viernes',
+        'lunes a viernes',
+    ]);
+@endphp
     <div
         x-data="{
             nombre: '',
             domicilio: '',
             telefono: '',
             correo: '',
+            diasPago: @json($diasPagoEjemplo),
             ineUploaded: false,
             compUploaded: false,
             submit() {
@@ -36,6 +45,7 @@
                 this.domicilio = '';
                 this.telefono = '';
                 this.correo = '';
+                this.diasPago = '';
                 this.ineUploaded = false;
                 this.compUploaded = false;
             }
@@ -82,6 +92,17 @@
                     x-model="correo"
                     class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 />
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Días de pago</label>
+                <input
+                    type="text"
+                    x-model="diasPago"
+                    placeholder="Ej. lunes, miércoles"
+                    class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                />
+                <p class="mt-1 text-xs text-gray-500">Indica los días habituales de cobro separados por comas.</p>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

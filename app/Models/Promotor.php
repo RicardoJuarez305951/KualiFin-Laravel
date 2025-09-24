@@ -11,6 +11,9 @@ class Promotor extends Model
     const CREATED_AT = 'creado_en';
     const UPDATED_AT = 'actualizado_en';
     protected $table = 'promotores';
+    protected $casts = [
+        'dias_de_pago' => 'string',
+    ];
 
     public function user()
     {
