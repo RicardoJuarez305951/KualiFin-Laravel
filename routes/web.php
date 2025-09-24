@@ -19,6 +19,7 @@ use App\Http\Controllers\ExcelController;
 use App\Http\Controllers\KanbanController;
 Route::get('/kanban', [KanbanController::class, 'index'])->name('kanban.index');
 Route::post('/kanban/update', [KanbanController::class, 'updateTaskStatus'])->name('kanban.update');
+Route::post('/kanban/delete', [KanbanController::class, 'deleteTask'])->name('kanban.delete');
 
 /*
 |--------------------------------------------------------------------------

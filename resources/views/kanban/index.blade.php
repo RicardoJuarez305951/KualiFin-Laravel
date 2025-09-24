@@ -145,6 +145,29 @@
                 console.error('Error de red:', error);
             }
         }
+        
+        async function deleteTask(taskId) {
+            try {
+                const response = await fetch('{{ route("kanban.delete") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        task_id: taskId
+                    })
+                });
+
+                if (response.ok) {
+                    document.querySelector(`[data-task-id="${taskId}"]`).remove();
+                } else {
+                    console.error('Error al eliminar la tarea.');
+                }
+            } catch (error) {
+                console.error('Error de red:', error);
+            }
+        }
     </script>
     @endpush
 </x-app-layout>
