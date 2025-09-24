@@ -459,4 +459,11 @@ class EjecutivoController extends Controller
     {
         return view('mobile.ejecutivo.informes.reportes');
     }
+
+    /*
+     * -----------------------------------------------------------------
+     * Faltan metodos para Cartera Activa, Falla Actual, Cartera Vencida, Cartera Inactiva
+     * -----------------------------------------------------------------
+     */
+    
 }
