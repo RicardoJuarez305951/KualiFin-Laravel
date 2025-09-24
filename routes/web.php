@@ -118,8 +118,8 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('historial-promotor','historial_promotor')->name('historial_promotor');
                       Route::get('reacreditacion',    'reacreditacion')    ->name('reacreditacion');
                       Route::get('clientes-prospectados',    'clientes_prospectados')    ->name('clientes_prospectados');
-                      Route::post('clientes-prospectados/formulario', [NuevoClienteController::class, 'store'])->name('nuevo_cliente.store');
-                      Route::post('clientes-prospectados/{cliente}/registrar-credito', [NuevoClienteController::class, 'RegistrarCredito'])->name('clientes_prospectados.registrar_credito');
+                      Route::post('clientes-supervisados/formulario', [NuevoClienteController::class, 'store'])->name('nuevo_cliente.store');
+                      Route::post('clientes-supervisados/{cliente}/registrar-credito', [NuevoClienteController::class, 'RegistrarCredito'])->name('clientes_prospectados.registrar_credito');
                       Route::get('clientes-supervisados',    'clientes_supervisados')    ->name('clientes_supervisados');
                       Route::get('busqueda',          'busqueda')          ->name('busqueda');
                       Route::get('apertura',          'apertura')          ->name('apertura');  
