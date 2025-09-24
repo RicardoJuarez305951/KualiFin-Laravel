@@ -384,7 +384,7 @@ class SupervisorController extends Controller
 
         $supervisor = $this->resolveSupervisorContext($request, [
             'promotores' => function ($query) {
-                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo')
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago', 'venta_maxima', 'venta_proyectada_objetivo')
                     ->orderBy('nombre')
                     ->orderBy('apellido_p')
                     ->orderBy('apellido_m');
@@ -555,7 +555,7 @@ class SupervisorController extends Controller
 
         $supervisor = $this->resolveSupervisorContext($request, [
             'promotores' => function ($query) {
-                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m')
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
                     ->orderBy('nombre')
                     ->orderBy('apellido_p')
                     ->orderBy('apellido_m');
@@ -933,7 +933,7 @@ class SupervisorController extends Controller
         }
 
         $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
-            ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
             ->orderBy('nombre')
             ->paginate(5);
 
@@ -987,9 +987,10 @@ class SupervisorController extends Controller
             })->filter()->values();
 
             return [
-                'nombre'   => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
-                'dinero'   => $dinero,
-                'clientes' => $items,
+                'nombre'       => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
+                'dias_de_pago' => trim((string) ($p->dias_de_pago ?? '')),
+                'dinero'       => $dinero,
+                'clientes'     => $items,
             ];
         });
 
@@ -1013,7 +1014,7 @@ class SupervisorController extends Controller
         }
 
         $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
-            ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
             ->orderBy('nombre')
             ->paginate(5);
 
@@ -1055,10 +1056,11 @@ class SupervisorController extends Controller
             $porcentajeVencido = $baseCreditos > 0 ? round(($dineroVencido / $baseCreditos) * 100) : 0;
 
             return [
-                'nombre'   => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
-                'dinero'   => $dineroVencido,
-                'vencido'  => $porcentajeVencido,
-                'clientes' => $items->values(),
+                'nombre'       => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
+                'dias_de_pago' => trim((string) ($p->dias_de_pago ?? '')),
+                'dinero'       => $dineroVencido,
+                'vencido'      => $porcentajeVencido,
+                'clientes'     => $items->values(),
             ];
         });
 
@@ -1082,7 +1084,7 @@ class SupervisorController extends Controller
         }
 
         $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
-            ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
             ->orderBy('nombre')
             ->paginate(5);
 
@@ -1122,8 +1124,9 @@ class SupervisorController extends Controller
             })->values();
 
             return [
-                'nombre'   => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
-                'clientes' => $items,
+                'nombre'       => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
+                'dias_de_pago' => trim((string) ($p->dias_de_pago ?? '')),
+                'clientes'     => $items,
             ];
         });
 
@@ -1147,7 +1150,7 @@ class SupervisorController extends Controller
         }
 
         $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
-            ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
             ->orderBy('nombre')
             ->paginate(5);
 
@@ -1188,10 +1191,11 @@ class SupervisorController extends Controller
             $porcentajeFalla = $baseCreditos > 0 ? round(($dineroFalla / $baseCreditos) * 100) : 0;
 
             return [
-                'nombre'   => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
-                'dinero'   => $dineroFalla,
-                'falla'    => $porcentajeFalla,
-                'clientes' => $items->values(),
+                'nombre'       => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
+                'dias_de_pago' => trim((string) ($p->dias_de_pago ?? '')),
+                'dinero'       => $dineroFalla,
+                'falla'        => $porcentajeFalla,
+                'clientes'     => $items->values(),
             ];
         });
 
@@ -1225,10 +1229,10 @@ class SupervisorController extends Controller
     {
         $with = [
             'promotores' => function ($query) {
-                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo')
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo', 'dias_de_pago')
                     ->with([
                         'clientes' => function ($clienteQuery) {
-                            $clienteQuery->select('id', 'promotor_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'fecha_nacimiento', 'tiene_credito_activo', 'monto_maximo', 'activo')
+                            $clienteQuery->select('id', 'promotor_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'fecha_nacimiento', 'tiene_credito_activo', 'monto_maximo', 'horario_de_pago', 'activo')
                                 ->with([
                                     'documentos',
                                     'credito' => function ($creditoQuery) {
@@ -1429,9 +1433,9 @@ class SupervisorController extends Controller
     {
         return [
             'promotores' => function ($query) {
-                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo')
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo', 'dias_de_pago')
                     ->with(['clientes' => function ($clienteQuery) {
-                        $clienteQuery->select('id', 'promotor_id', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'tiene_credito_activo')
+                        $clienteQuery->select('id', 'promotor_id', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'tiene_credito_activo', 'horario_de_pago')
                             ->orderBy('nombre');
                     }])
                     ->orderBy('nombre');
@@ -1517,6 +1521,7 @@ class SupervisorController extends Controller
             'monto' => (float) ($cliente->monto_maximo ?? $credito?->monto_total ?? 0),
             'telefono' => $dato?->tel_cel ?? $dato?->tel_fijo,
             'direccion' => $direccion,
+            'horario_de_pago' => $cliente->horario_de_pago,
             'documentos' => [
                 'ine' => $ineDoc['url'] ?? null,
                 'comprobante' => $domDoc['url'] ?? null,

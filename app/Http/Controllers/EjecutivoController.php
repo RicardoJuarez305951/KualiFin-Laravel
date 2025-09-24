@@ -279,7 +279,7 @@ class EjecutivoController extends Controller
     {
         return [
             'promotores' => function ($query) {
-                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo')
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo', 'dias_de_pago')
                     ->with(['clientes' => function ($clienteQuery) {
                         $clienteQuery->select('id', 'promotor_id');
                     }])

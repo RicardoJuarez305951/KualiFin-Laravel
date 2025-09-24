@@ -106,6 +106,7 @@
             <p><span class="font-semibold">Estatus:</span> <span x-text="selected.cartera_estado || 'Sin definir'"></span></p>
             <p x-show="selected.fecha_nacimiento"><span class="font-semibold">Fecha nacimiento:</span> <span x-text="selected.fecha_nacimiento"></span></p>
             <p x-show="selected.telefono"><span class="font-semibold">Teléfono:</span> <span x-text="selected.telefono"></span></p>
+            <p x-show="selected.horario_de_pago"><span class="font-semibold">Horario de pago:</span> <span x-text="selected.horario_de_pago"></span></p>
             <p x-show="selected.direccion"><span class="font-semibold">Dirección:</span> <span x-text="selected.direccion"></span></p>
             <p x-show="selected.monto"><span class="font-semibold">Monto:</span> <span x-text="formatCurrency(selected.monto)"></span></p>
           </div>
@@ -293,6 +294,7 @@
             cartera_estado: '',
             fecha_nacimiento: '',
             telefono: '',
+            horario_de_pago: '',
             direccion: '',
             monto: null,
             monto_total: null,
@@ -313,6 +315,7 @@
               apellido_p: '',
               apellido_m: '',
               fecha_nacimiento: '',
+              horario_de_pago: '',
             },
             credito: {
               monto_total: '',
@@ -461,6 +464,7 @@
           form.cliente.apellido_p = apellidoP || '';
           form.cliente.apellido_m = apellidoM || '';
           form.cliente.fecha_nacimiento = this.selected.fecha_nacimiento || '';
+          form.cliente.horario_de_pago = this.selected.horario_de_pago || '';
 
           form.credito.monto_total = this.selected.monto_total ?? this.selected.monto ?? '';
           form.credito.periodicidad = normalize(this.selected.credito?.periodicidad) || '';

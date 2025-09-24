@@ -20,6 +20,9 @@ class CreatePromotoresTable extends Migration
             $table->string('colonia', 100);
             $table->decimal('venta_proyectada_objetivo', 12, 2);
             $table->decimal('bono', 12, 2);
+            $table->string('dias_de_pago', 100)
+                  ->nullable()
+                  ->comment('Días en los que el promotor realiza cobros programados');
             $table->timestamp('creado_en')->useCurrent();
             $table->timestamp('actualizado_en')->useCurrent()->useCurrentOnUpdate();
 

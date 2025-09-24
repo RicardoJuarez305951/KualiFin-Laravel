@@ -76,6 +76,7 @@ class ClienteSeeder extends Seeder
                 'tiene_credito_activo' => $tieneCreditoActivo,
                 'cartera_estado' => $carteraEstado,
                 'monto_maximo' => $faker->randomElement(self::MONTO_OPCIONES),
+                'horario_de_pago' => sprintf('%02d:00', random_int(8, 18)),
                 'creado_en' => Carbon::now(),
                 'actualizado_en' => Carbon::now(),
                 'activo' => $tieneCreditoActivo,
@@ -101,6 +102,13 @@ class ClienteSeeder extends Seeder
 
         $created = collect();
         $faker = fake();
+        $diasPagoOptions = [
+            'lunes, miércoles',
+            'martes, jueves',
+            'viernes',
+            'lunes a viernes',
+            'martes a sábado',
+        ];
 
         for ($i = 0; $i < self::PROMOTORES_MIN; $i++) {
             $user = User::factory()->create(['rol' => 'promotor']);
@@ -118,6 +126,7 @@ class ClienteSeeder extends Seeder
                 'colonia' => $faker->streetName(),
                 'venta_proyectada_objetivo' => $faker->randomElement(self::MONTO_OPCIONES),
                 'bono' => $faker->randomFloat(2, 200, 1500),
+                'dias_de_pago' => $faker->randomElement($diasPagoOptions),
             ]);
 
             $this->assignRoleSafely($user, 'promotor');
