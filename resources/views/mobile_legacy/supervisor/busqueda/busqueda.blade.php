@@ -92,60 +92,76 @@
                 <h2 class="text-lg font-bold text-gray-900">Clientes</h2>
                 <div class="space-y-2">
                     @foreach($clientes as $r)
+                        @php $detailEnabled = (bool) ($r['puede_detallar'] ?? true); @endphp
                         <div x-data="{ open: false, detail: false }" class="border border-gray-200 rounded">
                             <div class="flex items-center justify-between p-2 cursor-pointer" @click="open = !open">
                                 <p class="font-semibold text-gray-800">{{ $r['nombre'] }}</p>
-                                <a href="#" @click.stop="detail = true" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
+                                <div class="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        @click.stop="detail = true"
+                                        class="px-3 py-1 text-sm font-semibold rounded {{ $detailEnabled ? 'text-white bg-blue-600' : 'bg-gray-200 text-gray-500 cursor-not-allowed' }}"
+                                        {{ $detailEnabled ? '' : 'disabled' }}
+                                    >D</button>
+                                    @unless($detailEnabled)
+                                        <span class="text-[11px] font-medium text-red-500">Asignado a otro supervisor</span>
+                                    @endunless
+                                </div>
                             </div>
                             <div x-show="open" x-cloak class="p-2 text-sm text-gray-700 space-y-1">
-                                <p><span class="font-semibold">Domicilio:</span> {{ $r['domicilio'] }}</p>
                                 <p><span class="font-semibold">Promotor:</span> {{ $r['promotor']['nombre'] }}</p>
-                                <p><span class="font-semibold">Tipo de crédito:</span> {{ ucfirst($r['tipo_credito']) }}</p>
-                                <p><span class="font-semibold">Cantidad:</span> ${{ number_format($r['monto_credito'], 2) }}</p>
-                                <p><span class="font-semibold">Fecha:</span> {{ $r['fecha_creacion'] }}</p>
+                                <p><span class="font-semibold">Estatus:</span> {{ ucfirst($r['tipo_credito']) }}</p>
+
+                                @if($detailEnabled)
+                                    <p><span class="font-semibold">Domicilio:</span> {{ $r['domicilio'] }}</p>
+                                    <p><span class="font-semibold">Cantidad:</span> ${{ number_format($r['monto_credito'], 2) }}</p>
+                                    <p><span class="font-semibold">Fecha:</span> {{ $r['fecha_creacion'] }}</p>
+                                @endif
                             </div>
 
-                            <div x-show="detail" x-cloak @click.self="detail = false" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                                <div class="bg-white rounded-lg p-4 w-full max-w-md relative">
+                            @if($detailEnabled)
+                                <div x-show="detail" x-cloak @click.self="detail = false" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                                    <div class="bg-white rounded-lg p-4 w-full max-w-md relative">
                                     <button class="absolute top-2 right-2 text-gray-500" @click="detail = false">✕</button>
-                                    <h2 class="text-lg font-bold mb-2">{{ $r['nombre'] }}</h2>
-                                    <p class="text-sm mb-1"><span class="font-semibold">Teléfono:</span> {{ $r['telefono'] }}</p>
-                                    <p class="text-sm mb-1"><span class="font-semibold">Domicilio:</span> {{ $r['domicilio'] }}</p>
-                                    <p class="text-sm mb-2">
-                                        <span class="font-semibold">Status:</span>
-                                        @if($r['status'] === 'activo_con_deuda')
-                                            Activo con deuda: ${{ number_format($r['deuda'], 2) }}
-                                        @elseif($r['status'] === 'activo_sin_deuda')
-                                            Activo sin deuda
-                                        @elseif($r['status'] === 'liquidado')
-                                            Liquidado
-                                        @elseif($r['status'] === 'deudor')
-                                            Deudor: ${{ number_format($r['deuda_interes'], 2) }}
-                                        @endif
-                                    </p>
-                                    <div class="grid grid-cols-2 gap-2 mb-2">
-                                        @foreach($r['fotos'] as $foto)
-                                            <img src="{{ $foto }}" alt="Foto del cliente" class="rounded" />
-                                        @endforeach
-                                        <img src="{{ $r['garantia'] }}" alt="Foto de la garantía" class="rounded col-span-2" />
-                                    </div>
-                                    <div class="text-sm space-y-2">
-                                        <div>
-                                            <p class="font-semibold">Aval</p>
-                                            <p>{{ $r['aval']['nombre'] }}</p>
-                                            <p>{{ $r['aval']['telefono'] }}</p>
-                                            <p>{{ $r['aval']['domicilio'] }}</p>
+                                        <h2 class="text-lg font-bold mb-2">{{ $r['nombre'] }}</h2>
+                                        <p class="text-sm mb-1"><span class="font-semibold">Teléfono:</span> {{ $r['telefono'] }}</p>
+                                        <p class="text-sm mb-1"><span class="font-semibold">Domicilio:</span> {{ $r['domicilio'] }}</p>
+                                        <p class="text-sm mb-2">
+                                            <span class="font-semibold">Status:</span>
+                                            @if($r['status'] === 'activo_con_deuda')
+                                                Activo con deuda: ${{ number_format($r['deuda'], 2) }}
+                                            @elseif($r['status'] === 'activo_sin_deuda')
+                                                Activo sin deuda
+                                            @elseif($r['status'] === 'liquidado')
+                                                Liquidado
+                                            @elseif($r['status'] === 'deudor')
+                                                Deudor: ${{ number_format($r['deuda_interes'], 2) }}
+                                            @endif
+                                        </p>
+                                        <div class="grid grid-cols-2 gap-2 mb-2">
+                                            @foreach($r['fotos'] as $foto)
+                                                <img src="{{ $foto }}" alt="Foto del cliente" class="rounded" />
+                                            @endforeach
+                                            <img src="{{ $r['garantia'] }}" alt="Foto de la garantía" class="rounded col-span-2" />
                                         </div>
-                                        <div>
-                                            <p class="font-semibold">Promotor</p>
-                                            <p>{{ $r['promotor']['nombre'] }}</p>
-                                            <p>{{ $r['promotor']['email'] }}</p>
-                                            <p>{{ $r['promotor']['telefono'] }}</p>
-                                            <p>{{ $r['promotor']['domicilio'] }}</p>
+                                        <div class="text-sm space-y-2">
+                                            <div>
+                                                <p class="font-semibold">Aval</p>
+                                                <p>{{ $r['aval']['nombre'] }}</p>
+                                                <p>{{ $r['aval']['telefono'] }}</p>
+                                                <p>{{ $r['aval']['domicilio'] }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="font-semibold">Promotor</p>
+                                                <p>{{ $r['promotor']['nombre'] }}</p>
+                                                <p>{{ $r['promotor']['email'] }}</p>
+                                                <p>{{ $r['promotor']['telefono'] }}</p>
+                                                <p>{{ $r['promotor']['domicilio'] }}</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            @endif
                         </div>
                     @endforeach
                 </div>
