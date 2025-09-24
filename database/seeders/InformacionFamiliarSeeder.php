@@ -2,8 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\InformacionFamiliar;
 use App\Models\Credito;
+use App\Models\InformacionFamiliar;
+use Database\Seeders\Concerns\LatinoNameGenerator;
 use Illuminate\Database\Seeder;
 
 class InformacionFamiliarSeeder extends Seeder
@@ -15,7 +16,7 @@ class InformacionFamiliarSeeder extends Seeder
         for ($i = 0; $i < 20; $i++) {
             InformacionFamiliar::create([
                 'credito_id' => $creditos->random()->id,
-                'nombre_conyuge' => fake()->name(),
+                'nombre_conyuge' => LatinoNameGenerator::fullName(),
                 'celular_conyuge' => fake()->phoneNumber(),
                 'actividad_conyuge' => fake()->jobTitle(),
                 'ingresos_semanales_conyuge' => fake()->randomFloat(2, 100, 1000),

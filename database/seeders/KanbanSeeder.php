@@ -62,7 +62,7 @@ class KanbanSeeder extends Seeder
                 'functionality' => $taskData['functionality'],
                 'assigned'      => $taskData['assigned'],
                 'status'        => 'todo',
-                'order'         => $index
+                'sort_order'         => $index
             ]);
         }
     }

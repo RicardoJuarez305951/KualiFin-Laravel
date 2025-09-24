@@ -15,6 +15,8 @@ class Kanban extends Model
      * @var string
      */
     protected $connection = 'kanban';
+    protected $table = 'kanbans';   
+
 
     /**
      * The attributes that are mass assignable.
@@ -27,6 +29,6 @@ class Kanban extends Model
         'functionality',
         'assigned',
         'status',
-        'order',
+        'sort_order',
     ];
 }

@@ -3,8 +3,9 @@
 namespace Database\Seeders;
 
 use App\Models\Promotor;
-use App\Models\User;
 use App\Models\Supervisor;
+use App\Models\User;
+use Database\Seeders\Concerns\LatinoNameGenerator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -21,13 +22,19 @@ class PromotorSeeder extends Seeder
 
         $this->command->info('Creando 20 promotores con logins de prueba...');
 
+        $diasPagoOptions = [
+            'lunes, miércoles',
+            'martes, jueves',
+            'viernes',
+            'lunes a viernes',
+            'martes a sábado',
+        ];
+
         for ($i = 1; $i <= 20; $i++) {
             $email = "promotor{$i}@kualifin.com";
 
             // Generar nombre y apellidos primero
-            $nombre   = fake()->firstName();
-            $apellido_p = fake()->lastName();
-            $apellido_m = fake()->lastName();
+            [$nombre, $apellido_p, $apellido_m] = LatinoNameGenerator::person();
 
             // Crear usuario asociado
             $user = User::factory()->create([
@@ -48,6 +55,7 @@ class PromotorSeeder extends Seeder
                 'colonia' => fake()->streetName(),
                 'venta_proyectada_objetivo' => fake()->randomFloat(2, 1000, 10000),
                 'bono' => fake()->randomFloat(2, 100, 1000),
+                'dias_de_pago' => fake()->randomElement($diasPagoOptions),
             ]);
 
             $user->assignRole('promotor');

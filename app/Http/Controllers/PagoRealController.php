@@ -6,6 +6,7 @@ use App\Models\PagoProyectado;
 use App\Models\PagoCompleto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class PagoRealController extends Controller
 {
@@ -62,27 +63,33 @@ class PagoRealController extends Controller
     public function storeMultiple(Request $request)
     {
         $data = $request->validate([
-            'pago_proyectado_ids' => 'required|array',
-            'pago_proyectado_ids.*' => 'exists:pagos_proyectados,id',
+            'pago_proyectado_ids' => ['required', 'array', 'min:1'],
+            'pago_proyectado_ids.*' => ['required', 'integer', 'distinct', 'exists:pagos_proyectados,id'],
         ]);
 
-        $pagos = [];
+        $fechaPago = Carbon::now()->toDateString();
 
-        foreach ($data['pago_proyectado_ids'] as $id) {
-            $pagoProyectado = PagoProyectado::findOrFail($id);
-            $pagoReal = PagoReal::create([
-                'pago_proyectado_id' => $id,
-                'tipo' => 'completo',
-                'fecha_pago' => Carbon::now()->toDateString(),
-            ]);
+        $pagos = DB::transaction(function () use ($data, $fechaPago) {
+            return array_map(function (int $pagoProyectadoId) use ($fechaPago) {
+                $pagoProyectado = PagoProyectado::findOrFail($pagoProyectadoId);
 
-            PagoCompleto::create([
-                'pago_real_id' => $pagoReal->id,
-                'monto_completo' => $pagoProyectado->deuda_total ?? $pagoProyectado->monto_proyectado,
-            ]);
+                $pagoReal = PagoReal::create([
+                    'pago_proyectado_id' => $pagoProyectado->id,
+                    'tipo' => 'completo',
+                    'fecha_pago' => $fechaPago,
+                    'comentario' => null,
+                ]);
 
-            $pagos[] = $pagoReal;
-        }
+                $monto = (float) ($pagoProyectado->deuda_total ?? $pagoProyectado->monto_proyectado ?? 0);
+
+                PagoCompleto::create([
+                    'pago_real_id' => $pagoReal->id,
+                    'monto_completo' => round(max($monto, 0), 2),
+                ]);
+
+                return $pagoReal->loadMissing('pagoCompleto');
+            }, $data['pago_proyectado_ids']);
+        });
 
         return response()->json($pagos, 201);
     }

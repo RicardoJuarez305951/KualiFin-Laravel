@@ -8,7 +8,7 @@
     }
 @endphp
 
-<x-layouts.mobile.mobile-layout title="Venta">
+<x-layouts.mobile.mobile-layout title="Venta registrada – {{ $fecha }}">
     <div class="mx-auto w-[22rem] sm:w-[26rem] p-4 sm:p-6">
         <section class="bg-white/95 backdrop-blur rounded-2xl shadow-lg ring-1 ring-gray-900/5 overflow-hidden">
             {{-- Header --}}

@@ -7,10 +7,12 @@ use App\Models\Cliente;
 use App\Models\Credito;
 use App\Models\Ejecutivo;
 use App\Models\Promotor;
+use App\Models\PagoProyectado;
 use App\Models\Supervisor;
 use App\Services\ExcelReaderService;
 use App\Support\RoleHierarchy;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -42,9 +44,80 @@ class PromotorController extends Controller
         return view('mobile.index');
     }
 
-    public function objetivo()
+    public function objetivo(Request $request)
     {
-        return view('mobile.promotor.objetivo.objetivo');
+        $semanasAConsiderar = 4;
+        $ahora = now();
+        $inicioRango = $ahora->copy()->startOfWeek()->subWeeks($semanasAConsiderar - 1);
+        $finRango = $ahora->copy()->endOfWeek();
+
+        $promotor = $this->resolvePromotorContext($request, [
+            'clientes' => function ($query) use ($inicioRango, $finRango) {
+                $query->with(['creditos' => function ($creditosQuery) use ($inicioRango, $finRango) {
+                    $creditosQuery
+                        ->whereNotNull('fecha_inicio')
+                        ->whereBetween('fecha_inicio', [
+                            $inicioRango->copy()->toDateString(),
+                            $finRango->copy()->toDateString(),
+                        ])
+                        ->orderBy('fecha_inicio');
+                }]);
+            },
+        ]);
+
+        if (!$promotor) {
+            abort(403, 'No tienes acceso al objetivo de promotores.');
+        }
+
+        $clientes = $promotor->clientes ?? collect();
+        $creditos = $clientes->flatMap(fn ($cliente) => $cliente->creditos ?? collect());
+
+        $ventasPorSemana = collect(range(0, $semanasAConsiderar - 1))
+            ->map(function ($offset) use ($inicioRango, $creditos) {
+                $inicioSemana = $inicioRango->copy()->addWeeks($offset);
+                $finSemana = $inicioSemana->copy()->endOfWeek();
+
+                $total = $creditos
+                    ->filter(function ($credito) use ($inicioSemana, $finSemana) {
+                        $fechaInicio = $credito->fecha_inicio;
+
+                        if (!$fechaInicio) {
+                            return false;
+                        }
+
+                        if (!$fechaInicio instanceof Carbon) {
+                            $fechaInicio = Carbon::parse($fechaInicio);
+                        }
+
+                        return $fechaInicio->greaterThanOrEqualTo($inicioSemana)
+                            && $fechaInicio->lessThanOrEqualTo($finSemana);
+                    })
+                    ->sum(fn ($credito) => (float) $credito->monto_total);
+
+                return [
+                    'label' => sprintf('Sem %s', $inicioSemana->format('W')),
+                    'range' => sprintf('%s - %s', $inicioSemana->format('d/m'), $finSemana->format('d/m')),
+                    'total' => round($total, 2),
+                ];
+            })
+            ->values();
+
+        $objetivoSemanal = (float) ($promotor->venta_maxima ?? 0);
+        $ventaActual = (float) ($ventasPorSemana->last()['total'] ?? 0.0);
+        $objetivoEjercicio = (float) ($promotor->venta_proyectada_objetivo ?? 0);
+
+        $avanceReal = $objetivoSemanal > 0 ? ($ventaActual / $objetivoSemanal) * 100 : 0.0;
+        $porcentajeActual = round($avanceReal, 1);
+        $fraseMotivacional = $this->buildMotivationalMessage($avanceReal);
+
+        return view('mobile.promotor.objetivo.objetivo', [
+            'objetivoSemanal' => $objetivoSemanal,
+            'ventaActual' => $ventaActual,
+            'objetivoEjercicio' => $objetivoEjercicio,
+            'ventasPorSemana' => $ventasPorSemana,
+            'porcentajeActual' => $porcentajeActual,
+            'fraseMotivacional' => $fraseMotivacional,
+        ]);
     }
 
     public function venta(Request $request)
@@ -153,6 +226,7 @@ class PromotorController extends Controller
                 'apellido_m' => 'nullable|string|max:100',
                 'CURP' => 'required|string|size:18',
                 'monto' => 'required|numeric|min:0|max:3000',
+                'horario_de_pago' => 'required|date_format:H:i',
                 'aval_nombre' => 'required|string|max:100',
                 'aval_apellido_p' => 'required|string|max:100',
                 'aval_apellido_m' => 'nullable|string|max:100',
@@ -198,6 +272,7 @@ class PromotorController extends Controller
                     'tiene_credito_activo' => false,
                     'cartera_estado' => 'inactivo',
                     'monto_maximo' => $data['monto'],
+                    'horario_de_pago' => $data['horario_de_pago'],
                     'activo' => false,
                 ]);
 
@@ -455,12 +530,19 @@ class PromotorController extends Controller
             $credito = $cliente->credito;
             $estadoCartera = $cliente->cartera_estado ?? $this->mapCreditoEstadoACartera($credito) ?? 'inactivo';
 
+            $pagoPendiente = $credito?->pagosProyectados?->firstWhere('estado', 'pendiente');
+            $pagoPendienteData = $this->buildPendingPaymentData($pagoPendiente, $cliente);
+
+            $cliente->pago_proyectado_pendiente = $pagoPendienteData;
+            if ($pagoPendienteData && (!isset($cliente->deuda_total) || $cliente->deuda_total === null)) {
+                $cliente->deuda_total = $pagoPendienteData['deuda_vencida'];
+            }
+
             $cliente->cartera_estado = $estadoCartera;
             $cliente->tiene_credito_activo = in_array($estadoCartera, ['activo', 'moroso', 'desembolsado'], true);
             unset($cliente->semana_credito, $cliente->monto_semanal);
 
             if (in_array($estadoCartera, ['activo', 'desembolsado'], true)) {
-                $pagoPendiente = $credito?->pagosProyectados?->firstWhere('estado', 'pendiente');
                 if ($pagoPendiente) {
                     $cliente->semana_credito = $pagoPendiente->semana;
                     $cliente->monto_semanal = $pagoPendiente->monto_proyectado;
@@ -549,7 +631,34 @@ class PromotorController extends Controller
         ]);
     }
 
-        
+    private function buildPendingPaymentData(?PagoProyectado $pagoProyectado, $cliente): ?array
+    {
+        if (!$pagoProyectado) {
+            return null;
+        }
+
+        $montoProyectado = (float) ($pagoProyectado->monto_proyectado ?? 0);
+
+        $deudaVencida = collect([
+            $pagoProyectado->deuda_total ?? null,
+            $pagoProyectado->deuda_vencida ?? null,
+            $cliente->deuda_total ?? null,
+            $cliente->deuda ?? null,
+        ])
+            ->filter(fn ($value) => is_numeric($value))
+            ->map(fn ($value) => (float) $value)
+            ->first();
+
+        if ($deudaVencida === null) {
+            $deudaVencida = $montoProyectado;
+        }
+
+        return [
+            'id' => $pagoProyectado->id,
+            'monto_proyectado' => $montoProyectado,
+            'deuda_vencida' => $deudaVencida,
+        ];
+    }
 
     private function sharePromotorContext(Request $request, ?Promotor $promotor): void
     {
@@ -717,6 +826,31 @@ class PromotorController extends Controller
             })
             ->filter()
             ->implode(' ');
+    }
+
+    private function buildMotivationalMessage(float $percentage): string
+    {
+        if ($percentage >= 120.0) {
+            return '¡Impresionante! Superaste tu objetivo semanal, sigue así.';
+        }
+
+        if ($percentage >= 100.0) {
+            return '¡Objetivo semanal alcanzado! Excelente trabajo.';
+        }
+
+        if ($percentage >= 75.0) {
+            return '¡Estás muy cerca, un último esfuerzo te llevará a la meta!';
+        }
+
+        if ($percentage >= 50.0) {
+            return 'Vas por buen camino, mantén el ritmo.';
+        }
+
+        if ($percentage > 0.0) {
+            return 'Buen inicio, cada visita suma para lograr tu objetivo.';
+        }
+
+        return 'Aún no registras ventas esta semana, ¡vamos con todo!';
     }
 
     public function cliente_historial(Request $request, Cliente $cliente)

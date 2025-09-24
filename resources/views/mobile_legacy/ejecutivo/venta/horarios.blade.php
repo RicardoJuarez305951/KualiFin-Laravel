@@ -67,11 +67,17 @@
       <div class="space-y-2">
         @forelse($promotores as $p)
           <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              {!! $pillNum($loop->iteration) !!}
-              <span class="text-sm font-semibold text-gray-900">
-                {{ trim(($p->nombre ?? '').' '.($p->apellido_p ?? '').' '.($p->apellido_m ?? '')) ?: ($p->nombre_completo ?? '—') }}
-              </span>
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                {!! $pillNum($loop->iteration) !!}
+                <span class="text-sm font-semibold text-gray-900">
+                  {{ trim(($p->nombre ?? '').' '.($p->apellido_p ?? '').' '.($p->apellido_m ?? '')) ?: ($p->nombre_completo ?? '—') }}
+                </span>
+              </div>
+              @php $diasPago = trim((string) ($p->dias_de_pago ?? '')); @endphp
+              @if($diasPago !== '')
+                <p class="ml-8 text-xs text-gray-500">Días de pago: {{ $diasPago }}</p>
+              @endif
             </div>
             {!! $btn($definirRoute($p->id ?? 0), 'Definir', 'indigo', 'sm') !!}
           </div>

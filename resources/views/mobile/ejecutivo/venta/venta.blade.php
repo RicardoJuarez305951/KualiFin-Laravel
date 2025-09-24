@@ -114,8 +114,6 @@
                 <div class="flex items-center gap-2 shrink-0">
                   {{-- Botón detalles "D" --}}
                   {!! $pill(!empty($s['id']) ? route('mobile.supervisor.venta', array_merge($supervisorContextQuery ?? [], ['supervisor' => $s['id']])) : '#', 'D') !!}
-                  {{-- Botón venta "V" --}}
-                  {!! $pill(route('mobile.ejecutivo.desembolso', $supervisorContextQuery ?? []), 'V') !!}
                 </div>
               </div>
 
