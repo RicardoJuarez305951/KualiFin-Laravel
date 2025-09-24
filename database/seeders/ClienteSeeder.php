@@ -76,6 +76,7 @@ class ClienteSeeder extends Seeder
                 'tiene_credito_activo' => $tieneCreditoActivo,
                 'cartera_estado' => $carteraEstado,
                 'monto_maximo' => $faker->randomElement(self::MONTO_OPCIONES),
+                'horario_de_pago' => sprintf('%02d:00', random_int(8, 18)),
                 'creado_en' => Carbon::now(),
                 'actualizado_en' => Carbon::now(),
                 'activo' => $tieneCreditoActivo,
