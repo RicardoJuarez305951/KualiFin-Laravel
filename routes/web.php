@@ -122,8 +122,10 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::post('clientes-supervisados/{cliente}/registrar-credito', [NuevoClienteController::class, 'RegistrarCredito'])->name('clientes_prospectados.registrar_credito');
                       Route::get('clientes-supervisados',    'clientes_supervisados')    ->name('clientes_supervisados');
                       Route::get('busqueda',          'busqueda')          ->name('busqueda');
-                      Route::get('apertura',          'apertura')          ->name('apertura');  
+                      Route::get('apertura',          'apertura')          ->name('apertura');
                       Route::get('venta/horarios', 'horarios')                   ->name('horarios');
+                      Route::get('venta/horarios/{promotor}', 'horariosDefinir') ->name('horarios.definir');
+                      Route::put('venta/horarios/{promotor}', 'horariosActualizar')->name('horarios.actualizar');
                   });
          });
 
