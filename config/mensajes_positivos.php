@@ -11,6 +11,11 @@ return [
         "El optimismo es la fe que conduce al logro. Nada puede hacerse sin esperanza y confianza.",
         "La vida es 10% lo que nos pasa y 90% cómo reaccionamos a ello.",
         "El futuro pertenece a quienes creen en la belleza de sus sueños.",
-        "No cuentes los días, haz que los días cuenten."
+        "No cuentes los días, haz que los días cuenten.",
+        "La vida es como una bicicleta: si quieres mantener el equilibrio, pedalea hacia delante.",
+        "Todos tus sueños se harán realidad si tienes el coraje de perseguirlos.",
+        "La única diferencia entre el éxito y el fracaso es la capacidad de actuar.",
+        "El éxito no es un destino, es un viaje, disfrútalo.",
+        ""
     ],
 ];
