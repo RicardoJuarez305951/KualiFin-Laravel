@@ -79,14 +79,14 @@
                 <div class="w-full bg-gray-200 rounded-full h-2">
                     <div class="bg-red-500 h-2 rounded-full" style="width: {{ min(100, $p['porcentajeFalla']) }}%"></div>
                 </div>
-                 <div class="flex">
-                    <div class="w-80">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex-1">
                         <p class="text-xs font-semibold">{{ number_format($p['porcentajeFalla'], 0) }}% Falla</p>
                         <p class="text-sm">Venta Registrada: <span class="font-bold">{{ formatCurrency($p['ventaRegistrada']) }}</span></p>
                     </div>
-                    <div>
-                        {{-- <a href="{{ route('mobile.supervisor.cartera_promotor', $p->id) }}" class="px-3 py-1 text-right text-sm font-semibold text-white bg-blue-600 rounded">D</a> --}}
-                        <a href="{{ route('mobile.promotor.venta', array_merge($supervisorContextQuery ?? [], ['promotor' => $p['id']])) }}" class="px-3 py-1 text-right text-sm font-semibold text-white bg-blue-600 rounded">D</a>
+                    <div class="flex flex-col items-end gap-2">
+                        <a href="{{ route('mobile.promotor.venta', array_merge($supervisorContextQuery ?? [], ['promotor' => $p['id']])) }}" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
+                        <a href="{{ route('mobile.ejecutivo.desembolso', array_merge($supervisorContextQuery ?? [], [])) }}" class="px-3 py-1 text-sm font-semibold text-white bg-indigo-600 rounded">V</a>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4 text-xs">
