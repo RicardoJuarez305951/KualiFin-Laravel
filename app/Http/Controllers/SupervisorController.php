@@ -1310,7 +1310,15 @@ class SupervisorController extends Controller
                     'promotor:id,supervisor_id,nombre,apellido_p,apellido_m',
                     'promotor.supervisor:id,nombre,apellido_p,apellido_m',
                     'credito' => function ($creditoQuery) {
-                        $creditoQuery->select('id', 'cliente_id', 'estado', 'monto_total', 'periodicidad', 'fecha_inicio', 'fecha_final')
+                        $creditoQuery->select(
+                            'creditos.id',
+                            'creditos.cliente_id',
+                            'creditos.estado',
+                            'creditos.monto_total',
+                            'creditos.periodicidad',
+                            'creditos.fecha_inicio',
+                            'creditos.fecha_final'
+                        )
                             ->with([
                                 'datoContacto:id,credito_id,calle,numero_ext,numero_int,colonia,municipio,estado,cp,tel_fijo,tel_cel',
                                 'avales:id,credito_id,CURP,nombre,apellido_p,apellido_m,telefono,direccion',
