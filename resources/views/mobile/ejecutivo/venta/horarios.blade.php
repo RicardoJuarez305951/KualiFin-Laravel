@@ -34,16 +34,9 @@
   $pillNum = fn($n) =>
     '<span class="inline-flex items-center justify-center w-6 h-6 text-[11px] font-bold rounded-full bg-indigo-100 text-indigo-700">'.$n.'</span>';
 
-  $btn = function(string $href, string $text, string $variant = 'primary', string $size='md') {
-    $base  = 'inline-flex items-center justify-center rounded-xl font-semibold shadow transition';
-    $sz    = $size === 'sm' ? 'text-xs px-3 py-1.5' : 'text-sm px-3 py-2';
-    $style = match($variant) {
-      'outline-primary' => 'border border-gray-300 bg-blue-600 text-white hover:bg-blue-700 shadow-sm',
-      'indigo'          => 'bg-indigo-600 text-white hover:bg-indigo-700',
-      default           => 'bg-blue-600 text-white hover:bg-blue-700',
-    };
-    return '<a href="'.e($href).'" class="'.$base.' '.$sz.' '.$style.'">'.$text.'</a>';
-  };
+  $diasSemana = [
+    'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'
+  ];
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Definir Horarios">
@@ -61,25 +54,30 @@
     @endphp
     {!! $card('', $ventaRow) !!}
 
-    {{-- ===== Lista de promotores con botón "Definir" a la derecha ===== --}}
+    {{-- ===== Lista de promotores con SelectList de días de semana ===== --}}
     @php ob_start(); @endphp
       <h2 class="text-base font-bold text-gray-900 mb-2">Nombre</h2>
-      <div class="space-y-2">
+      <div class="space-y-3">
         @forelse($promotores as $p)
-          <div class="flex items-center justify-between">
-            <div class="flex-1">
-              <div class="flex items-center gap-2">
-                {!! $pillNum($loop->iteration) !!}
-                <span class="text-sm font-semibold text-gray-900">
-                  {{ trim(($p->nombre ?? '').' '.($p->apellido_p ?? '').' '.($p->apellido_m ?? '')) ?: ($p->nombre_completo ?? '—') }}
-                </span>
-              </div>
-              @php $diasPago = trim((string) ($p->dias_de_pago ?? '')); @endphp
-              @if($diasPago !== '')
-                <p class="ml-8 text-xs text-gray-500">Días de pago: {{ $diasPago }}</p>
-              @endif
+          <div class="flex flex-col gap-1">
+            <div class="flex items-center gap-2">
+              {!! $pillNum($loop->iteration) !!}
+              <span class="text-sm font-semibold text-gray-900">
+                {{ trim(($p->nombre ?? '').' '.($p->apellido_p ?? '').' '.($p->apellido_m ?? '')) ?: ($p->nombre_completo ?? '—') }}
+              </span>
             </div>
-            {!! $btn($definirRoute($p->id ?? 0), 'Definir', 'indigo', 'sm') !!}
+            <form method="POST" action="{{ $definirRoute($p->id ?? 0) }}" class="ml-8 flex items-center gap-2">
+              @csrf
+              <select name="dia_pago" class="text-sm rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="">Seleccionar día</option>
+                @foreach($diasSemana as $dia)
+                  <option value="{{ $dia }}" @selected(($p->dias_de_pago ?? '') === $dia)>{{ $dia }}</option>
+                @endforeach
+              </select>
+              <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded-lg shadow">
+                Guardar
+              </button>
+            </form>
           </div>
         @empty
           <p class="text-sm text-gray-500">Sin promotores.</p>
@@ -91,7 +89,9 @@
 
     {{-- ===== Botón Regresar (a mobile.index) ===== --}}
     <div class="pt-2">
-      {!! $btn(route('mobile.index'), 'Regresar', 'outline-primary') !!}
+      <a href="{{ route('mobile.index') }}" class="inline-flex items-center justify-center rounded-xl font-semibold shadow text-sm px-3 py-2 border border-gray-300 bg-blue-600 text-white hover:bg-blue-700">
+        Regresar
+      </a>
     </div>
 
   </div>
