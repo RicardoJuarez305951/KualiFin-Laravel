@@ -243,11 +243,11 @@
     @endphp
 
     <div class="space-y-3">
-      <a href="{{ url()->current() }}"
+      <a href="{{ route('mobile.supervisor.clientes_supervisados', $contextQuery) }}"
          class="block text-center py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
         Recargar
       </a>
-      <a href="{{ url()->previous() }}"
+      <a href="{{ route('mobile.supervisor.venta', $contextQuery) }}"
          class="block text-center py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
         Regresar a Venta
       </a>
@@ -274,8 +274,8 @@
         saving: false,
         actionInProgress: null,
         maxGarantias: 8,
-        postUrl: '{{ route('mobile.supervisor.nuevo_cliente.store') }}',
-        registrarCreditoUrlTemplate: @js(route('mobile.supervisor.clientes_supervisados.registrar_credito', ['cliente' => '__CLIENTE_ID__'])),
+        postUrl: '{{ route('mobile.supervisor.nuevo_cliente.store', $contextQuery) }}',
+        registrarCreditoUrlTemplate: @js(route('mobile.supervisor.clientes_prospectados.registrar_credito', array_merge($contextQuery, ['cliente' => '__CLIENTE_ID__']))),
         csrfToken: '{{ csrf_token() }}',
         selected: {},
         form: {},
