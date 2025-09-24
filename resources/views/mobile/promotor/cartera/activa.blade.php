@@ -3,7 +3,7 @@
         <li
             x-data="{ cliente: @js($c) }"
             :class="{ 'bg-blue-200': $store.multiPay.isSelected(cliente) }"
-            @click="$store.multiPay.toggle(cliente)"
+            @click="$store.multiPay.active && $store.multiPay.toggle(cliente)"
             class="flex items-center justify-between py-2"
         >
             <div class="flex items-center flex-1">
@@ -48,7 +48,7 @@
                 <button
                     class="w-8 h-8 border-2 border-green-500 text-green-500 rounded-full flex items-center justify-center"
                     title="Registrar pago"
-                    @click.stop="$store.calc.open(@js(($c['apellido_p'] ?? $c->apellido_p ?? '') . ' ' . ($c['apellido_m'] ?? $c->apellido_m ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '')))"
+                    @click="$store.calc.open(@js(($c['apellido_p'] ?? $c->apellido_p ?? '') . ' ' . ($c['apellido_m'] ?? $c->apellido_m ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '')))"
                 >
                     $
                 </button>

@@ -26,7 +26,7 @@ document.addEventListener('alpine:init', () => {
 
             if (typeof value === 'string') {
                 const trimmed = value.trim();
-                if (trimmed === '') {
+                if (!trimmed.length) {
                     return null;
                 }
 
@@ -37,72 +37,194 @@ document.addEventListener('alpine:init', () => {
             return null;
         },
 
-        idsAreEqual(a, b) {
-            const normalizedA = this.normalizeId(a);
-            const normalizedB = this.normalizeId(b);
-
-            return normalizedA !== null && normalizedB !== null && normalizedA === normalizedB;
-        },
-
         resolveId(target) {
             if (typeof target === 'object' && target !== null) {
-                if ('id' in target && target.id !== undefined) {
-                    return this.normalizeId(target.id);
-                }
+                const keys = ['id', 'ID', 'pago_proyectado_id', 'pagoProyectadoId', 'pago_proyectadoID'];
 
-                if ('ID' in target && target.ID !== undefined) {
-                    return this.normalizeId(target.ID);
-                }
-
-                if ('pago_proyectado_id' in target && target.pago_proyectado_id !== undefined) {
-                    return this.normalizeId(target.pago_proyectado_id);
+                for (const key of keys) {
+                    if (key in target) {
+                        const normalized = this.normalizeId(target[key]);
+                        if (normalized !== null) {
+                            return normalized;
+                        }
+                    }
                 }
             }
 
             return this.normalizeId(target);
         },
 
-        find(clienteOrId) {
+        findIndex(clienteOrId) {
             const targetId = this.resolveId(clienteOrId);
             if (targetId === null) {
-                return undefined;
+                return -1;
             }
 
-            return this.clients.find((client) => this.idsAreEqual(client.id, targetId));
+            return this.clients.findIndex((client) => this.resolveId(client.id) === targetId);
         },
 
         isSelected(clienteOrId) {
-            return Boolean(this.find(clienteOrId));
+            return this.findIndex(clienteOrId) !== -1;
         },
 
-        resolveName(cliente) {
+        extractPagoId(candidate) {
+            if (candidate === null || candidate === undefined) {
+                return null;
+            }
+
+            if (Array.isArray(candidate)) {
+                for (let index = candidate.length - 1; index >= 0; index -= 1) {
+                    const value = this.extractPagoId(candidate[index]);
+                    if (value !== null) {
+                        return value;
+                    }
+                }
+
+                return null;
+            }
+
+            if (typeof candidate === 'object') {
+                return this.resolveId(candidate);
+            }
+
+            return this.normalizeId(candidate);
+        },
+
+        resolvePagoProyectadoId(cliente) {
             if (!cliente || typeof cliente !== 'object') {
+                return null;
+            }
+
+            const directCandidates = [
+                cliente.pago_proyectado_id,
+                cliente.pagoProyectadoId,
+                cliente.pago_proyectadoID,
+                cliente.pagoPendienteId,
+            ];
+
+            for (const candidate of directCandidates) {
+                const normalized = this.normalizeId(candidate);
+                if (normalized !== null) {
+                    return normalized;
+                }
+            }
+
+            const nestedCandidates = [
+                cliente.pago_proyectado_pendiente,
+                cliente.pagoPendiente,
+                cliente.pago_proyectado,
+                cliente.credito?.pago_proyectado_pendiente,
+                cliente.credito?.pago_proyectado,
+                cliente.credito?.pagos_proyectados,
+            ];
+
+            for (const candidate of nestedCandidates) {
+                const value = this.extractPagoId(candidate);
+                if (value !== null) {
+                    return value;
+                }
+            }
+
+            return null;
+        },
+
+        normalizeNumber(value) {
+            if (typeof value === 'number') {
+                return Number.isFinite(value) ? value : null;
+            }
+
+            if (typeof value === 'string') {
+                const sanitized = value.replace(/[^0-9,.-]+/g, '').replace(',', '.');
+                if (!sanitized.length) {
+                    return null;
+                }
+
+                const numeric = Number(sanitized);
+                return Number.isFinite(numeric) ? numeric : null;
+            }
+
+            return null;
+        },
+
+        normalizeString(value) {
+            if (value === null || value === undefined) {
                 return '';
             }
 
-            if (typeof cliente.name === 'string' && cliente.name.trim()) {
-                return cliente.name.trim();
+            if (typeof value === 'string') {
+                return value.trim();
             }
 
-            const parts = [
-                cliente.apellido_p ?? cliente.apellido ?? '',
-                cliente.apellido_m ?? '',
-                cliente.nombre ?? cliente.nombre_cliente ?? '',
-            ]
-                .map((part) => (typeof part === 'string' ? part.trim() : ''))
-                .filter(Boolean);
-
-            const composed = parts.join(' ');
-
-            if (composed) {
-                return composed;
+            if (typeof value === 'number' || typeof value === 'boolean') {
+                return String(value);
             }
 
-            const fallbackId = this.resolveId(cliente);
-            return fallbackId !== null ? `Cliente ${fallbackId}` : '';
+            return '';
         },
 
-        resolvePago(cliente) {
+        formatNameParts(...parts) {
+            return parts
+                .map((part) => this.normalizeString(part))
+                .filter(Boolean)
+                .join(' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        },
+
+        resolveClientName(cliente) {
+            if (!cliente || typeof cliente !== 'object') {
+                return 'Cliente sin nombre';
+            }
+
+            const nombre = this.formatNameParts(
+                cliente.apellido_p
+                    ?? cliente?.cliente?.apellido_p
+                    ?? cliente.apellido
+                    ?? cliente.primer_apellido
+                    ?? '',
+                cliente.apellido_m
+                    ?? cliente?.cliente?.apellido_m
+                    ?? cliente.segundo_apellido
+                    ?? '',
+                cliente.nombre
+                    ?? cliente?.cliente?.nombre
+                    ?? cliente.primer_nombre
+                    ?? cliente.segundo_nombre
+                    ?? cliente.razon_social
+                    ?? ''
+            );
+
+            const fallback = this.normalizeString(
+                cliente.nombre_completo ?? cliente.fullName ?? cliente.nombreCompleto ?? ''
+            );
+
+            return nombre || fallback || 'Cliente sin nombre';
+        },
+
+        extractPaymentCandidate(candidate) {
+            if (!candidate) {
+                return null;
+            }
+
+            if (Array.isArray(candidate)) {
+                for (let index = candidate.length - 1; index >= 0; index -= 1) {
+                    const value = this.extractPaymentCandidate(candidate[index]);
+                    if (value) {
+                        return value;
+                    }
+                }
+
+                return null;
+            }
+
+            if (typeof candidate === 'object') {
+                return candidate;
+            }
+
+            return null;
+        },
+
+        resolvePendingPaymentData(cliente) {
             if (!cliente || typeof cliente !== 'object') {
                 return null;
             }
@@ -112,120 +234,82 @@ document.addEventListener('alpine:init', () => {
                 cliente.pagoPendiente,
                 cliente.pago_proyectado,
                 cliente.credito?.pago_proyectado_pendiente,
+                cliente.credito?.pago_proyectado,
                 cliente.credito?.pagos_proyectados,
             ];
 
             for (const candidate of candidates) {
-                if (!candidate) {
-                    continue;
-                }
-
-                if (Array.isArray(candidate)) {
-                    if (!candidate.length) {
-                        continue;
-                    }
-
-                    const last = candidate[candidate.length - 1];
-                    if (last && typeof last === 'object') {
-                        return last;
-                    }
-
-                    continue;
-                }
-
-                if (typeof candidate === 'object') {
-                    return candidate;
+                const payment = this.extractPaymentCandidate(candidate);
+                if (payment) {
+                    return payment;
                 }
             }
 
             return null;
         },
 
-        toNumber(value, fallback = null) {
-            const numeric = Number.parseFloat(value);
-            return Number.isFinite(numeric) ? numeric : fallback;
-        },
-
-        roundCurrency(value) {
-            return Math.round((Number(value) || 0) * 100) / 100;
-        },
-
-        sanitizeMonto(entry, monto) {
-            const numericMonto = this.toNumber(monto, 0) ?? 0;
-            const limit = entry.pendingDebt ?? entry.projectedAmount ?? null;
-
-            let sanitized = Math.max(numericMonto, 0);
-
-            if (limit !== null && Number.isFinite(limit)) {
-                sanitized = Math.min(sanitized, limit);
-            }
-
-            return this.roundCurrency(sanitized);
-        },
-
-        buildEntry(cliente) {
-            if (!cliente || typeof cliente !== 'object') {
-                return null;
-            }
-
-            const clientId = this.resolveId(cliente);
-            if (clientId === null) {
-                return null;
-            }
-
-            const pago = this.resolvePago(cliente);
-            if (!pago || typeof pago !== 'object') {
-                return null;
-            }
-
-            const pagoId = this.resolveId(pago) ?? this.resolveId(pago?.pago_proyectado_id);
-            if (pagoId === null) {
-                return null;
-            }
-
-            const projectedRaw = this.toNumber(
-                pago.monto_proyectado ??
-                    pago.monto ??
-                    pago.monto_total ??
-                    cliente.monto_semanal ??
-                    cliente.amount ??
-                    cliente.deuda_total,
-                0
-            ) ?? 0;
-
-            const pendingCandidates = [
-                pago.deuda_vencida ?? null,
-                pago.deuda_total ?? null,
-                pago.deuda ?? null,
-                cliente.deuda_total ?? null,
-                cliente.deuda ?? null,
+        resolveClientAmounts(cliente) {
+            const payment = this.resolvePendingPaymentData(cliente);
+            const amountCandidates = [
+                payment?.deuda_vencida,
+                payment?.deuda_total,
+                payment?.monto_proyectado,
+                cliente?.deuda_total,
+                cliente?.deuda,
+                cliente?.monto_total,
+                cliente?.monto_semanal,
+                cliente?.monto,
             ];
 
-            let pendingRaw = null;
-            for (const candidate of pendingCandidates) {
-                const numeric = this.toNumber(candidate, null);
+            let baseAmount = null;
+
+            for (const candidate of amountCandidates) {
+                const numeric = this.normalizeNumber(candidate);
                 if (numeric !== null) {
-                    pendingRaw = numeric;
+                    baseAmount = numeric;
                     break;
                 }
             }
 
-            const projectedAmount = this.roundCurrency(Math.max(projectedRaw, 0));
-            const pendingDebt = this.roundCurrency(
-                Math.max(pendingRaw !== null ? pendingRaw : projectedAmount, 0)
-            );
-
-            const defaultMonto = pendingDebt > 0 ? pendingDebt : projectedAmount;
+            const amount = baseAmount !== null ? baseAmount : 0;
 
             return {
-                id: clientId,
-                name: this.resolveName(cliente),
-                pagoProyectadoId: pagoId,
-                projectedAmount,
-                pendingDebt,
-                tipo: 'completo',
-                monto: this.roundCurrency(Math.max(defaultMonto, 0)),
+                default: amount,
+                completo: amount,
+                diferido: 0,
             };
+        },
+
+        resolveDefaultType() {
+            return 'completo';
+        },
+
+        buildClientRecord(cliente, id, pagoProyectadoId) {
+            const amounts = this.resolveClientAmounts(cliente);
+            const defaultType = this.normalizeType(this.resolveDefaultType(cliente));
+
+            return {
+                id,
+                pago_proyectado_id: pagoProyectadoId,
+                nombre: this.resolveClientName(cliente),
+                tipo: defaultType,
+                monto: amounts[defaultType] ?? amounts.default ?? 0,
+                montos: amounts,
+            };
+        },
+
+        updateRecordAmountForType(record) {
+            if (!record || typeof record !== 'object') {
+                return;
+            }
+
+            const normalizedType = this.normalizeType(record.tipo);
+            const amounts = record.montos ?? {};
+            const candidate = this.normalizeNumber(amounts[normalizedType]);
+
+            if (candidate !== null) {
+                record.monto = candidate;
+            }
         },
 
         toggle(cliente) {
@@ -233,79 +317,176 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            const existing = this.find(cliente);
-            if (existing) {
-                this.remove(existing.id);
+            const clientId = this.resolveId(cliente);
+            if (clientId === null) {
                 return;
             }
 
-            const entry = this.buildEntry(cliente);
-            if (!entry) {
-                console.warn('No se encontró un pago proyectado pendiente para el cliente seleccionado.', cliente);
+            const existingIndex = this.findIndex(clientId);
+            if (existingIndex !== -1) {
+                this.clients.splice(existingIndex, 1);
                 return;
             }
 
-            this.clients.push(entry);
+            const pagoProyectadoId = this.resolvePagoProyectadoId(cliente);
+            if (pagoProyectadoId === null) {
+                console.warn('No se pudo determinar el pago proyectado para el cliente seleccionado.', cliente);
+                return;
+            }
+
+            const record = this.buildClientRecord(cliente, clientId, pagoProyectadoId);
+            this.clients.push(record);
         },
 
         remove(clienteOrId) {
-            const targetId = this.resolveId(clienteOrId);
-            if (targetId === null) {
+            const index = this.findIndex(clienteOrId);
+            if (index === -1) {
                 return;
             }
 
-            this.clients = this.clients.filter((client) => !this.idsAreEqual(client.id, targetId));
+            this.clients.splice(index, 1);
         },
 
-        setType(clienteOrId, tipo) {
-            const entry = this.find(clienteOrId);
-            if (!entry) {
+        normalizeType(type) {
+            if (typeof type === 'string') {
+                const normalized = type.trim().toLowerCase();
+                if (!normalized.length) {
+                    return 'completo';
+                }
+
+                const mappings = {
+                    full: 'completo',
+                    completo: 'completo',
+                    diferido: 'diferido',
+                    deferred: 'diferido',
+                    diferida: 'diferido',
+                    anticipo: 'anticipo',
+                    parcial: 'anticipo',
+                    partial: 'anticipo',
+                };
+
+                return mappings[normalized] ?? normalized;
+            }
+
+            return 'completo';
+        },
+
+        setType(clienteOrId, type) {
+            const index = this.findIndex(clienteOrId);
+            if (index === -1) {
                 return;
             }
 
-            entry.tipo = tipo;
-
-            if (tipo === 'completo') {
-                entry.monto = this.sanitizeMonto(entry, entry.pendingDebt ?? entry.projectedAmount ?? entry.monto ?? 0);
-            } else if (tipo === 'diferido' && (!entry.monto || entry.monto <= 0)) {
-                entry.monto = this.sanitizeMonto(entry, entry.pendingDebt ?? entry.projectedAmount ?? 0);
-            }
+            const normalized = this.normalizeType(type);
+            this.clients[index].tipo = normalized;
+            this.updateRecordAmountForType(this.clients[index]);
         },
 
-        setMonto(clienteOrId, monto) {
-            const entry = this.find(clienteOrId);
-            if (!entry) {
+        setMonto(clienteOrId, value) {
+            const index = this.findIndex(clienteOrId);
+            if (index === -1) {
                 return;
             }
 
-            entry.monto = this.sanitizeMonto(entry, monto);
+            const numeric = this.normalizeNumber(value);
+            if (numeric === null) {
+                return;
+            }
+
+            this.clients[index].monto = numeric;
         },
 
-        get total() {
-            return this.clients.reduce((sum, client) => sum + (Number(client.monto) || 0), 0);
+        typeLabel(type) {
+            const normalized = this.normalizeType(type);
+            const labels = {
+                completo: 'Completo',
+                diferido: 'Diferido',
+                anticipo: 'Anticipo',
+            };
+
+            if (labels[normalized]) {
+                return labels[normalized];
+            }
+
+            const fallback = normalized.replace(/_/g, ' ').trim();
+            return fallback ? fallback.charAt(0).toUpperCase() + fallback.slice(1) : 'Sin tipo';
+        },
+
+        summaryItemClasses(type) {
+            const normalized = this.normalizeType(type);
+            const mapping = {
+                completo: 'border-emerald-200 bg-emerald-50',
+                diferido: 'border-amber-200 bg-amber-50',
+                anticipo: 'border-sky-200 bg-sky-50',
+            };
+
+            return mapping[normalized] ?? 'border-gray-200 bg-gray-50';
+        },
+
+        summaryTypeTextClasses(type) {
+            const normalized = this.normalizeType(type);
+            const mapping = {
+                completo: 'bg-emerald-100 text-emerald-700',
+                diferido: 'bg-amber-100 text-amber-700',
+                anticipo: 'bg-sky-100 text-sky-700',
+            };
+
+            return mapping[normalized] ?? 'bg-gray-100 text-gray-600';
+        },
+
+        summaryAmountClasses(type) {
+            const normalized = this.normalizeType(type);
+            const mapping = {
+                completo: 'text-emerald-700',
+                diferido: 'text-amber-700',
+                anticipo: 'text-sky-700',
+            };
+
+            return mapping[normalized] ?? 'text-gray-700';
         },
 
         get payload() {
+            const ids = this.clients
+                .map((client) => this.normalizeId(client.pago_proyectado_id))
+                .filter((id) => id !== null);
+
+            const uniqueIds = Array.from(new Set(ids));
+
             return {
-                pagos: this.clients.map((client) => ({
-                    pago_proyectado_id: client.pagoProyectadoId,
-                    tipo: client.tipo,
-                    monto: this.roundCurrency(Number(client.monto) || 0),
-                })),
+                pago_proyectado_ids: uniqueIds,
             };
         },
 
+        get detailedPayload() {
+            const pagos = this.clients
+                .map((client) => {
+                    const pagoId = this.normalizeId(client.pago_proyectado_id);
+                    if (pagoId === null) {
+                        return null;
+                    }
+
+                    const amount = this.normalizeNumber(client.monto);
+                    const monto = amount !== null ? Math.max(amount, 0) : 0;
+
+                    return {
+                        pago_proyectado_id: pagoId,
+                        tipo: this.normalizeType(client.tipo),
+                        monto,
+                    };
+                })
+                .filter(Boolean);
+
+            return { pagos };
+        },
+
         confirm() {
-            if (!this.clients.length) {
+            const { pago_proyectado_ids: ids } = this.payload;
+            if (!ids.length) {
                 return Promise.resolve();
             }
 
-            this.clients.forEach((client) => {
-                client.monto = this.sanitizeMonto(client, client.monto);
-            });
-
             return axios
-                .post('/mobile/promotor/pagos-multiples', this.payload)
+                .post('/mobile/promotor/pagos-multiples', { pago_proyectado_ids: ids })
                 .then((response) => {
                     this.cancel();
                     return response;
