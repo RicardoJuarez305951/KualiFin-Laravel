@@ -711,7 +711,7 @@ class SupervisorController extends Controller
         }
 
         $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
-            ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
             ->orderBy('nombre')
             ->paginate(5);
 
@@ -765,9 +765,10 @@ class SupervisorController extends Controller
             })->filter()->values();
 
             return [
-                'nombre'   => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
-                'dinero'   => $dinero,
-                'clientes' => $items,
+                'nombre'       => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
+                'dias_de_pago' => trim((string) ($p->dias_de_pago ?? '')),
+                'dinero'       => $dinero,
+                'clientes'     => $items,
             ];
         });
 
@@ -791,7 +792,7 @@ class SupervisorController extends Controller
         }
 
         $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
-            ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
             ->orderBy('nombre')
             ->paginate(5);
 
@@ -833,10 +834,11 @@ class SupervisorController extends Controller
             $porcentajeVencido = $baseCreditos > 0 ? round(($dineroVencido / $baseCreditos) * 100) : 0;
 
             return [
-                'nombre'   => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
-                'dinero'   => $dineroVencido,
-                'vencido'  => $porcentajeVencido,
-                'clientes' => $items->values(),
+                'nombre'       => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
+                'dias_de_pago' => trim((string) ($p->dias_de_pago ?? '')),
+                'dinero'       => $dineroVencido,
+                'vencido'      => $porcentajeVencido,
+                'clientes'     => $items->values(),
             ];
         });
 
@@ -860,7 +862,7 @@ class SupervisorController extends Controller
         }
 
         $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
-            ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
             ->orderBy('nombre')
             ->paginate(5);
 
@@ -900,8 +902,9 @@ class SupervisorController extends Controller
             })->values();
 
             return [
-                'nombre'   => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
-                'clientes' => $items,
+                'nombre'       => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
+                'dias_de_pago' => trim((string) ($p->dias_de_pago ?? '')),
+                'clientes'     => $items,
             ];
         });
 
@@ -925,7 +928,7 @@ class SupervisorController extends Controller
         }
 
         $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
-            ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
             ->orderBy('nombre')
             ->paginate(5);
 
@@ -966,10 +969,11 @@ class SupervisorController extends Controller
             $porcentajeFalla = $baseCreditos > 0 ? round(($dineroFalla / $baseCreditos) * 100) : 0;
 
             return [
-                'nombre'   => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
-                'dinero'   => $dineroFalla,
-                'falla'    => $porcentajeFalla,
-                'clientes' => $items->values(),
+                'nombre'       => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
+                'dias_de_pago' => trim((string) ($p->dias_de_pago ?? '')),
+                'dinero'       => $dineroFalla,
+                'falla'        => $porcentajeFalla,
+                'clientes'     => $items->values(),
             ];
         });
 

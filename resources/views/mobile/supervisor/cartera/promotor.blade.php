@@ -3,6 +3,10 @@
     <section class="bg-white rounded-2xl shadow-lg ring-1 ring-gray-900/5 overflow-hidden">
       <div class="p-5">
         <h2 class="text-base font-bold text-gray-900 mb-3">{{ $promotor->nombre }} {{ $promotor->apellido_p }} {{ $promotor->apellido_m }}</h2>
+        @php $diasPago = trim((string) ($promotor->dias_de_pago ?? '')); @endphp
+        @if($diasPago !== '')
+          <p class="text-xs text-gray-500 mb-4">Días de pago: {{ $diasPago }}</p>
+        @endif
         <div class="space-y-3">
           @forelse($clientes as $c)
             <a href="{{ route('mobile.supervisor.cliente_historial', array_merge($supervisorContextQuery ?? [], ['cliente' => $c->id])) }}" class="block rounded-xl border border-gray-100 p-3 shadow-md hover:shadow transition">

@@ -62,9 +62,15 @@
                   <span class="inline-flex items-center justify-center w-6 h-6 text-[11px] font-bold rounded-full bg-indigo-100 text-indigo-700">
                     {{ $loop->iteration }}
                   </span>
-                  <span class="text-sm font-semibold text-gray-900">
-                    {{ $p->nombre }} {{ $p->apellido_p }} {{ $p->apellido_m }}
-                  </span>
+                  <div class="flex flex-col">
+                    <span class="text-sm font-semibold text-gray-900">
+                      {{ $p->nombre }} {{ $p->apellido_p }} {{ $p->apellido_m }}
+                    </span>
+                    @php $diasPago = trim((string) ($p->dias_de_pago ?? '')); @endphp
+                    @if($diasPago !== '')
+                      <span class="text-[11px] text-gray-500">Días de pago: {{ $diasPago }}</span>
+                    @endif
+                  </div>
                 </div>
               </div>
               {{-- Si luego quieres barra de progreso por promotor, calcúlala en el controlador y expón $p->progress --}}
