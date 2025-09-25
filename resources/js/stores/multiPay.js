@@ -18,6 +18,34 @@ document.addEventListener('alpine:init', () => {
             this.lastError = null;
         },
 
+        ensureClientRecord(cliente) {
+            const clientId = this.resolveId(cliente);
+            if (clientId === null) {
+                return { index: -1, record: null };
+            }
+
+            let index = this.findIndex(clientId);
+
+            if (index !== -1) {
+                return { index, record: this.clients[index] };
+            }
+
+            if (!cliente || typeof cliente !== 'object') {
+                return { index: -1, record: null };
+            }
+
+            const pagoProyectadoId = this.resolvePagoProyectadoId(cliente);
+            if (pagoProyectadoId === null) {
+                return { index: -1, record: null };
+            }
+
+            const record = this.buildClientRecord(cliente, clientId, pagoProyectadoId);
+            this.clients.push(record);
+            index = this.clients.length - 1;
+
+            return { index, record };
+        },
+
         normalizeId(value) {
             if (value === null || value === undefined) {
                 return null;
@@ -341,6 +369,45 @@ document.addEventListener('alpine:init', () => {
             this.clients.push(record);
         },
 
+        openCalculator(cliente) {
+            if (!this.active) {
+                return;
+            }
+
+            const { index, record } = this.ensureClientRecord(cliente);
+            if (index === -1 || !record) {
+                console.warn('No se pudo preparar el cliente para el cálculo de multipago.', cliente);
+                return;
+            }
+
+            const calcStore = typeof Alpine !== 'undefined' ? Alpine.store('calc') : null;
+
+            if (!calcStore) {
+                console.warn('No se encontró el store de la calculadora para multipago.');
+                return;
+            }
+
+            const clientName = record.nombre ?? this.resolveClientName(cliente);
+            const initialAmount = record.tipo === 'diferido' ? record.monto : '';
+
+            calcStore.open({
+                client: clientName,
+                initialAmount,
+                context: {
+                    mode: 'multiPay',
+                    clientId: record.id,
+                    pagoProyectadoId: record.pago_proyectado_id,
+                },
+                onAccept: (result) => {
+                    this.applyCalculatorResult(cliente, result);
+                },
+            });
+
+            if (record.tipo === 'diferido') {
+                calcStore.mode = 'deferred';
+            }
+        },
+
         remove(clienteOrId) {
             const index = this.findIndex(clienteOrId);
             if (index === -1) {
@@ -397,6 +464,59 @@ document.addEventListener('alpine:init', () => {
             }
 
             this.clients[index].monto = numeric;
+        },
+
+        applyCalculatorResult(cliente, result = {}) {
+            if (!this.active) {
+                return;
+            }
+
+            const clientId =
+                this.resolveId(cliente)
+                ?? this.normalizeId(result.clientId)
+                ?? this.normalizeId(result?.context?.clientId)
+                ?? this.normalizeId(result?.context?.clienteId)
+                ?? this.normalizeId(result?.context?.id);
+
+            const fallbackClient = cliente && typeof cliente === 'object' ? cliente : null;
+            const { index } = this.ensureClientRecord(fallbackClient ?? clientId);
+
+            const targetIndex = index !== -1 ? index : this.findIndex(clientId);
+
+            if (targetIndex === -1) {
+                console.warn('No se encontró el cliente para actualizar desde la calculadora.', cliente, result);
+                return;
+            }
+
+            const record = this.clients[targetIndex];
+            const rawMode = typeof result.mode === 'string' ? result.mode.trim().toLowerCase() : '';
+            const rawType = typeof result.type === 'string' ? result.type.trim().toLowerCase() : '';
+
+            let targetType = rawType ? this.normalizeType(rawType) : null;
+
+            if (!targetType) {
+                if (rawMode === 'full') {
+                    targetType = 'completo';
+                } else if (rawMode === 'deferred' || rawMode === 'diferido') {
+                    targetType = 'diferido';
+                }
+            }
+
+            if (targetType) {
+                record.tipo = targetType;
+            }
+
+            if (record.tipo === 'diferido') {
+                const numeric = this.normalizeNumber(result.amount ?? result.monto);
+                const safeAmount = numeric !== null ? numeric : 0;
+
+                record.monto = safeAmount;
+                record.montos = { ...(record.montos ?? {}), diferido: safeAmount };
+            } else {
+                this.updateRecordAmountForType(record);
+            }
+
+            this.clients.splice(targetIndex, 1, { ...record });
         },
 
         typeLabel(type) {
