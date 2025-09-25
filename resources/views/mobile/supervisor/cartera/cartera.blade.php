@@ -96,6 +96,21 @@
                     Faltan {{ money_mx($p->faltante_semana ?? 0) }} para alcanzar el objetivo semanal.
                   </p>
                 </div>
+
+                {{-- NUEVO: Progreso de cobranza --}}
+                <div class="pt-2 border-t border-gray-100">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-600">Progreso de cobranza</span>
+                    <span class="text-xs font-semibold text-gray-900">{{ $p->clientes_cobrados ?? 0 }} / {{ $p->total_clientes ?? 0 }}</span>
+                  </div>
+                  <div class="mt-1 h-2 w-full rounded-full bg-gray-200 overflow-hidden">
+                    <div class="h-2 bg-emerald-500" style="width: {{ $p->porcentaje_cobranza ?? 0 }}%;"></div>
+                  </div>
+                  <p class="mt-1 text-xs text-gray-500">
+                    {{ number_format($p->porcentaje_cobranza ?? 0, 0) }}% de clientes cobrados.
+                  </p>
+                </div>
+
               </div>
             </a>
           @empty

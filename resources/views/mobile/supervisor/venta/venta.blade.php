@@ -6,6 +6,12 @@
     function formatCurrency($v) {
         return '$' . number_format($v, 2, '.', ',');
     }
+
+    // Fecha limite obtenida del dia de final de semana
+    use Carbon\Carbon;
+     if (empty($fechaLimite ?? null)) {
+        $fechaLimite = Carbon::now()->endOfWeek(Carbon::FRIDAY)->format('d/m/Y');
+    }
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Venta - Supervisor">
@@ -15,7 +21,7 @@
     <div class="bg-white rounded-2xl shadow-md p-6 grid grid-cols-2 gap-4 text-center">
         <div>
             <p class="text-gray-500 text-sm">
-                Dinero Actual
+                Venta Registrada
             </p>
             <p class="font-bold text-blue-600">
                 {{ formatCurrency($moneyWeeklyNow) }}

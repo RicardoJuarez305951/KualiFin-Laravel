@@ -33,7 +33,7 @@
                     <button
                       type="button"
                       class="px-3 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm transition"
-                      @click="openModal(@js($cliente))">
+                      @click="openFormWithData(@js($cliente))">
                       Revisar
                     </button>
                   </div>
@@ -60,7 +60,7 @@
                     <button
                       type="button"
                       class="px-3 py-1.5 text-xs rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm transition"
-                      @click="openModal(@js($cliente))">
+                      @click="openFormWithData(@js($cliente))">
                       Revisar
                     </button>
                   </div>
@@ -78,7 +78,7 @@
       </div>
     @endforelse
 
-    {{-- MODAL DETALLE --}}
+    {{-- MODAL DETALLE
     <template x-if="showModal">
       <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
         <div class="absolute inset-0 bg-black/40" @click="closeModal()"></div>
@@ -166,7 +166,8 @@
         </div>
       </div>
     </template>
-
+    --}}
+    
     {{-- MODAL FORM (con scroll interno real) --}}
     <template x-if="showFormModal">
       <div class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
@@ -418,6 +419,10 @@
           this.feedback = { show: false, type: 'success', message: '' };
           this.showFormModal = true;
           this.showModal = false;
+        },
+        openFormWithData(data) {
+          this.openModal(data);
+          this.openForm();
         },
         closeForm() {
           this.showFormModal = false;
