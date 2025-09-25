@@ -29,7 +29,6 @@ class BusquedaClientesService
             $pattern = '%' . str_replace(' ', '%', $query) . '%';
 
             $clientes = Cliente::query()
-                ->whereIn('promotor_id', $promotorIds->all())
                 ->where(function ($clienteQuery) use ($pattern) {
                     $clienteQuery
                         ->where('nombre', 'like', $pattern)
@@ -71,7 +70,7 @@ class BusquedaClientesService
                 ->limit(30)
                 ->get();
 
-            $resultados = $clientes->map(fn (Cliente $cliente) => $this->mapBusquedaCliente($cliente, $supervisor));
+            $resultados = $clientes->map(fn (Cliente $cliente) => $this->mapBusquedaCliente($cliente, $promotorIds));
         }
 
         return [
@@ -84,14 +83,12 @@ class BusquedaClientesService
     /**
      * @return array<string, mixed>
      */
-    private function mapBusquedaCliente(Cliente $cliente, ?Supervisor $contextSupervisor): array
+    private function mapBusquedaCliente(Cliente $cliente, Collection $contextPromotorIds): array
     {
         $promotor = $cliente->promotor;
         $supervisor = $promotor?->supervisor;
 
-        $belongsToContext = $contextSupervisor
-            ? ($supervisor?->id === $contextSupervisor->id)
-            : true;
+        $belongsToContext = $contextPromotorIds->contains($cliente->promotor_id);
 
         $credito = $cliente->credito;
         $estadoCredito = $credito?->estado ?? null;
@@ -144,15 +141,10 @@ class BusquedaClientesService
         $supervisorNombre = $this->buildFullName($supervisor, 'Sin supervisor');
         $avalNombre = $aval ? $this->buildFullName($aval, 'Sin aval') : 'Sin aval';
 
-        return [
-            'id' => $cliente->id,
-            'nombre' => $this->buildFullName($cliente, 'Sin nombre'),
-            'estatus_credito' => $estadoCreditoTexto,
-            'supervisor' => $supervisorNombre,
-            'aval' => $avalNombre,
-            'promotor' => $this->buildFullName($promotor, 'Sin promotor'),
-            'puede_detallar' => $belongsToContext,
-            'detalle' => [
+        $detalle = null;
+
+        if ($belongsToContext) {
+            $detalle = [
                 'supervisor' => $supervisorNombre,
                 'estatus_credito' => $estadoCreditoTexto,
                 'cliente' => [
@@ -169,7 +161,18 @@ class BusquedaClientesService
                 'garantias' => $credito?->garantias instanceof Collection
                     ? $credito->garantias->toArray()
                     : collect($credito?->garantias ?? [])->toArray(),
-            ],
+            ];
+        }
+
+        return [
+            'id' => $cliente->id,
+            'nombre' => $this->buildFullName($cliente, 'Sin nombre'),
+            'estatus_credito' => $estadoCreditoTexto,
+            'supervisor' => $supervisorNombre,
+            'aval' => $avalNombre,
+            'promotor' => $this->buildFullName($promotor, 'Sin promotor'),
+            'puede_detallar' => $belongsToContext,
+            'detalle' => $detalle,
         ];
     }
 

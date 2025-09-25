@@ -11,6 +11,7 @@ use App\Models\Supervisor;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Role;
 
 class BusquedaClientesSeeder extends Seeder
@@ -143,7 +144,7 @@ class BusquedaClientesSeeder extends Seeder
 
         $promotorUno = Promotor::updateOrCreate(
             ['user_id' => $promotorUnoUser->id],
-            [
+            array_merge([
                 'supervisor_id' => $supervisorUno->id,
                 'nombre' => 'Pamela',
                 'apellido_p' => 'Jimenez',
@@ -152,15 +153,14 @@ class BusquedaClientesSeeder extends Seeder
                 'colonia' => 'Centro',
                 'venta_proyectada_objetivo' => 60000,
                 'bono' => 0,
-                'dias_de_pago' => 'lunes, jueves',
                 'creado_en' => now(),
                 'actualizado_en' => now(),
-            ]
+            ], $this->promotorScheduleData('lunes, jueves'))
         );
 
         $promotorDos = Promotor::updateOrCreate(
             ['user_id' => $promotorDosUser->id],
-            [
+            array_merge([
                 'supervisor_id' => $supervisorDos->id,
                 'nombre' => 'Pablo',
                 'apellido_p' => 'Ruiz',
@@ -169,10 +169,9 @@ class BusquedaClientesSeeder extends Seeder
                 'colonia' => 'Norte',
                 'venta_proyectada_objetivo' => 50000,
                 'bono' => 0,
-                'dias_de_pago' => 'martes, viernes',
                 'creado_en' => now(),
                 'actualizado_en' => now(),
-            ]
+            ], $this->promotorScheduleData('martes, viernes'))
         );
 
         $clienteUno = Cliente::updateOrCreate(
@@ -277,5 +276,22 @@ class BusquedaClientesSeeder extends Seeder
         foreach (['ejecutivo', 'administrativo', 'supervisor', 'promotor'] as $role) {
             Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
         }
+    }
+
+    private function promotorScheduleData(string $diasPago): array
+    {
+        if (Schema::hasColumn('promotores', 'dias_de_pago')) {
+            return ['dias_de_pago' => $diasPago];
+        }
+
+        $dia = collect(explode(',', $diasPago))
+            ->map(fn ($value) => trim((string) $value))
+            ->filter()
+            ->first();
+
+        return [
+            'dia_de_pago' => $dia ?: null,
+            'hora_de_pago' => null,
+        ];
     }
 }
