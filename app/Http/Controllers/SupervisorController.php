@@ -14,10 +14,13 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Concerns\HandlesSupervisorContext;
+use App\Services\BusquedaClientesService;
 use App\Support\RoleHierarchy;
 
 class SupervisorController extends Controller
 {
+    use HandlesSupervisorContext;
     /*
      * -----------------------------------------------------------------
      * Métodos administrativos
@@ -1267,7 +1270,7 @@ class SupervisorController extends Controller
         return view('mobile.supervisor.cartera.reacreditacion');
     }
 
-    public function busqueda(Request $request)
+    public function busqueda(Request $request, BusquedaClientesService $busquedaService)
     {
         $primaryRole = RoleHierarchy::resolvePrimaryRole($request->user());
         $supervisor = $this->resolveSupervisorContext($request, [
@@ -1278,68 +1281,13 @@ class SupervisorController extends Controller
             abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
         }
 
-        $query = trim((string) $request->query('q', ''));
+        $busqueda = $busquedaService->buscar($request, $supervisor);
 
-        $promotores = $supervisor?->promotores ?? collect();
-        $promotores = $promotores instanceof Collection ? $promotores : collect($promotores);
-        $promotorIds = $promotores->pluck('id');
-
-        $resultados = collect();
-
-        if ($query !== '' && $promotorIds->isNotEmpty()) {
-            $pattern = '%' . str_replace(' ', '%', $query) . '%';
-
-            $clientes = Cliente::query()
-                ->whereIn('promotor_id', $promotorIds->all())
-                ->where(function ($clienteQuery) use ($pattern) {
-                    $clienteQuery
-                        ->where('nombre', 'like', $pattern)
-                        ->orWhere('apellido_p', 'like', $pattern)
-                        ->orWhere('apellido_m', 'like', $pattern)
-                        ->orWhereHas('credito.datoContacto', function ($contactoQuery) use ($pattern) {
-                            $contactoQuery->where(function ($inner) use ($pattern) {
-                                $inner->where('calle', 'like', $pattern)
-                                    ->orWhere('colonia', 'like', $pattern)
-                                    ->orWhere('municipio', 'like', $pattern)
-                                    ->orWhere('estado', 'like', $pattern)
-                                    ->orWhere('cp', 'like', $pattern);
-                            });
-                        });
-                })
-                ->with([
-                    'promotor:id,supervisor_id,nombre,apellido_p,apellido_m',
-                    'promotor.supervisor:id,nombre,apellido_p,apellido_m',
-                    'credito' => function ($creditoQuery) {
-                        $creditoQuery->select(
-                            'creditos.id',
-                            'creditos.cliente_id',
-                            'creditos.estado',
-                            'creditos.monto_total',
-                            'creditos.periodicidad',
-                            'creditos.fecha_inicio',
-                            'creditos.fecha_final'
-                        )
-                            ->with([
-                                'datoContacto:id,credito_id,calle,numero_ext,numero_int,colonia,municipio,estado,cp,tel_fijo,tel_cel',
-                                'avales:id,credito_id,CURP,nombre,apellido_p,apellido_m,telefono,direccion',
-                                'avales.documentos:id,aval_id,tipo_doc,url_s3,nombre_arch',
-                            ]);
-                    },
-                    'documentos:id,cliente_id,credito_id,tipo_doc,url_s3,nombre_arch',
-                ])
-                ->orderBy('nombre')
-                ->orderBy('apellido_p')
-                ->limit(30)
-                ->get();
-
-            $resultados = $clientes->map(fn (Cliente $cliente) => $this->mapBusquedaCliente($cliente, $supervisor));
-        }
-
-        return view('mobile.supervisor.busqueda.busqueda', [
-            'query' => $query,
-            'resultados' => $resultados,
-            'puedeBuscar' => $promotorIds->isNotEmpty(),
-        ]);
+        return view('mobile.supervisor.busqueda.busqueda', array_merge($busqueda, [
+            'role' => $primaryRole,
+            'supervisores' => collect(),
+            'supervisorContextQuery' => $request->attributes->get('supervisor_context_query', []),
+        ]));
     }
 
     public function apertura()
@@ -1412,110 +1360,6 @@ class SupervisorController extends Controller
         if (!$supervisor && !in_array($primaryRole, ['administrativo', 'superadmin'], true)) {
             abort(403, 'Supervisor fuera de tu alcance.');
         }
-    }
-
-    private function shareSupervisorContext(Request $request, ?Supervisor $supervisor): void
-    {
-        $supervisorId = $supervisor?->id;
-        $contextQuery = $supervisorId ? ['supervisor' => $supervisorId] : [];
-
-        $request->attributes->set('acting_supervisor_id', $supervisorId);
-        $request->attributes->set('acting_supervisor', $supervisor);
-        $request->attributes->set('supervisor_context_query', $contextQuery);
-
-        view()->share([
-            'actingSupervisor' => $supervisor,
-            'actingSupervisorId' => $supervisorId,
-            'supervisorContextQuery' => $contextQuery,
-        ]);
-    }
-
-    private function resolveSupervisorContext(Request $request, array $with = []): ?Supervisor
-    {
-        $user = $request->user();
-        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
-        $sessionKey = 'mobile.supervisor_context';
-        $requestedId = (int) $request->query('supervisor');
-
-        $request->attributes->set('acting_supervisor_role', $primaryRole);
-
-        if ($primaryRole === 'supervisor') {
-            $supervisor = Supervisor::query()
-                ->with($with)
-                ->firstWhere('user_id', $user?->id);
-
-            if ($supervisor) {
-                $request->session()->put($sessionKey, $supervisor->id);
-                $this->shareSupervisorContext($request, $supervisor);
-
-                return $supervisor;
-            }
-
-            $request->session()->forget($sessionKey);
-            $this->shareSupervisorContext($request, null);
-
-            return null;
-        }
-
-        $query = Supervisor::query();
-
-        if ($primaryRole === 'ejecutivo') {
-            $ejecutivo = Ejecutivo::firstWhere('user_id', $user?->id);
-            abort_if(!$ejecutivo, 403, 'Perfil de ejecutivo no configurado.');
-
-            $query->where('ejecutivo_id', $ejecutivo->id);
-        } elseif (!in_array($primaryRole, ['administrativo', 'superadmin'], true)) {
-            $request->session()->forget($sessionKey);
-            $this->shareSupervisorContext($request, null);
-
-            return null;
-        }
-
-        $loader = function (int $id) use ($query, $with) {
-            if ($id <= 0) {
-                return null;
-            }
-
-            return (clone $query)->with($with)->find($id);
-        };
-
-        if ($requestedId > 0) {
-            $supervisor = $loader($requestedId);
-            abort_if(!$supervisor, 403, 'Supervisor fuera de tu alcance.');
-
-            $request->session()->put($sessionKey, $supervisor->id);
-            $this->shareSupervisorContext($request, $supervisor);
-
-            return $supervisor;
-        }
-
-        $sessionId = (int) $request->session()->get($sessionKey);
-        if ($sessionId > 0) {
-            $supervisor = $loader($sessionId);
-            if ($supervisor) {
-                $this->shareSupervisorContext($request, $supervisor);
-
-                return $supervisor;
-            }
-
-            $request->session()->forget($sessionKey);
-        }
-
-        $supervisor = (clone $query)->with($with)
-            ->orderBy('nombre')
-            ->orderBy('apellido_p')
-            ->orderBy('apellido_m')
-            ->first();
-
-        if ($supervisor) {
-            $request->session()->put($sessionKey, $supervisor->id);
-        } else {
-            $request->session()->forget($sessionKey);
-        }
-
-        $this->shareSupervisorContext($request, $supervisor);
-
-        return $supervisor;
     }
 
     private function resolveSupervisorsForUser($user): array
@@ -1713,145 +1557,6 @@ class SupervisorController extends Controller
                 'periodicidad' => $credito?->periodicidad,
                 'fecha_inicio' => $fechaInicioCredito,
                 'fecha_final' => $fechaFinalCredito,
-            ],
-        ];
-    }
-
-    private function buildFullName($model, string $default = '—'): string
-    {
-        if (!$model) {
-            return $default;
-        }
-
-        $parts = collect([
-            data_get($model, 'nombre'),
-            data_get($model, 'apellido_p'),
-            data_get($model, 'apellido_m'),
-        ])->filter(function ($value) {
-            return $value !== null && $value !== '';
-        });
-
-        return $parts->isNotEmpty() ? $parts->implode(' ') : $default;
-    }
-
-    private function extractDocumentPreviews($documents): array
-    {
-        $documents = $documents instanceof Collection ? $documents : collect($documents);
-
-        $mapDoc = function ($document) {
-            return [
-                'titulo' => (string) Str::of(data_get($document, 'tipo_doc', 'Documento'))->replace('_', ' ')->title(),
-                'url' => data_get($document, 'url_s3'),
-                'archivo' => data_get($document, 'nombre_arch'),
-            ];
-        };
-
-        $filterKeywords = function (array $keywords) use ($documents, $mapDoc) {
-            return $documents
-                ->filter(function ($document) use ($keywords) {
-                    $type = Str::lower((string) data_get($document, 'tipo_doc', ''));
-                    foreach ($keywords as $keyword) {
-                        if (Str::contains($type, $keyword)) {
-                            return true;
-                        }
-                    }
-
-                    return false;
-                })
-                ->map($mapDoc)
-                ->filter(fn ($doc) => !empty($doc['url']))
-                ->values()
-                ->all();
-        };
-
-        return [
-            'ine' => $filterKeywords(['ine', 'identificacion', 'id']),
-            'comprobante' => $filterKeywords(['domic', 'comprobante']),
-        ];
-    }
-
-    private function mapBusquedaCliente(Cliente $cliente, ?Supervisor $contextSupervisor): array
-    {
-        $promotor = $cliente->promotor;
-        $supervisor = $promotor?->supervisor;
-
-        $belongsToContext = $contextSupervisor
-            ? ($supervisor?->id === $contextSupervisor->id)
-            : true;
-
-        $credito = $cliente->credito;
-        $estadoCredito = $credito?->estado ?? null;
-        $estadoCreditoTexto = $estadoCredito
-            ? (string) Str::of($estadoCredito)->replace('_', ' ')->title()
-            : 'Sin crédito';
-
-        $datoContacto = $credito?->datoContacto;
-        $telefonosCliente = $datoContacto
-            ? collect([$datoContacto->tel_cel, $datoContacto->tel_fijo])->filter()->unique()->values()->all()
-            : [];
-
-        $domicilioCliente = $datoContacto
-            ? collect([
-                trim((string) ($datoContacto->calle ?? '') . ' ' . ($datoContacto->numero_ext ?? '')),
-                $datoContacto->numero_int ? 'Int. ' . $datoContacto->numero_int : null,
-                $datoContacto->colonia,
-                $datoContacto->municipio,
-                $datoContacto->estado,
-                $datoContacto->cp ? 'CP ' . $datoContacto->cp : null,
-            ])->filter()->implode(', ')
-            : null;
-
-        $clienteDocumentos = $cliente->documentos instanceof Collection
-            ? $cliente->documentos
-            : collect($cliente->documentos ?? []);
-
-        $ultimoCreditoId = $credito?->id;
-        $documentosCliente = $ultimoCreditoId
-            ? $clienteDocumentos->where('credito_id', $ultimoCreditoId)
-            : collect();
-
-        $clienteDocs = $this->extractDocumentPreviews($documentosCliente);
-
-        $avales = $credito?->avales instanceof Collection
-            ? $credito->avales
-            : collect($credito?->avales ?? []);
-
-        $aval = $avales->sortByDesc('id')->first();
-
-        $avalDocumentos = $aval && $aval->documentos instanceof Collection
-            ? $aval->documentos
-            : collect($aval?->documentos ?? []);
-
-        $avalDocs = $this->extractDocumentPreviews($avalDocumentos);
-
-        $avalTelefonos = $aval ? collect([$aval->telefono])->filter()->unique()->values()->all() : [];
-        $avalDireccion = $aval?->direccion;
-
-        $supervisorNombre = $this->buildFullName($supervisor, 'Sin supervisor');
-        $avalNombre = $aval ? $this->buildFullName($aval, 'Sin aval') : 'Sin aval';
-
-        return [
-            'id' => $cliente->id,
-            'nombre' => $this->buildFullName($cliente, 'Sin nombre'),
-            'estatus_credito' => $estadoCreditoTexto,
-            'supervisor' => $supervisorNombre,
-            'aval' => $avalNombre,
-            'promotor' => $this->buildFullName($promotor, 'Sin promotor'),
-            'puede_detallar' => $belongsToContext,
-            'detalle' => [
-                'supervisor' => $supervisorNombre,
-                'estatus_credito' => $estadoCreditoTexto,
-                'cliente' => [
-                    'telefonos' => $telefonosCliente,
-                    'domicilio' => $domicilioCliente,
-                    'documentos' => $clienteDocs,
-                ],
-                'aval' => [
-                    'nombre' => $avalNombre,
-                    'telefonos' => $avalTelefonos,
-                    'domicilio' => $avalDireccion,
-                    'documentos' => $avalDocs,
-                ],
             ],
         ];
     }
