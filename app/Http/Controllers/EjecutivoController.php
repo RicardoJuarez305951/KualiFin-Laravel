@@ -1,11 +1,13 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesSupervisorContext;
 use App\Models\Cliente;
 use App\Models\Credito;
 use App\Models\Ejecutivo;
 use App\Models\Promotor;
 use App\Models\Supervisor;
+use App\Services\BusquedaClientesService;
 use App\Support\RoleHierarchy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -13,6 +15,7 @@ use Illuminate\Support\Collection;
 
 class EjecutivoController extends Controller
 {
+    use HandlesSupervisorContext;
     /*
      * -----------------------------------------------------------------
      * Métodos administrativos
@@ -445,9 +448,25 @@ class EjecutivoController extends Controller
         return view('mobile.ejecutivo.venta.desembolso');
     }
     
-    public function busqueda()
+    public function busqueda(Request $request, BusquedaClientesService $busquedaService)
     {
-        return view('mobile.ejecutivo.busqueda.busqueda');
+        $user = $request->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+
+        $supervisor = $this->resolveSupervisorContext($request, [
+            'promotores' => fn ($query) => $query->select('id', 'supervisor_id'),
+        ]);
+
+        $busqueda = $busquedaService->buscar($request, $supervisor);
+
+        $supervisores = $this->buildSupervisorOptionsForBusqueda($request, $primaryRole);
+        $supervisorContextQuery = $request->attributes->get('supervisor_context_query', []);
+
+        return view('mobile.ejecutivo.busqueda.busqueda', array_merge($busqueda, [
+            'role' => $primaryRole,
+            'supervisores' => $supervisores,
+            'supervisorContextQuery' => $supervisorContextQuery,
+        ]));
     }
     
     public function informes()
@@ -458,6 +477,33 @@ class EjecutivoController extends Controller
     public function reportes()
     {
         return view('mobile.ejecutivo.informes.reportes');
+    }
+
+    private function buildSupervisorOptionsForBusqueda(Request $request, string $primaryRole): Collection
+    {
+        $query = Supervisor::query()
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'ejecutivo_id')
+            ->orderBy('nombre')
+            ->orderBy('apellido_p')
+            ->orderBy('apellido_m');
+
+        if ($primaryRole === 'ejecutivo') {
+            $ejecutivo = Ejecutivo::firstWhere('user_id', $request->user()?->id);
+            abort_if(!$ejecutivo, 403, 'Perfil de ejecutivo no configurado.');
+
+            $query->where('ejecutivo_id', $ejecutivo->id);
+        }
+
+        return $query->get()->map(function (Supervisor $supervisor) {
+            return [
+                'id' => $supervisor->id,
+                'nombre' => collect([
+                    $supervisor->nombre,
+                    $supervisor->apellido_p,
+                    $supervisor->apellido_m,
+                ])->filter()->implode(' '),
+            ];
+        });
     }
 
     /*
