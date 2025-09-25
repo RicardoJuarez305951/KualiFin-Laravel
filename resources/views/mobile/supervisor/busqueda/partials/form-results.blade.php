@@ -72,7 +72,10 @@
                 @else
                     <div class="space-y-3">
                         @foreach($resultados as $resultado)
-                            @php $detailEnabled = (bool) ($resultado['puede_detallar'] ?? false); @endphp
+                            @php
+                                $detailEnabled = (bool) ($resultado['puede_detallar'] ?? false);
+                                $detalle = $resultado['detalle'] ?? null;
+                            @endphp
                             <div x-data="{ detail: false }" class="border border-gray-200 rounded-xl shadow-sm">
                                 <div class="flex items-start justify-between gap-3 p-3">
                                     <div class="min-w-0 space-y-1">
@@ -103,106 +106,127 @@
                                     </div>
                                 </div>
 
-                                <div x-show="detail" x-cloak @click.self="detail = false" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-                                    <div class="relative w-full max-w-md bg-white rounded-2xl shadow-xl p-5 space-y-4">
-                                        <button
-                                            class="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-                                            @click="detail = false"
-                                            type="button"
-                                        >✕</button>
+                                @if($detailEnabled && $detalle)
+                                    <div x-show="detail" x-cloak @click.self="detail = false" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+                                        <div class="relative w-full max-w-md bg-white rounded-2xl shadow-xl p-5 space-y-4">
+                                            <button
+                                                class="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+                                                @click="detail = false"
+                                                type="button"
+                                            >✕</button>
 
-                                        <div class="space-y-1">
-                                            <h2 class="text-lg font-bold text-gray-900">{{ $resultado['nombre'] }}</h2>
-                                            <p class="text-xs text-gray-600">Supervisor: <span class="font-semibold text-gray-800">{{ $resultado['detalle']['supervisor'] }}</span></p>
-                                            <p class="text-xs text-gray-600">Estatus del crédito: <span class="font-semibold text-gray-800">{{ $resultado['detalle']['estatus_credito'] }}</span></p>
-                                        </div>
-
-                                        <div class="space-y-3">
                                             <div class="space-y-1">
-                                                <h3 class="text-sm font-semibold text-gray-900">Cliente</h3>
-                                                @php
-                                                    $telefonosCliente = collect($resultado['detalle']['cliente']['telefonos'] ?? [])->filter()->implode(', ');
-                                                @endphp
-                                                <p class="text-xs text-gray-600">Teléfono(s): <span class="font-semibold text-gray-800">{{ $telefonosCliente !== '' ? $telefonosCliente : 'Sin teléfono registrado' }}</span></p>
-                                                <p class="text-xs text-gray-600">Domicilio: <span class="font-semibold text-gray-800">{{ $resultado['detalle']['cliente']['domicilio'] ?? 'Sin domicilio registrado' }}</span></p>
-
-                                                <div class="space-y-1">
-                                                    <p class="text-xs font-semibold text-gray-700">INE</p>
-                                                    @php $docsClienteIne = collect($resultado['detalle']['cliente']['documentos']['ine'] ?? []); @endphp
-                                                    @if($docsClienteIne->isEmpty())
-                                                        <p class="text-[11px] text-gray-400">Sin fotografías de INE.</p>
-                                                    @else
-                                                        <div class="grid grid-cols-2 gap-2">
-                                                            @foreach($docsClienteIne as $doc)
-                                                                @if(!empty($doc['url']))
-                                                                    <img src="{{ $doc['url'] }}" alt="INE del cliente" class="rounded-lg object-cover" />
-                                                                @endif
-                                                            @endforeach
-                                                        </div>
-                                                    @endif
-                                                </div>
-
-                                                <div class="space-y-1">
-                                                    <p class="text-xs font-semibold text-gray-700">Comprobante de domicilio</p>
-                                                    @php $docsClienteDom = collect($resultado['detalle']['cliente']['documentos']['comprobante'] ?? []); @endphp
-                                                    @if($docsClienteDom->isEmpty())
-                                                        <p class="text-[11px] text-gray-400">Sin comprobantes de domicilio.</p>
-                                                    @else
-                                                        <div class="grid grid-cols-2 gap-2">
-                                                            @foreach($docsClienteDom as $doc)
-                                                                @if(!empty($doc['url']))
-                                                                    <img src="{{ $doc['url'] }}" alt="Comprobante del cliente" class="rounded-lg object-cover" />
-                                                                @endif
-                                                            @endforeach
-                                                        </div>
-                                                    @endif
-                                                </div>
+                                                <h2 class="text-lg font-bold text-gray-900">{{ $resultado['nombre'] }}</h2>
+                                                <p class="text-xs text-gray-600">Supervisor: <span class="font-semibold text-gray-800">{{ $detalle['supervisor'] ?? 'Sin supervisor' }}</span></p>
+                                                <p class="text-xs text-gray-600">Estatus del crédito: <span class="font-semibold text-gray-800">{{ $detalle['estatus_credito'] ?? 'Sin crédito' }}</span></p>
                                             </div>
 
+                                            <div class="space-y-3">
+                                                <div class="space-y-1">
+                                                    <h3 class="text-sm font-semibold text-gray-900">Cliente</h3>
+                                                    @php
+                                                        $telefonosCliente = collect($detalle['cliente']['telefonos'] ?? [])->filter()->implode(', ');
+                                                    @endphp
+                                                    <p class="text-xs text-gray-600">Teléfono(s): <span class="font-semibold text-gray-800">{{ $telefonosCliente !== '' ? $telefonosCliente : 'Sin teléfono registrado' }}</span></p>
+                                                    <p class="text-xs text-gray-600">Domicilio: <span class="font-semibold text-gray-800">{{ $detalle['cliente']['domicilio'] ?? 'Sin domicilio registrado' }}</span></p>
+
+                                                    <div class="space-y-1">
+                                                        <p class="text-xs font-semibold text-gray-700">INE</p>
+                                                        @php $docsClienteIne = collect($detalle['cliente']['documentos']['ine'] ?? []); @endphp
+                                                        @if($docsClienteIne->isEmpty())
+                                                            <p class="text-[11px] text-gray-400">Sin fotografías de INE.</p>
+                                                        @else
+                                                            <div class="grid grid-cols-2 gap-2">
+                                                                @foreach($docsClienteIne as $doc)
+                                                                    @if(!empty($doc['url']))
+                                                                        <img src="{{ $doc['url'] }}" alt="INE del cliente" class="rounded-lg object-cover" />
+                                                                    @endif
+                                                                @endforeach
+                                                            </div>
+                                                        @endif
+                                                    </div>
+
+                                                    <div class="space-y-1">
+                                                        <p class="text-xs font-semibold text-gray-700">Comprobante de domicilio</p>
+                                                        @php $docsClienteDom = collect($detalle['cliente']['documentos']['comprobante'] ?? []); @endphp
+                                                        @if($docsClienteDom->isEmpty())
+                                                            <p class="text-[11px] text-gray-400">Sin comprobantes de domicilio.</p>
+                                                        @else
+                                                            <div class="grid grid-cols-2 gap-2">
+                                                                @foreach($docsClienteDom as $doc)
+                                                                    @if(!empty($doc['url']))
+                                                                        <img src="{{ $doc['url'] }}" alt="Comprobante del cliente" class="rounded-lg object-cover" />
+                                                                    @endif
+                                                                @endforeach
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+
+                                                <div class="space-y-1">
+                                                    <h3 class="text-sm font-semibold text-gray-900">Aval</h3>
+                                                    <p class="text-xs text-gray-600">Nombre: <span class="font-semibold text-gray-800">{{ $detalle['aval']['nombre'] ?? 'Sin aval' }}</span></p>
+                                                    @php
+                                                        $telefonosAval = collect($detalle['aval']['telefonos'] ?? [])->filter()->implode(', ');
+                                                    @endphp
+                                                    <p class="text-xs text-gray-600">Teléfono(s): <span class="font-semibold text-gray-800">{{ $telefonosAval !== '' ? $telefonosAval : 'Sin teléfono registrado' }}</span></p>
+                                                    <p class="text-xs text-gray-600">Domicilio: <span class="font-semibold text-gray-800">{{ $detalle['aval']['domicilio'] ?? 'Sin domicilio registrado' }}</span></p>
+
+                                                    <div class="space-y-1">
+                                                        <p class="text-xs font-semibold text-gray-700">INE</p>
+                                                        @php $docsAvalIne = collect($detalle['aval']['documentos']['ine'] ?? []); @endphp
+                                                        @if($docsAvalIne->isEmpty())
+                                                            <p class="text-[11px] text-gray-400">Sin fotografías de INE del aval.</p>
+                                                        @else
+                                                            <div class="grid grid-cols-2 gap-2">
+                                                                @foreach($docsAvalIne as $doc)
+                                                                    @if(!empty($doc['url']))
+                                                                        <img src="{{ $doc['url'] }}" alt="INE del aval" class="rounded-lg object-cover" />
+                                                                    @endif
+                                                                @endforeach
+                                                            </div>
+                                                        @endif
+                                                    </div>
+
+                                                    <div class="space-y-1">
+                                                        <p class="text-xs font-semibold text-gray-700">Comprobante de domicilio</p>
+                                                        @php $docsAvalDom = collect($detalle['aval']['documentos']['comprobante'] ?? []); @endphp
+                                                        @if($docsAvalDom->isEmpty())
+                                                            <p class="text-[11px] text-gray-400">Sin comprobantes de domicilio del aval.</p>
+                                                        @else
+                                                            <div class="grid grid-cols-2 gap-2">
+                                                                @foreach($docsAvalDom as $doc)
+                                                                    @if(!empty($doc['url']))
+                                                                        <img src="{{ $doc['url'] }}" alt="Comprobante del aval" class="rounded-lg object-cover" />
+                                                                    @endif
+                                                                @endforeach
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </div>
                                             <div class="space-y-1">
-                                                <h3 class="text-sm font-semibold text-gray-900">Aval</h3>
-                                                <p class="text-xs text-gray-600">Nombre: <span class="font-semibold text-gray-800">{{ $resultado['detalle']['aval']['nombre'] }}</span></p>
-                                                @php
-                                                    $telefonosAval = collect($resultado['detalle']['aval']['telefonos'] ?? [])->filter()->implode(', ');
-                                                @endphp
-                                                <p class="text-xs text-gray-600">Teléfono(s): <span class="font-semibold text-gray-800">{{ $telefonosAval !== '' ? $telefonosAval : 'Sin teléfono registrado' }}</span></p>
-                                                <p class="text-xs text-gray-600">Domicilio: <span class="font-semibold text-gray-800">{{ $resultado['detalle']['aval']['domicilio'] ?? 'Sin domicilio registrado' }}</span></p>
-
-                                                <div class="space-y-1">
-                                                    <p class="text-xs font-semibold text-gray-700">INE</p>
-                                                    @php $docsAvalIne = collect($resultado['detalle']['aval']['documentos']['ine'] ?? []); @endphp
-                                                    @if($docsAvalIne->isEmpty())
-                                                        <p class="text-[11px] text-gray-400">Sin fotografías de INE del aval.</p>
-                                                    @else
-                                                        <div class="grid grid-cols-2 gap-2">
-                                                            @foreach($docsAvalIne as $doc)
-                                                                @if(!empty($doc['url']))
-                                                                    <img src="{{ $doc['url'] }}" alt="INE del aval" class="rounded-lg object-cover" />
-                                                                @endif
-                                                            @endforeach
-                                                        </div>
-                                                    @endif
-                                                </div>
-
-                                                <div class="space-y-1">
-                                                    <p class="text-xs font-semibold text-gray-700">Comprobante de domicilio</p>
-                                                    @php $docsAvalDom = collect($resultado['detalle']['aval']['documentos']['comprobante'] ?? []); @endphp
-                                                    @if($docsAvalDom->isEmpty())
-                                                        <p class="text-[11px] text-gray-400">Sin comprobantes de domicilio del aval.</p>
-                                                    @else
-                                                        <div class="grid grid-cols-2 gap-2">
-                                                            @foreach($docsAvalDom as $doc)
-                                                                @if(!empty($doc['url']))
-                                                                    <img src="{{ $doc['url'] }}" alt="Comprobante del aval" class="rounded-lg object-cover" />
-                                                                @endif
-                                                            @endforeach
-                                                        </div>
-                                                    @endif
-                                                </div>
+                                                <h3 class="text-sm font-semibold text-gray-900">Garantías</h3>
+                                                @php $garantias = collect($detalle['garantias'] ?? []); @endphp
+                                                @if($garantias->isEmpty())
+                                                    <p class="text-[11px] text-gray-400">Sin garantías registradas.</p>
+                                                @else
+                                                    <ul class="space-y-1 text-xs text-gray-600">
+                                                        @foreach($garantias as $garantia)
+                                                            <li class="flex items-start gap-2">
+                                                                <span class="text-gray-400">•</span>
+                                                                <span>
+                                                                    <span class="font-semibold text-gray-800">{{ data_get($garantia, 'tipo', 'Garantía') }}:</span>
+                                                                    {{ data_get($garantia, 'descripcion', data_get($garantia, 'marca')) }}
+                                                                </span>
+                                                            </li>
+                                                        @endforeach
+                                                    </ul>
+                                                @endif
+                                            </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                @endif
                             </div>
                         @endforeach
                     </div>

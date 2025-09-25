@@ -39,7 +39,7 @@ beforeEach(function () {
     }
 });
 
-it('permite que un ejecutivo solo vea clientes de sus supervisores asignados', function () {
+it('permite que un ejecutivo identifique clientes ajenos en los resultados', function () {
     $this->seed(BusquedaClientesSeeder::class);
 
     $ejecutivoUser = User::firstWhere('email', 'ejecutivo.busqueda@example.com');
@@ -52,7 +52,9 @@ it('permite que un ejecutivo solo vea clientes de sus supervisores asignados', f
     $response
         ->assertOk()
         ->assertSee('Carolina Miranda', escape: false)
-        ->assertDontSee('Carlos Nava');
+        ->assertSee('Carlos Nava', escape: false)
+        ->assertSee('Asignado a otro supervisor', escape: false)
+        ->assertSee('cursor-not-allowed', escape: false);
 });
 
 it('permite que un administrativo consulte clientes de cualquier supervisor', function () {
