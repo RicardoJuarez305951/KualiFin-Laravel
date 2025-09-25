@@ -1,6 +1,9 @@
 {{-- resources/views/mobile/supervisor/cartera/cartera_activa.blade.php --}}
 
 @php
+    $role = $role ?? 'ejecutivo';
+    $supervisorContextQuery = $supervisorContextQuery ?? [];
+
     // Helper para badge de estatus
     if (!function_exists('badgeClasses')) {
         function badgeClasses($s) {
@@ -117,7 +120,7 @@
             {{ $promotoresPaginator->withQueryString()->links() }}
         </div>
         {{-- <a href="{{ url()->previous() }}" --}}
-        <a href="{{ route("mobile.$role.cartera") }}"
+        <a href="{{ route("mobile.$role.cartera", array_merge($supervisorContextQuery, [])) }}"
         class="flex items-center justify-center rounded-xl border border-gray-300 text-white text-sm font-semibold px-3 py-2 bg-blue-600 hover:bg-blue-700 shadow-sm">
             Regresar
         </a>

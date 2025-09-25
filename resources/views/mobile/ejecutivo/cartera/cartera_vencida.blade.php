@@ -1,5 +1,10 @@
 {{-- resources/views/mobile/supervisor/cartera/cartera_vencida.blade.php --}}
 
+@php
+    $role = $role ?? 'ejecutivo';
+    $supervisorContextQuery = $supervisorContextQuery ?? [];
+@endphp
+
 <x-layouts.mobile.mobile-layout>
     <div x-data class="p-4 space-y-5">
         {{-- Incluimos el modal calculadora --}}
@@ -55,7 +60,7 @@
                                 </button>
 
                                 {{-- Botón Historial --}}
-                                <a href='{{ route("mobile.$role.cliente_historial", $cliente["id"]) }}'
+                                <a href='{{ route("mobile.$role.cliente_historial", array_merge($supervisorContextQuery, ['cliente' => $cliente["id"]])) }}'
                                    class="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500 text-white font-bold hover:bg-amber-600 shadow-sm"
                                    title="Historial">
                                     H
@@ -72,7 +77,7 @@
         </div>
 
         {{-- Botón Regresar --}}
-        <a href="{{ url()->previous() }}"
+        <a href="{{ route("mobile.$role.cartera", array_merge($supervisorContextQuery, [])) }}"
           class="flex items-center justify-center rounded-xl border border-gray-300 text-white text-sm font-semibold px-3 py-2 bg-blue-600 hover:bg-blue-700 shadow-sm">
           Regresar
         </a>

@@ -1,18 +1,23 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesSupervisorContext;
 use App\Models\Cliente;
 use App\Models\Credito;
 use App\Models\Ejecutivo;
+use App\Models\Ejercicio;
 use App\Models\Promotor;
 use App\Models\Supervisor;
+use App\Services\BusquedaClientesService;
 use App\Support\RoleHierarchy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Route;
 
 class EjecutivoController extends Controller
 {
+    use HandlesSupervisorContext;
     /*
      * -----------------------------------------------------------------
      * Métodos administrativos
@@ -184,6 +189,504 @@ class EjecutivoController extends Controller
             'cartera_falla',
             'cartera_inactivaP'
         ));
+    }
+
+    public function cartera_activa(Request $request)
+    {
+        $user = $request->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+
+        $this->resolveEjecutivoContext($primaryRole, $user?->id, (int) $request->query('ejecutivo_id'));
+
+        $supervisor = $this->resolveSupervisorContext($request);
+
+        if (!$supervisor) {
+            $message = $primaryRole === 'ejecutivo'
+                ? 'Perfil de ejecutivo sin supervisores configurados.'
+                : 'Supervisor fuera de tu alcance.';
+
+            abort(403, $message);
+        }
+
+        $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
+            ->orderBy('nombre')
+            ->orderBy('apellido_p')
+            ->orderBy('apellido_m')
+            ->paginate(5);
+
+        $blocks = collect($promotoresPaginator->items())->map(function (Promotor $promotor) {
+            $clientes = Cliente::where('promotor_id', $promotor->id)
+                ->whereHas('credito', fn ($query) => $query->where('estado', 'activo'))
+                ->with([
+                    'credito.pagosProyectados.pagosReales.pagoCompleto',
+                    'credito.pagosProyectados.pagosReales.pagoAnticipo',
+                    'credito.pagosProyectados.pagosReales.pagoDiferido',
+                ])
+                ->get();
+
+            $dinero = 0.0;
+
+            $items = $clientes->map(function (Cliente $cliente) use (&$dinero) {
+                $credito = $cliente->credito;
+
+                if (!$credito) {
+                    return null;
+                }
+
+                $dinero += (float) ($credito->monto_total ?? 0);
+
+                $pagos = $credito->pagosProyectados ?? collect();
+                $pagos = $pagos instanceof Collection ? $pagos : collect($pagos);
+
+                $totalWeeks = $pagos->count();
+                $fechaInicio = $credito->fecha_inicio ? Carbon::parse($credito->fecha_inicio) : null;
+                $currentWeek = ($totalWeeks > 0 && $fechaInicio)
+                    ? min(now()->diffInWeeks($fechaInicio) + 1, $totalWeeks)
+                    : 0;
+
+                $pago = $pagos->firstWhere('semana', $currentWeek);
+                $pagoSemanal = (float) ($pago->monto_proyectado ?? 0);
+                $status = '!';
+
+                if ($pago) {
+                    $fechaLimite = $pago->fecha_limite ? Carbon::parse($pago->fecha_limite) : null;
+                    $primerPago = $pago->pagosReales instanceof Collection
+                        ? $pago->pagosReales->sortBy('fecha_pago')->first()
+                        : null;
+
+                    if ($primerPago && $fechaLimite) {
+                        $fechaPago = Carbon::parse($primerPago->fecha_pago);
+
+                        if ($fechaPago->lt($fechaLimite)) {
+                            $status = 'Ad';
+                        } elseif ($fechaPago->equalTo($fechaLimite)) {
+                            $status = 'V';
+                        } else {
+                            $status = 'F';
+                        }
+                    } elseif ($fechaLimite) {
+                        $status = $fechaLimite->isPast() ? 'F' : '!';
+                    }
+                }
+
+                return [
+                    'id' => $cliente->id,
+                    'nombre' => trim(collect([
+                        $cliente->nombre,
+                        $cliente->apellido_p,
+                        $cliente->apellido_m,
+                    ])->filter()->implode(' ')),
+                    'monto' => (float) ($credito->monto_total ?? 0),
+                    'semana' => $currentWeek,
+                    'pago_semanal' => $pagoSemanal,
+                    'status' => $status,
+                ];
+            })->filter()->values();
+
+            return [
+                'nombre' => trim(collect([
+                    $promotor->nombre,
+                    $promotor->apellido_p,
+                    $promotor->apellido_m,
+                ])->filter()->implode(' ')),
+                'dias_de_pago' => trim((string) ($promotor->dias_de_pago ?? '')),
+                'dinero' => $dinero,
+                'clientes' => $items,
+            ];
+        });
+
+        $supervisorContextQuery = $request->attributes->get('supervisor_context_query', []);
+
+        return view('mobile.ejecutivo.cartera.cartera_activa', [
+            'blocks' => $blocks,
+            'promotoresPaginator' => $promotoresPaginator,
+            'role' => $primaryRole,
+            'supervisorContextQuery' => $supervisorContextQuery,
+        ]);
+    }
+
+    public function cartera_vencida(Request $request)
+    {
+        $user = $request->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+
+        $this->resolveEjecutivoContext($primaryRole, $user?->id, (int) $request->query('ejecutivo_id'));
+
+        $supervisor = $this->resolveSupervisorContext($request);
+
+        if (!$supervisor) {
+            $message = $primaryRole === 'ejecutivo'
+                ? 'Perfil de ejecutivo sin supervisores configurados.'
+                : 'Supervisor fuera de tu alcance.';
+
+            abort(403, $message);
+        }
+
+        $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
+            ->orderBy('nombre')
+            ->orderBy('apellido_p')
+            ->orderBy('apellido_m')
+            ->paginate(5);
+
+        $blocks = collect($promotoresPaginator->items())->map(function (Promotor $promotor) {
+            $clientes = Cliente::where('promotor_id', $promotor->id)
+                ->whereHas('credito', fn ($query) => $query->where('estado', 'vencido'))
+                ->with([
+                    'credito.pagosProyectados.pagosReales.pagoCompleto',
+                    'credito.pagosProyectados.pagosReales.pagoAnticipo',
+                    'credito.pagosProyectados.pagosReales.pagoDiferido',
+                ])
+                ->get();
+
+            $items = collect();
+            $dineroVencido = 0.0;
+            $baseCreditos = 0.0;
+
+            foreach ($clientes as $cliente) {
+                $credito = $cliente->credito;
+
+                if (!$credito) {
+                    continue;
+                }
+
+                $pagos = $credito->pagosProyectados instanceof Collection
+                    ? $credito->pagosProyectados
+                    : collect($credito->pagosProyectados);
+
+                $pagado = (float) $pagos->flatMap(function ($pago) {
+                    return $pago->pagosReales instanceof Collection
+                        ? $pago->pagosReales
+                        : collect($pago->pagosReales);
+                })->sum(fn ($pago) => (float) ($pago->monto ?? 0));
+
+                $proyectado = (float) $pagos->sum(function ($pago) {
+                    return (float) ($pago->monto_proyectado ?? 0);
+                });
+
+                $baseCreditos += (float) ($credito->monto_total ?? 0);
+                $deficit = max(0.0, $proyectado - $pagado);
+
+                if ($deficit > 0) {
+                    $dineroVencido += $deficit;
+                    $estatus = $pagado <= 0 ? 'total' : 'parcial';
+
+                    $items->push([
+                        'id' => $cliente->id,
+                        'nombre' => trim(collect([
+                            $cliente->nombre,
+                            $cliente->apellido_p,
+                            $cliente->apellido_m,
+                        ])->filter()->implode(' ')),
+                        'monto' => $deficit,
+                        'estatus' => $estatus,
+                    ]);
+                }
+            }
+
+            $porcentajeVencido = $baseCreditos > 0
+                ? round(($dineroVencido / max(1e-6, $baseCreditos)) * 100)
+                : 0;
+
+            return [
+                'nombre' => trim(collect([
+                    $promotor->nombre,
+                    $promotor->apellido_p,
+                    $promotor->apellido_m,
+                ])->filter()->implode(' ')),
+                'dias_de_pago' => trim((string) ($promotor->dias_de_pago ?? '')),
+                'dinero' => $dineroVencido,
+                'vencido' => $porcentajeVencido,
+                'clientes' => $items->values(),
+            ];
+        });
+
+        $supervisorContextQuery = $request->attributes->get('supervisor_context_query', []);
+
+        return view('mobile.ejecutivo.cartera.cartera_vencida', [
+            'blocks' => $blocks,
+            'promotoresPaginator' => $promotoresPaginator,
+            'role' => $primaryRole,
+            'supervisorContextQuery' => $supervisorContextQuery,
+        ]);
+    }
+
+    public function cartera_inactiva(Request $request)
+    {
+        $user = $request->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+
+        $this->resolveEjecutivoContext($primaryRole, $user?->id, (int) $request->query('ejecutivo_id'));
+
+        $supervisor = $this->resolveSupervisorContext($request);
+
+        if (!$supervisor) {
+            $message = $primaryRole === 'ejecutivo'
+                ? 'Perfil de ejecutivo sin supervisores configurados.'
+                : 'Supervisor fuera de tu alcance.';
+
+            abort(403, $message);
+        }
+
+        $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
+            ->orderBy('nombre')
+            ->orderBy('apellido_p')
+            ->orderBy('apellido_m')
+            ->paginate(5);
+
+        $blocks = collect($promotoresPaginator->items())->map(function (Promotor $promotor) {
+            $clientes = Cliente::where('promotor_id', $promotor->id)
+                ->where(function ($query) {
+                    $query->where('activo', false)->orWhereNull('activo');
+                })
+                ->with([
+                    'credito.pagosProyectados.pagosReales.pagoCompleto',
+                    'credito.pagosProyectados.pagosReales.pagoAnticipo',
+                    'credito.pagosProyectados.pagosReales.pagoDiferido',
+                    'credito.datoContacto',
+                ])
+                ->get();
+
+            $items = $clientes->map(function (Cliente $cliente) {
+                $credito = $cliente->credito;
+                $dato = $credito?->datoContacto;
+
+                $pagos = $credito?->pagosProyectados instanceof Collection
+                    ? $credito->pagosProyectados
+                    : collect($credito?->pagosProyectados);
+
+                $vencidos = $pagos->filter(function ($pago) {
+                    if (!$pago->fecha_limite) {
+                        return false;
+                    }
+
+                    $fecha = $pago->fecha_limite instanceof Carbon
+                        ? $pago->fecha_limite
+                        : Carbon::parse($pago->fecha_limite);
+
+                    return $fecha->isPast();
+                });
+
+                $proyectado = (float) $vencidos->sum(fn ($pago) => (float) ($pago->monto_proyectado ?? 0));
+                $pagado = (float) $vencidos->flatMap(function ($pago) {
+                    return $pago->pagosReales instanceof Collection
+                        ? $pago->pagosReales
+                        : collect($pago->pagosReales);
+                })->sum(fn ($pago) => (float) ($pago->monto ?? 0));
+
+                $direccion = $dato ? collect([
+                    trim(($dato->calle ?? '') . ' ' . ($dato->numero_ext ?? '')),
+                    $dato->numero_int ? 'Int. ' . $dato->numero_int : null,
+                    $dato->colonia ?? null,
+                    $dato->municipio ?? null,
+                    $dato->estado ?? null,
+                    $dato->cp ? 'CP ' . $dato->cp : null,
+                ])->filter()->implode(', ') : null;
+
+                return [
+                    'nombre' => trim(collect([
+                        $cliente->nombre,
+                        $cliente->apellido_p,
+                        $cliente->apellido_m,
+                    ])->filter()->implode(' ')),
+                    'curp' => $cliente->CURP,
+                    'fecha_nac' => $cliente->fecha_nacimiento
+                        ? Carbon::parse($cliente->fecha_nacimiento)->format('Y-m-d')
+                        : null,
+                    'direccion' => $direccion,
+                    'ultimo_credito' => $credito?->fecha_inicio
+                        ? Carbon::parse($credito->fecha_inicio)->format('Y-m-d')
+                        : null,
+                    'monto_credito' => $credito?->monto_total ? (float) $credito->monto_total : 0.0,
+                    'telefono' => $dato->tel_cel ?? $dato->tel_fijo ?? null,
+                    'fallas' => $proyectado > $pagado
+                        ? $vencidos->count()
+                        : 0,
+                ];
+            })->values();
+
+            return [
+                'nombre' => trim(collect([
+                    $promotor->nombre,
+                    $promotor->apellido_p,
+                    $promotor->apellido_m,
+                ])->filter()->implode(' ')),
+                'dias_de_pago' => trim((string) ($promotor->dias_de_pago ?? '')),
+                'clientes' => $items,
+            ];
+        });
+
+        $supervisorContextQuery = $request->attributes->get('supervisor_context_query', []);
+
+        return view('mobile.ejecutivo.cartera.cartera_inactiva', [
+            'blocks' => $blocks,
+            'promotoresPaginator' => $promotoresPaginator,
+            'role' => $primaryRole,
+            'supervisorContextQuery' => $supervisorContextQuery,
+        ]);
+    }
+
+    public function cartera_falla(Request $request)
+    {
+        $user = $request->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+
+        $this->resolveEjecutivoContext($primaryRole, $user?->id, (int) $request->query('ejecutivo_id'));
+
+        $supervisor = $this->resolveSupervisorContext($request);
+
+        if (!$supervisor) {
+            $message = $primaryRole === 'ejecutivo'
+                ? 'Perfil de ejecutivo sin supervisores configurados.'
+                : 'Supervisor fuera de tu alcance.';
+
+            abort(403, $message);
+        }
+
+        $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
+            ->orderBy('nombre')
+            ->orderBy('apellido_p')
+            ->orderBy('apellido_m')
+            ->paginate(5);
+
+        $blocks = collect($promotoresPaginator->items())->map(function (Promotor $promotor) {
+            $clientes = Cliente::where('promotor_id', $promotor->id)
+                ->with([
+                    'credito.pagosProyectados.pagosReales.pagoCompleto',
+                    'credito.pagosProyectados.pagosReales.pagoAnticipo',
+                    'credito.pagosProyectados.pagosReales.pagoDiferido',
+                ])
+                ->get();
+
+            $items = collect();
+            $dineroFalla = 0.0;
+            $baseCreditos = 0.0;
+
+            foreach ($clientes as $cliente) {
+                $credito = $cliente->credito;
+
+                if (!$credito) {
+                    continue;
+                }
+
+                $pagos = $credito->pagosProyectados instanceof Collection
+                    ? $credito->pagosProyectados
+                    : collect($credito->pagosProyectados);
+
+                $pagado = (float) $pagos->flatMap(function ($pago) {
+                    return $pago->pagosReales instanceof Collection
+                        ? $pago->pagosReales
+                        : collect($pago->pagosReales);
+                })->sum(fn ($pago) => (float) ($pago->monto ?? 0));
+
+                $proyectado = (float) $pagos->sum(function ($pago) {
+                    return (float) ($pago->monto_proyectado ?? 0);
+                });
+
+                $baseCreditos += (float) ($credito->monto_total ?? 0);
+                $deficit = max(0.0, $proyectado - $pagado);
+
+                if ($deficit <= 0) {
+                    continue;
+                }
+
+                $dineroFalla += $deficit;
+
+                $items->push([
+                    'id' => $cliente->id,
+                    'nombre' => trim(collect([
+                        $cliente->nombre,
+                        $cliente->apellido_p,
+                        $cliente->apellido_m,
+                    ])->filter()->implode(' ')),
+                    'monto' => $deficit,
+                ]);
+            }
+
+            $porcentajeFalla = $baseCreditos > 0
+                ? round(($dineroFalla / max(1e-6, $baseCreditos)) * 100)
+                : 0;
+
+            return [
+                'nombre' => trim(collect([
+                    $promotor->nombre,
+                    $promotor->apellido_p,
+                    $promotor->apellido_m,
+                ])->filter()->implode(' ')),
+                'dias_de_pago' => trim((string) ($promotor->dias_de_pago ?? '')),
+                'dinero' => $dineroFalla,
+                'falla' => $porcentajeFalla,
+                'clientes' => $items->values(),
+            ];
+        });
+
+        $supervisorContextQuery = $request->attributes->get('supervisor_context_query', []);
+
+        return view('mobile.ejecutivo.cartera.cartera_falla', [
+            'blocks' => $blocks,
+            'promotoresPaginator' => $promotoresPaginator,
+            'role' => $primaryRole,
+            'supervisorContextQuery' => $supervisorContextQuery,
+        ]);
+    }
+
+    public function horarios(Request $request)
+    {
+        $user = $request->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+
+        $ejecutivo = $this->resolveEjecutivoContext($primaryRole, $user?->id, (int) $request->query('ejecutivo_id'));
+
+        if ($primaryRole === 'ejecutivo') {
+            abort_if(!$ejecutivo, 403, 'Perfil de ejecutivo no configurado.');
+        }
+
+        $supervisor = $this->resolveSupervisorContext($request, [
+            'promotores' => function ($query) {
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago', 'venta_maxima', 'venta_proyectada_objetivo')
+                    ->orderBy('nombre')
+                    ->orderBy('apellido_p')
+                    ->orderBy('apellido_m');
+            },
+        ]);
+
+        $promotores = $supervisor?->promotores ?? collect();
+        $promotores = $promotores instanceof Collection ? $promotores : collect($promotores);
+
+        $promotores = $promotores->map(function (Promotor $promotor) {
+            $promotor->nombre_completo = trim(collect([
+                $promotor->nombre,
+                $promotor->apellido_p,
+                $promotor->apellido_m,
+            ])->filter()->implode(' '));
+
+            return $promotor;
+        })->values();
+
+        $ventaFecha = $supervisor?->id
+            ? Ejercicio::where('supervisor_id', $supervisor->id)
+                ->orderByDesc('fecha_inicio')
+                ->value('fecha_inicio')
+            : null;
+
+        $ventaFecha = $ventaFecha ? Carbon::parse($ventaFecha) : now();
+
+        $supervisorContextQuery = $request->attributes->get('supervisor_context_query', []);
+
+        $definirRoute = Route::has('mobile.supervisor.horarios.definir')
+            ? fn ($promotorId) => route('mobile.supervisor.horarios.definir', array_merge($supervisorContextQuery, ['promotor' => $promotorId]))
+            : fn ($promotorId = null) => '#';
+
+        return view('mobile.ejecutivo.venta.horarios', [
+            'venta_fecha' => $ventaFecha,
+            'promotores' => $promotores,
+            'definirRoute' => $definirRoute,
+            'role' => $primaryRole,
+            'supervisorContextQuery' => $supervisorContextQuery,
+        ]);
     }
 
     private function resolveEjecutivoContext(?string $primaryRole, ?int $userId, int $overrideEjecutivoId = 0): ?Ejecutivo
@@ -445,9 +948,74 @@ class EjecutivoController extends Controller
         return view('mobile.ejecutivo.venta.desembolso');
     }
     
-    public function busqueda()
+    public function busqueda(Request $request, BusquedaClientesService $busquedaService)
     {
-        return view('mobile.ejecutivo.busqueda.busqueda');
+        $user = $request->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+
+        $supervisor = null;
+        $promotoresContext = null;
+        $supervisores = collect();
+        $supervisorContextQuery = [];
+
+        if ($primaryRole === 'ejecutivo') {
+            $ejecutivo = $this->resolveEjecutivoContext($primaryRole, $user?->id, (int) $request->query('ejecutivo_id'));
+            abort_if(!$ejecutivo, 403, 'Perfil de ejecutivo no configurado.');
+
+            $supervisoresAsignados = $ejecutivo->supervisors()
+                ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+                ->with([
+                    'promotores' => fn ($query) => $query->select('id', 'supervisor_id'),
+                ])
+                ->orderBy('nombre')
+                ->orderBy('apellido_p')
+                ->orderBy('apellido_m')
+                ->get();
+
+            $promotoresContext = $supervisoresAsignados
+                ->flatMap(fn (Supervisor $assignedSupervisor) => collect($assignedSupervisor->promotores ?? []))
+                ->filter()
+                ->unique(fn ($promotor) => data_get($promotor, 'id'))
+                ->values();
+
+            $supervisores = $supervisoresAsignados->map(function (Supervisor $assignedSupervisor) {
+                return [
+                    'id' => $assignedSupervisor->id,
+                    'nombre' => collect([
+                        $assignedSupervisor->nombre,
+                        $assignedSupervisor->apellido_p,
+                        $assignedSupervisor->apellido_m,
+                    ])->filter()->implode(' '),
+                ];
+            });
+
+            $request->session()->forget('mobile.supervisor_context');
+
+            $request->attributes->set('acting_supervisor_id', null);
+            $request->attributes->set('acting_supervisor', null);
+            $request->attributes->set('supervisor_context_query', $supervisorContextQuery);
+
+            view()->share([
+                'actingSupervisorId' => null,
+                'actingSupervisor' => null,
+                'supervisorContextQuery' => $supervisorContextQuery,
+            ]);
+        } else {
+            $supervisor = $this->resolveSupervisorContext($request, [
+                'promotores' => fn ($query) => $query->select('id', 'supervisor_id'),
+            ]);
+
+            $supervisores = $this->buildSupervisorOptionsForBusqueda($request, $primaryRole);
+            $supervisorContextQuery = $request->attributes->get('supervisor_context_query', []);
+        }
+
+        $busqueda = $busquedaService->buscar($request, $supervisor, $promotoresContext);
+
+        return view('mobile.ejecutivo.busqueda.busqueda', array_merge($busqueda, [
+            'role' => $primaryRole,
+            'supervisores' => $supervisores,
+            'supervisorContextQuery' => $supervisorContextQuery,
+        ]));
     }
     
     public function informes()

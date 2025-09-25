@@ -60,11 +60,14 @@ class DatabaseSeeder extends Seeder
             AdministrativoSeeder::class,
             TipoDocumentoSeeder::class,
             DocumentoSeeder::class,
+            // CreditoFiltroScenarioSeeder::class,
             UserSeeder::class,
         ]);
 
+        [$superAdminNombre, $superAdminApellidoP, $superAdminApellidoM] = LatinoNameGenerator::person();
         $user = User::factory()->create([
-            'name' => 'Super Admin',
+            // 'name' => sprintf('%s %s %s', $superAdminNombre, $superAdminApellidoP, $superAdminApellidoM),
+            'name' => 'Supervisor User Demo',
             'email' => 'superadmin@example.com',
             'password' => Hash::make('12345'),
             'telefono' => '1234567890',
@@ -72,8 +75,10 @@ class DatabaseSeeder extends Seeder
         ]);
         $user->assignRole('superadmin');
 
+        [$adminNombre, $adminApellidoP, $adminApellidoM] = LatinoNameGenerator::person();
         $user = User::factory()->create([
-            'name' => 'Admin User',
+            // 'name' => sprintf('%s %s %s', $adminNombre, $adminApellidoP, $adminApellidoM),
+            'name' => ('Administrativo User Demo'),
             'email' => 'admin@example.com',
             'password' => Hash::make('12345'),
             'telefono' => '1234567890',
@@ -81,8 +86,10 @@ class DatabaseSeeder extends Seeder
         ]);
         $user->assignRole('administrador');
 
+        [$ejecutivoNombre, $ejecutivoApellidoP, $ejecutivoApellidoM] = LatinoNameGenerator::person();
         $user = User::factory()->create([
-            'name' => 'Ejecutivo User',
+            // 'name' => sprintf('%s %s %s', $ejecutivoNombre, $ejecutivoApellidoP, $ejecutivoApellidoM),
+            'name' => ('Ejecutivo User Demo'),
             'email' => 'ejecutivo@example.com',
             'password' => Hash::make('12345'),
             'telefono' => '0987654321',
@@ -91,9 +98,9 @@ class DatabaseSeeder extends Seeder
         $user->assignRole('ejecutivo');
         $ejecutivo = Ejecutivo::create([
             'user_id' => $user->id,
-            'nombre' => 'Ejecutivo',
-            'apellido_p' => 'User',
-            'apellido_m' => 'Demo',
+            'nombre' => $ejecutivoNombre,
+            'apellido_p' => $ejecutivoApellidoP,
+            'apellido_m' => $ejecutivoApellidoM,
         ]);
 
         $faker = fake();
@@ -129,8 +136,10 @@ class DatabaseSeeder extends Seeder
 
         $faker->unique(true);
 
+        [$supervisorNombre, $supervisorApellidoP, $supervisorApellidoM] = LatinoNameGenerator::person();
         $user = User::factory()->create([
-            'name' => 'Supervisor User',
+            // 'name' => sprintf('%s %s %s', $supervisorNombre, $supervisorApellidoP, $supervisorApellidoM),
+            'name' => ('Supervisor User Demo'),
             'email' => 'supervisor@example.com',
             'password' => Hash::make('12345'),
             'telefono' => '0987654321',
@@ -140,9 +149,9 @@ class DatabaseSeeder extends Seeder
         $supervisor = Supervisor::create([
             'user_id' => $user->id,
             'ejecutivo_id' => $ejecutivo->id,
-            'nombre' => 'Supervisor',
-            'apellido_p' => 'User',
-            'apellido_m' => 'Demo',
+            'nombre' => $supervisorNombre,
+            'apellido_p' => $supervisorApellidoP,
+            'apellido_m' => $supervisorApellidoM,
         ]);
 
         $faker = fake();
@@ -178,28 +187,30 @@ class DatabaseSeeder extends Seeder
 
         $faker->unique(true);
 
+        [$promotorNombre, $promotorApellidoP, $promotorApellidoM] = LatinoNameGenerator::person();
         $user = User::factory()->create([
-            'name' => 'Promotor User',
+            // 'name' => sprintf('%s %s %s', $promotorNombre, $promotorApellidoP, $promotorApellidoM),
+            'name' => ('Promotor User Demo'),
             'email' => 'promotor@example.com',
             'password' => Hash::make('12345'),
             'telefono' => '0987654321',
             'rol' => 'promotor',
         ]);
         $user->assignRole('promotor');
-        $horarioPromotorDemo = $horariosPago[0];
+        $horarioPromotorBase = $horariosPago[0];
 
         $promotor = Promotor::create([
             'user_id' => $user->id,
             'supervisor_id' => $supervisor->id,
-            'nombre' => 'Promotor',
-            'apellido_p' => 'User',
-            'apellido_m' => 'Demo',
+            'nombre' => $promotorNombre,
+            'apellido_p' => $promotorApellidoP,
+            'apellido_m' => $promotorApellidoM,
             'venta_maxima' => 10000,
             'colonia' => 'Centro',
             'venta_proyectada_objetivo' => 5000,
             'bono' => 500,
-            'dia_de_pago' => $horarioPromotorDemo['dia'],
-            'hora_de_pago' => $horarioPromotorDemo['hora'],
+            'dia_de_pago' => $horarioPromotorBase['dia'],
+            'hora_de_pago' => $horarioPromotorBase['hora'],
         ]);
 
         $faker = fake();

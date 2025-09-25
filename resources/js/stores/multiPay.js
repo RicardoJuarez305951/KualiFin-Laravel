@@ -3,6 +3,8 @@ document.addEventListener('alpine:init', () => {
         active: false,
         clients: [],
 
+        lastError: null,
+
         toggleMode() {
             if (this.active) {
                 this.cancel();
@@ -13,6 +15,35 @@ document.addEventListener('alpine:init', () => {
 
         reset() {
             this.clients = [];
+            this.lastError = null;
+        },
+
+        ensureClientRecord(cliente) {
+            const clientId = this.resolveId(cliente);
+            if (clientId === null) {
+                return { index: -1, record: null };
+            }
+
+            let index = this.findIndex(clientId);
+
+            if (index !== -1) {
+                return { index, record: this.clients[index] };
+            }
+
+            if (!cliente || typeof cliente !== 'object') {
+                return { index: -1, record: null };
+            }
+
+            const pagoProyectadoId = this.resolvePagoProyectadoId(cliente);
+            if (pagoProyectadoId === null) {
+                return { index: -1, record: null };
+            }
+
+            const record = this.buildClientRecord(cliente, clientId, pagoProyectadoId);
+            this.clients.push(record);
+            index = this.clients.length - 1;
+
+            return { index, record };
         },
 
         normalizeId(value) {
@@ -273,11 +304,67 @@ document.addEventListener('alpine:init', () => {
 
             const amount = baseAmount !== null ? baseAmount : 0;
 
+            const deferredCandidates = [
+                payment?.monto_proyectado,
+                payment?.monto_pago,
+                payment?.pago_semanal,
+                payment?.monto_semanal,
+                payment?.monto,
+                cliente?.monto_proyectado,
+                cliente?.monto_pago,
+                cliente?.monto_semanal,
+                cliente?.pago_semanal,
+            ];
+
+            let deferredLimit = null;
+
+            for (const candidate of deferredCandidates) {
+                const numeric = this.normalizeNumber(candidate);
+                if (numeric !== null) {
+                    deferredLimit = numeric;
+                    break;
+                }
+            }
+
+            if (deferredLimit === null) {
+                deferredLimit = amount;
+            }
+
             return {
                 default: amount,
                 completo: amount,
-                diferido: 0,
+                diferido: deferredLimit,
+                limites: {
+                    diferido: deferredLimit,
+                },
             };
+        },
+
+        splitMontosYLimites(amounts) {
+            const montos = {};
+            const limites = {};
+
+            if (!amounts || typeof amounts !== 'object' || Array.isArray(amounts)) {
+                return { montos, limites };
+            }
+
+            for (const [key, value] of Object.entries(amounts)) {
+                if (key === 'limites' && value && typeof value === 'object' && !Array.isArray(value)) {
+                    Object.assign(limites, value);
+                    continue;
+                }
+
+                montos[key] = value;
+            }
+
+            if (limites.diferido === undefined && Object.prototype.hasOwnProperty.call(montos, 'diferido')) {
+                const numeric = this.normalizeNumber(montos.diferido);
+                if (numeric !== null) {
+                    limites.diferido = numeric;
+                }
+            }
+
+            return { montos, limites };
         },
 
         resolveDefaultType() {
@@ -286,6 +373,7 @@ document.addEventListener('alpine:init', () => {
 
         buildClientRecord(cliente, id, pagoProyectadoId) {
             const amounts = this.resolveClientAmounts(cliente);
+            const { montos, limites } = this.splitMontosYLimites(amounts);
             const defaultType = this.normalizeType(this.resolveDefaultType(cliente));
 
             return {
@@ -293,8 +381,9 @@ document.addEventListener('alpine:init', () => {
                 pago_proyectado_id: pagoProyectadoId,
                 nombre: this.resolveClientName(cliente),
                 tipo: defaultType,
-                monto: amounts[defaultType] ?? amounts.default ?? 0,
-                montos: amounts,
+                monto: montos[defaultType] ?? montos.default ?? 0,
+                montos,
+                limites,
             };
         },
 
@@ -336,6 +425,51 @@ document.addEventListener('alpine:init', () => {
 
             const record = this.buildClientRecord(cliente, clientId, pagoProyectadoId);
             this.clients.push(record);
+        },
+
+        openCalculator(cliente) {
+            if (!this.active) {
+                return;
+            }
+
+            const { index, record } = this.ensureClientRecord(cliente);
+            if (index === -1 || !record) {
+                console.warn('No se pudo preparar el cliente para el cálculo de multipago.', cliente);
+                return;
+            }
+
+            const calcStore = typeof Alpine !== 'undefined' ? Alpine.store('calc') : null;
+
+            if (!calcStore) {
+                console.warn('No se encontró el store de la calculadora para multipago.');
+                return;
+            }
+
+            const clientName = record.nombre ?? this.resolveClientName(cliente);
+            const initialAmount = record.tipo === 'diferido' ? record.monto : '';
+
+            calcStore.open({
+                client: clientName,
+                initialAmount,
+                context: {
+                    mode: 'multiPay',
+                    clientId: record.id,
+                    pagoProyectadoId: record.pago_proyectado_id,
+                },
+                clientData: {
+                    id: record.id,
+                    tipo: record.tipo,
+                    montos: { ...(record.montos ?? {}) },
+                    limites: { ...(record.limites ?? {}) },
+                },
+            });
+
+            calcStore.mode = record.tipo === 'diferido' ? 'deferred' : null;
+            if (record.tipo === 'diferido') {
+                calcStore.amount = String(record.monto ?? '');
+            } else {
+                calcStore.amount = '';
+            }
         },
 
         remove(clienteOrId) {
@@ -394,6 +528,126 @@ document.addEventListener('alpine:init', () => {
             }
 
             this.clients[index].monto = numeric;
+        },
+
+        applyCalculatorSubmission({ clienteId, tipo, monto, cliente } = {}) {
+            if (!this.active) {
+                return false;
+            }
+
+            const resolvedId = this.resolveId(clienteId ?? cliente);
+            const fallbackClient = cliente && typeof cliente === 'object' ? cliente : null;
+
+            let targetIndex = resolvedId !== null ? this.findIndex(resolvedId) : -1;
+
+            if (targetIndex === -1 && fallbackClient) {
+                const ensured = this.ensureClientRecord(fallbackClient);
+                targetIndex = ensured.index;
+            }
+
+            if (targetIndex === -1) {
+                console.warn('No se encontró el cliente para actualizar desde la calculadora.', clienteId, cliente);
+                return false;
+            }
+
+            const record = { ...this.clients[targetIndex] };
+            const normalizedType = this.normalizeType(tipo ?? record.tipo);
+            record.tipo = normalizedType;
+
+            if (normalizedType === 'diferido') {
+                const limitCandidates = [
+                    record?.limites?.diferido,
+                    record?.montos?.diferido,
+                    record?.montos?.default,
+                ];
+
+                let limit = null;
+
+                for (const candidate of limitCandidates) {
+                    const numeric = this.normalizeNumber(candidate);
+                    if (numeric !== null) {
+                        limit = numeric;
+                        break;
+                    }
+                }
+
+                const amountCandidates = [monto, record?.montos?.diferido, record?.montos?.default];
+                let amountValue = null;
+
+                for (const candidate of amountCandidates) {
+                    const numeric = this.normalizeNumber(candidate);
+                    if (numeric !== null) {
+                        amountValue = numeric;
+                        break;
+                    }
+                }
+
+                const safeAmount = amountValue !== null ? Math.max(amountValue, 0) : 0;
+                const tolerance = 0.005;
+
+                if (limit !== null && safeAmount - limit > tolerance) {
+                    const formatter =
+                        typeof Intl !== 'undefined' && typeof Intl.NumberFormat === 'function'
+                            ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })
+                            : null;
+                    const limitText = formatter ? formatter.format(limit) : `${limit}`;
+                    const message = `El monto diferido no puede exceder el pago proyectado de ${limitText}.`;
+
+                    this.lastError = message;
+
+                    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+                        window.alert(message);
+                    }
+
+                    return false;
+                }
+
+                record.monto = safeAmount;
+                record.montos = { ...(record.montos ?? {}), diferido: safeAmount };
+                record.limites = { ...(record.limites ?? {}) };
+
+                if (record.limites.diferido === undefined || record.limites.diferido === null) {
+                    record.limites.diferido = limit !== null ? limit : safeAmount;
+                }
+
+                this.lastError = null;
+            } else {
+                this.updateRecordAmountForType(record);
+                this.lastError = null;
+            }
+
+            this.clients.splice(targetIndex, 1, { ...record });
+
+            return true;
+        },
+
+        applyCalculatorResult(cliente, result = {}) {
+            const clientId =
+                this.resolveId(cliente)
+                ?? this.normalizeId(result.clientId)
+                ?? this.normalizeId(result?.context?.clientId)
+                ?? this.normalizeId(result?.context?.clienteId)
+                ?? this.normalizeId(result?.context?.id);
+
+            const rawMode = typeof result.mode === 'string' ? result.mode.trim().toLowerCase() : '';
+            const rawType = typeof result.type === 'string' ? result.type.trim().toLowerCase() : '';
+
+            let targetType = rawType ? this.normalizeType(rawType) : null;
+
+            if (!targetType) {
+                if (rawMode === 'full') {
+                    targetType = 'completo';
+                } else if (rawMode === 'deferred' || rawMode === 'diferido') {
+                    targetType = 'diferido';
+                }
+            }
+
+            return this.applyCalculatorSubmission({
+                clienteId: clientId,
+                tipo: targetType ?? undefined,
+                monto: result.amount ?? result.monto,
+                cliente,
+            });
         },
 
         typeLabel(type) {
@@ -480,16 +734,65 @@ document.addEventListener('alpine:init', () => {
         },
 
         confirm() {
-            const { pago_proyectado_ids: ids } = this.payload;
-            if (!ids.length) {
+            const payload = this.detailedPayload;
+            const { pagos } = payload;
+
+            if (!pagos.length) {
                 return Promise.resolve();
             }
 
+            this.lastError = null;
+
             return axios
-                .post('/mobile/promotor/pagos-multiples', { pago_proyectado_ids: ids })
+                .post('/mobile/promotor/pagos-multiples', payload)
                 .then((response) => {
                     this.cancel();
                     return response;
+                })
+                .catch((error) => {
+                    console.error('Error al registrar pagos múltiples.', error);
+
+                    const response = error?.response;
+                    const data = response?.data ?? {};
+                    const baseMessage =
+                        typeof data.message === 'string' && data.message.trim().length
+                            ? data.message.trim()
+                            : 'No se pudieron registrar los pagos seleccionados.';
+
+                    const rawErrors = data?.errors;
+                    let errors = [];
+
+                    if (Array.isArray(rawErrors)) {
+                        errors = rawErrors;
+                    } else if (rawErrors && typeof rawErrors === 'object') {
+                        errors = Object.values(rawErrors).reduce((accumulator, value) => {
+                            if (Array.isArray(value)) {
+                                return accumulator.concat(value);
+                            }
+
+                            if (typeof value === 'string') {
+                                accumulator.push(value);
+                            }
+
+                            return accumulator;
+                        }, []);
+                    }
+
+                    const details = errors
+                        .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+                        .filter(Boolean);
+
+                    const message = details.length
+                        ? `${baseMessage}\n- ${details.join('\n- ')}`
+                        : baseMessage;
+
+                    this.lastError = message;
+
+                    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+                        window.alert(message);
+                    }
+
+                    throw error;
                 });
         },
 

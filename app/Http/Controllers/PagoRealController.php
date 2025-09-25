@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 use App\Models\PagoReal;
 use App\Models\PagoProyectado;
 use App\Models\PagoCompleto;
+use App\Models\PagoDiferido;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class PagoRealController extends Controller
 {
@@ -62,35 +64,112 @@ class PagoRealController extends Controller
 
     public function storeMultiple(Request $request)
     {
-        $data = $request->validate([
-            'pago_proyectado_ids' => ['required', 'array', 'min:1'],
-            'pago_proyectado_ids.*' => ['required', 'integer', 'distinct', 'exists:pagos_proyectados,id'],
+        $validator = Validator::make($request->all(), [
+            'pagos' => ['required', 'array', 'min:1'],
+            'pagos.*.pago_proyectado_id' => ['required', 'integer', 'distinct', 'exists:pagos_proyectados,id'],
+            'pagos.*.tipo' => ['required', 'string', 'in:completo,diferido'],
+            'pagos.*.monto' => ['required', 'numeric', 'min:0'],
+        ], [
+            'pagos.*.monto.min' => 'El monto no puede ser negativo.',
         ]);
+
+        $validator->after(function ($validator) {
+            $pagos = $validator->getData()['pagos'] ?? [];
+
+            foreach ($pagos as $index => $pago) {
+                if (($pago['tipo'] ?? null) !== 'diferido') {
+                    continue;
+                }
+
+                $pagoProyectadoId = $pago['pago_proyectado_id'] ?? null;
+                if (!$pagoProyectadoId) {
+                    continue;
+                }
+
+                $pagoProyectado = PagoProyectado::with([
+                    'pagosReales.pagoCompleto',
+                    'pagosReales.pagoDiferido',
+                    'pagosReales.pagoAnticipo',
+                ])->find($pagoProyectadoId);
+
+                if (!$pagoProyectado) {
+                    continue;
+                }
+
+                $deudaPendiente = $this->calcularDeudaPendiente($pagoProyectado);
+                if ((float) ($pago['monto'] ?? 0) > $deudaPendiente) {
+                    $validator->errors()->add("pagos.$index.monto", 'El monto diferido no puede exceder la deuda pendiente.');
+                }
+            }
+        });
+
+        $data = $validator->validate();
 
         $fechaPago = Carbon::now()->toDateString();
 
         $pagos = DB::transaction(function () use ($data, $fechaPago) {
-            return array_map(function (int $pagoProyectadoId) use ($fechaPago) {
-                $pagoProyectado = PagoProyectado::findOrFail($pagoProyectadoId);
+            return collect($data['pagos'])->map(function (array $pagoData) use ($fechaPago) {
+                $pagoProyectado = PagoProyectado::with([
+                    'pagosReales.pagoCompleto',
+                    'pagosReales.pagoDiferido',
+                    'pagosReales.pagoAnticipo',
+                ])->lockForUpdate()->findOrFail($pagoData['pago_proyectado_id']);
 
                 $pagoReal = PagoReal::create([
                     'pago_proyectado_id' => $pagoProyectado->id,
-                    'tipo' => 'completo',
+                    'tipo' => $pagoData['tipo'],
                     'fecha_pago' => $fechaPago,
                     'comentario' => null,
                 ]);
 
-                $monto = (float) ($pagoProyectado->deuda_total ?? $pagoProyectado->monto_proyectado ?? 0);
+                if ($pagoData['tipo'] === 'completo') {
+                    $monto = $this->calcularDeudaPendiente($pagoProyectado);
 
-                PagoCompleto::create([
-                    'pago_real_id' => $pagoReal->id,
-                    'monto_completo' => round(max($monto, 0), 2),
-                ]);
+                    PagoCompleto::create([
+                        'pago_real_id' => $pagoReal->id,
+                        'monto_completo' => round(max($monto, 0), 2),
+                    ]);
+                } else {
+                    $monto = round((float) $pagoData['monto'], 2);
 
-                return $pagoReal->loadMissing('pagoCompleto');
-            }, $data['pago_proyectado_ids']);
+                    PagoDiferido::create([
+                        'pago_real_id' => $pagoReal->id,
+                        'monto_diferido' => $monto,
+                    ]);
+                }
+
+                return $pagoReal->loadMissing(['pagoCompleto', 'pagoDiferido']);
+            });
         });
 
         return response()->json($pagos, 201);
+    }
+
+    protected function calcularDeudaPendiente(PagoProyectado $pagoProyectado): float
+    {
+        $total = (float) ($pagoProyectado->deuda_total ?? $pagoProyectado->monto_proyectado ?? 0);
+        $pagado = 0.0;
+
+        $pagoProyectado->loadMissing([
+            'pagosReales.pagoCompleto',
+            'pagosReales.pagoDiferido',
+            'pagosReales.pagoAnticipo',
+        ]);
+
+        foreach ($pagoProyectado->pagosReales as $pagoReal) {
+            if ($pagoReal->pagoCompleto) {
+                $pagado += (float) ($pagoReal->pagoCompleto->monto_completo ?? 0);
+            }
+
+            if ($pagoReal->pagoDiferido) {
+                $pagado += (float) ($pagoReal->pagoDiferido->monto_diferido ?? 0);
+            }
+
+            if ($pagoReal->pagoAnticipo) {
+                $pagado += (float) ($pagoReal->pagoAnticipo->monto_anticipo ?? 0);
+            }
+        }
+
+        return max(round($total - $pagado, 2), 0);
     }
 }

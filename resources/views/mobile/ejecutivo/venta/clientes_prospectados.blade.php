@@ -74,7 +74,7 @@
       </div>
     @empty
       <div class="rounded-2xl bg-white border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 shadow-sm">
-        No se encontraron clientes prospectados bajo tu supervisión.
+        No se encontraron clientes prospectados.
       </div>
     @endforelse
 

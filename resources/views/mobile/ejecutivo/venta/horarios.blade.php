@@ -2,12 +2,18 @@
 @php
   use Carbon\Carbon;
   use Illuminate\Support\Str;
+  use Illuminate\Support\Facades\Route;
 
   /** ===== Vars con defaults seguros ===== */
-  $role         = $role ?? 'supervisor';
+  $role         = $role ?? 'ejecutivo';
   $venta_fecha  = $venta_fecha ?? now();         // string|Carbon
-  $promotores   = $promotores ?? collect();      // colección de promotores
-  $definirRoute = fn($id) => route('mobile.supervisor.horarios.definir', $id); // ajusta si usas otra ruta
+  $supervisorContextQuery = $supervisorContextQuery ?? [];
+  $promotores   = $promotores instanceof \Illuminate\Support\Collection ? $promotores : collect($promotores ?? []);      // colección de promotores
+  $definirRoute = $definirRoute ?? function ($id) use ($supervisorContextQuery) {
+      return Route::has('mobile.supervisor.horarios.definir')
+          ? route('mobile.supervisor.horarios.definir', array_merge($supervisorContextQuery, ['promotor' => $id]))
+          : '#';
+  }; // ajusta si usas otra ruta
 
   /** ===== Normaliza fecha a DD/MM/YY ===== */
   try {
@@ -101,7 +107,7 @@
 
     {{-- ===== Botón Regresar (a mobile.index) ===== --}}
     <div class="pt-2">
-      <a href="{{ route('mobile.index') }}" class="inline-flex items-center justify-center rounded-xl font-semibold shadow text-sm px-3 py-2 border border-gray-300 bg-blue-600 text-white hover:bg-blue-700">
+      <a href="{{ route('mobile.'.$role.'.venta', array_merge($supervisorContextQuery, [])) }}" class="inline-flex items-center justify-center rounded-xl font-semibold shadow text-sm px-3 py-2 border border-gray-300 bg-blue-600 text-white hover:bg-blue-700">
         Regresar
       </a>
     </div>
