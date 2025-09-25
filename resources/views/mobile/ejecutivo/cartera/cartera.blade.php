@@ -123,6 +123,23 @@
                   </span>
                 </div>
               </div>
+              
+              {{-- Progreso de cumplimiento --}}
+              <div class="mt-3 space-y-2">
+                <div class="pt-2 border-t border-gray-100">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-600">Progreso de supervisor</span>
+                    <span class="text-xs font-semibold text-gray-900">{{ $s->promotores_cumplidos ?? 0 }} / {{ $s->total_promotores ?? 0 }}</span>
+                  </div>
+                  <div class="mt-1 h-2 w-full rounded-full bg-gray-200 overflow-hidden">
+                    <div class="h-2 bg-emerald-500" style="width: {{ $s->porcentaje_cumplimiento ?? 0 }}%;"></div>
+                  </div>
+                  <p class="mt-1 text-xs text-gray-500">
+                    {{ number_format($s->porcentaje_cumplimiento ?? 0, 0) }}% de meta completada.
+                  </p>
+                </div>
+              </div>
+
             </a>
           @empty
             <p class="text-sm text-gray-500">No hay supervisores registrados.</p>

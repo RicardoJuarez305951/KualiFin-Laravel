@@ -97,7 +97,7 @@
                   </p>
                 </div>
 
-                {{-- NUEVO: Progreso de cobranza --}}
+                {{-- Progreso de cobranza --}}
                 <div class="pt-2 border-t border-gray-100">
                   <div class="flex items-center justify-between">
                     <span class="text-xs text-gray-600">Progreso de cobranza</span>

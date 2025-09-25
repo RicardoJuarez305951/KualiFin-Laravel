@@ -89,19 +89,6 @@
               @empty
                 <p class="px-3 py-4 text-sm text-gray-500 text-center">Sin solicitudes de recredito</p>
               @endforelse
-              
-              <div>
-                {{-- Seccion de Boton Actualizar y Regresar --}}
-                <a href="{{ route("mobile.$role.venta") }}"
-                  class="block text-center py-2 my-2 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
-                  ← Regresar
-                </a>
-                <a href="{{ route("mobile.$role.clientes_prospectados") }}"
-                  class="block text-center py-2 my-2 rounded-2xl bg-gradient-to-r from-gray-600 to-gray-500 text-white font-semibold shadow-lg hover:from-gray-700 hover:to-gray-600 transition">
-                  ↺ Actualizar
-                </a>
-              </div>
-
             </div>
           </div>
         </div>
@@ -161,14 +148,13 @@
             </div>
           </div>
 
-          <div class="mt-5 grid grid-cols-2 gap-3">
-            <a :href="selected.direccion ? `https://maps.google.com/?q=${encodeURIComponent(selected.direccion)}` : '#'" target="_blank"
-               class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold"
-               :class="{ 'opacity-50 pointer-events-none': !selected.direccion }">
-              Ver ubicacion
-            </a>
-            <button class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-                    x-on:click="confirmarProspectados()">Confirmar</button>
+          <div class="mt-5 grid grid-cols-3 gap-3">
+            <button type="button" class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                    x-on:click="confirmarCliente(selected.id)">Confirmar</button>
+            <button type="button" class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold"
+                    x-on:click="rechazarCliente(selected.id)">Rechazar</button>
+            <button type="button" class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-gray-600 hover:bg-gray-700 text-white font-semibold"
+                    x-on:click="closeModal()">Regresar</button>
           </div>
         </div>
       </div>
@@ -280,8 +266,53 @@
           this.showFotos = false;
           this.fotosList = [];
         },
-        confirmarProspectados() {
-          console.log('CONFIRMAR Prospectados', this.selected);
+        confirmarCliente(clienteId) {
+          if (!clienteId) return;
+          
+          const url = `/mobile/supervisor/prospectos/${clienteId}/aprobar`;
+          
+          fetch(url, {
+              method: 'POST',
+              headers: {
+                  'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+              }
+          })
+          .then(response => response.json())
+          .then(data => {
+              console.log('Success:', data);
+              window.location.reload();
+          })
+          .catch((error) => {
+              console.error('Error:', error);
+          });
+          
+          this.closeModal();
+        },
+
+        rechazarCliente(clienteId) {
+          if (!clienteId) return;
+          
+          const url = `/mobile/supervisor/prospectos/${clienteId}/rechazar`;
+          
+          fetch(url, {
+              method: 'POST',
+              headers: {
+                  'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+              }
+          })
+          .then(response => response.json())
+          .then(data => {
+              console.log('Success:', data);
+              window.location.reload();
+          })
+          .catch((error) => {
+              console.error('Error:', error);
+          });
+          
           this.closeModal();
         },
         formatCurrency(value) {
