@@ -31,17 +31,23 @@
                 </span>
             </div>
 
-            <div class="flex items-center space-x-2 ml-2" x-show="!$store.multiPay.active">
+            <div class="flex items-center space-x-2 ml-2">
                 <button
                     class="w-8 h-8 border-2 border-green-500 text-green-500 rounded-full flex items-center justify-center"
                     title="Registrar pago"
-                    @click="$store.calc.open(@js(($c['apellido_p'] ?? $c->apellido_p ?? '') . ' ' . ($c['apellido_m'] ?? $c->apellido_m ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '')))"
+                    @click.stop="$store.multiPay.active
+                        ? $store.multiPay.openCalculator(cliente)
+                        : $store.calc.open(@js(($c['apellido_p'] ?? $c->apellido_p ?? '') . ' ' . ($c['apellido_m'] ?? $c->apellido_m ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '')))
+                    "
                 >
                     $
                 </button>
                 <a href="{{ route('mobile.' . $role . '.cliente_historial', $c['id'] ?? $c->id) }}"
                    class="w-8 h-8 border-2 border-yellow-500 text-yellow-500 rounded-full flex items-center justify-center"
                    title="Historial"
+                   @click.stop
+                   x-show="!$store.multiPay.active"
+                   x-cloak
                 >
                     H
                 </a>
