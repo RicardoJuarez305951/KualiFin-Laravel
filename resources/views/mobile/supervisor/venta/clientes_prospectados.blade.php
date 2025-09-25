@@ -1,4 +1,4 @@
-{{-- resources/views/mobile/supervisor/venta/clientes_supervisados.blade.php --}}
+{{-- resources/views/mobile/supervisor/venta/clientes_prospectados.blade.php --}}
 @php
     if (!function_exists('formatMoneyMx')) {
         function formatMoneyMx($value) {
@@ -19,7 +19,7 @@
           <span class="inline-flex items-center justify-center w-7 h-7 text-[12px] font-bold rounded-full bg-gray-200 text-gray-700">{{ $loop->iteration }}</span>
           <div>
             <p class="text-[15px] font-semibold text-gray-900">{{ $promotor['nombre'] }}</p>
-            <p class="text-[12px] text-gray-500">Clientes supervisados</p>
+            <p class="text-[12px] text-gray-500">Clientes Prospectados</p>
           </div>
         </div>
 

@@ -26,12 +26,7 @@
             <p class="font-bold text-blue-600">
                 {{ formatCurrency($moneyWeeklyNow) }}
             </p>
-            <p class="text-gray-500 text-sm">
-                Dinero Objetivo
-            </p>
-            <p class="font-bold text-red-600">
-                {{ formatCurrency($moneyWeeklyTarget) }}
-            </p>
+            
         </div>
         <div>
             <p class="text-gray-500 text-sm">
