@@ -10,13 +10,14 @@
     $isExecutiveContext = in_array($role, ['ejecutivo', 'administrativo', 'superadmin'], true);
     $searchRoute = $isExecutiveContext ? 'mobile.ejecutivo.busqueda' : 'mobile.supervisor.busqueda';
     $backRoute = $isExecutiveContext ? 'mobile.ejecutivo.index' : 'mobile.supervisor.index';
-    $showSupervisorSelector = $isExecutiveContext && $supervisores->isNotEmpty();
+    $showSupervisorSelector = in_array($role, ['administrativo', 'superadmin'], true) && $supervisores->isNotEmpty();
+    $preservedQueryParams = collect($supervisorContextQuery)->when(!$showSupervisorSelector, fn ($params) => $params->except('supervisor'))->all();
 @endphp
 
 <div class="bg-white rounded-2xl shadow-md p-6 w-full max-w-md space-y-6">
     <h1 class="text-xl font-bold text-gray-900 text-center">Ingresa tu búsqueda</h1>
 
-    <form method="GET" action="{{ route($searchRoute, array_merge($supervisorContextQuery, [])) }}" class="space-y-4">
+    <form method="GET" action="{{ route($searchRoute, $preservedQueryParams) }}" class="space-y-4">
         @if($showSupervisorSelector)
             <div class="space-y-1">
                 <label for="supervisor" class="block text-sm font-semibold text-gray-700">Supervisor</label>
@@ -52,7 +53,7 @@
                 class="flex-1 py-2 bg-blue-800 text-white font-semibold rounded-lg hover:bg-blue-900 shadow-sm"
             >Buscar</button>
             <a
-                href="{{ route($backRoute, array_merge($supervisorContextQuery, [])) }}"
+                href="{{ route($backRoute, $preservedQueryParams) }}"
                 class="flex-1 py-2 text-center bg-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-400"
             >Regresar</a>
         </div>

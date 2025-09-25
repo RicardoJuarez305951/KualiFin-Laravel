@@ -11,17 +11,17 @@ use Illuminate\Support\Str;
 class BusquedaClientesService
 {
     /**
-     * Ejecuta la búsqueda de clientes para el supervisor indicado.
+     * Ejecuta la búsqueda de clientes dentro del contexto solicitado.
      *
+     * @param Collection<int, mixed>|null $promotoresContext
      * @return array{query: string, resultados: Collection<int, array>, puedeBuscar: bool}
      */
-    public function buscar(Request $request, ?Supervisor $supervisor): array
+    public function buscar(Request $request, ?Supervisor $supervisor, ?Collection $promotoresContext = null): array
     {
         $query = trim((string) $request->query('q', ''));
 
-        $promotores = $supervisor?->promotores ?? collect();
-        $promotores = $promotores instanceof Collection ? $promotores : collect($promotores);
-        $promotorIds = $promotores->pluck('id');
+        $promotores = collect($promotoresContext ?? ($supervisor?->promotores ?? []));
+        $promotorIds = $this->resolvePromotorIds($promotores);
 
         $resultados = collect();
 
@@ -78,6 +78,39 @@ class BusquedaClientesService
             'resultados' => $resultados,
             'puedeBuscar' => $promotorIds->isNotEmpty(),
         ];
+    }
+
+    /**
+     * @param Collection<int, mixed> $promotores
+     * @return Collection<int, int>
+     */
+    private function resolvePromotorIds(Collection $promotores): Collection
+    {
+        return $promotores
+            ->map(function ($promotor) {
+                if (is_numeric($promotor)) {
+                    $id = (int) $promotor;
+                } elseif (is_array($promotor)) {
+                    $id = (int) ($promotor['id'] ?? 0);
+                } else {
+                    $idValue = null;
+
+                    if (is_object($promotor)) {
+                        if (method_exists($promotor, 'getKey')) {
+                            $idValue = $promotor->getKey();
+                        } else {
+                            $idValue = data_get($promotor, 'id');
+                        }
+                    }
+
+                    $id = is_numeric($idValue) ? (int) $idValue : 0;
+                }
+
+                return $id > 0 ? $id : null;
+            })
+            ->filter()
+            ->unique()
+            ->values();
     }
 
     /**
