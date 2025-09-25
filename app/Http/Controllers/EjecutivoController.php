@@ -953,14 +953,63 @@ class EjecutivoController extends Controller
         $user = $request->user();
         $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
 
-        $supervisor = $this->resolveSupervisorContext($request, [
-            'promotores' => fn ($query) => $query->select('id', 'supervisor_id'),
-        ]);
+        $supervisor = null;
+        $promotoresContext = null;
+        $supervisores = collect();
+        $supervisorContextQuery = [];
 
-        $busqueda = $busquedaService->buscar($request, $supervisor);
+        if ($primaryRole === 'ejecutivo') {
+            $ejecutivo = $this->resolveEjecutivoContext($primaryRole, $user?->id, (int) $request->query('ejecutivo_id'));
+            abort_if(!$ejecutivo, 403, 'Perfil de ejecutivo no configurado.');
 
-        $supervisores = $this->buildSupervisorOptionsForBusqueda($request, $primaryRole);
-        $supervisorContextQuery = $request->attributes->get('supervisor_context_query', []);
+            $supervisoresAsignados = $ejecutivo->supervisors()
+                ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+                ->with([
+                    'promotores' => fn ($query) => $query->select('id', 'supervisor_id'),
+                ])
+                ->orderBy('nombre')
+                ->orderBy('apellido_p')
+                ->orderBy('apellido_m')
+                ->get();
+
+            $promotoresContext = $supervisoresAsignados
+                ->flatMap(fn (Supervisor $assignedSupervisor) => collect($assignedSupervisor->promotores ?? []))
+                ->filter()
+                ->unique(fn ($promotor) => data_get($promotor, 'id'))
+                ->values();
+
+            $supervisores = $supervisoresAsignados->map(function (Supervisor $assignedSupervisor) {
+                return [
+                    'id' => $assignedSupervisor->id,
+                    'nombre' => collect([
+                        $assignedSupervisor->nombre,
+                        $assignedSupervisor->apellido_p,
+                        $assignedSupervisor->apellido_m,
+                    ])->filter()->implode(' '),
+                ];
+            });
+
+            $request->session()->forget('mobile.supervisor_context');
+
+            $request->attributes->set('acting_supervisor_id', null);
+            $request->attributes->set('acting_supervisor', null);
+            $request->attributes->set('supervisor_context_query', $supervisorContextQuery);
+
+            view()->share([
+                'actingSupervisorId' => null,
+                'actingSupervisor' => null,
+                'supervisorContextQuery' => $supervisorContextQuery,
+            ]);
+        } else {
+            $supervisor = $this->resolveSupervisorContext($request, [
+                'promotores' => fn ($query) => $query->select('id', 'supervisor_id'),
+            ]);
+
+            $supervisores = $this->buildSupervisorOptionsForBusqueda($request, $primaryRole);
+            $supervisorContextQuery = $request->attributes->get('supervisor_context_query', []);
+        }
+
+        $busqueda = $busquedaService->buscar($request, $supervisor, $promotoresContext);
 
         return view('mobile.ejecutivo.busqueda.busqueda', array_merge($busqueda, [
             'role' => $primaryRole,
