@@ -61,7 +61,6 @@ class DatabaseSeeder extends Seeder
             TipoDocumentoSeeder::class,
             DocumentoSeeder::class,
             CreditoFiltroScenarioSeeder::class,
-            FiltrosManualTestSeeder::class,
             UserSeeder::class,
         ]);
 
