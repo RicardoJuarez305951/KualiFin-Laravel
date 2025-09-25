@@ -1294,11 +1294,13 @@ class SupervisorController extends Controller
         }
 
         $busqueda = $busquedaService->buscar($request, $supervisor);
+        $supervisores = $this->buildSupervisorOptionsForBusqueda($request, $primaryRole);
+        $supervisorContextQuery = $request->attributes->get('supervisor_context_query', []);
 
         return view('mobile.supervisor.busqueda.busqueda', array_merge($busqueda, [
             'role' => $primaryRole,
-            'supervisores' => collect(),
-            'supervisorContextQuery' => $request->attributes->get('supervisor_context_query', []),
+            'supervisores' => $supervisores,
+            'supervisorContextQuery' => $supervisorContextQuery,
         ]));
     }
 
