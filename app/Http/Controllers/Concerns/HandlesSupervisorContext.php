@@ -6,6 +6,7 @@ use App\Models\Ejecutivo;
 use App\Models\Supervisor;
 use App\Support\RoleHierarchy;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 trait HandlesSupervisorContext
 {
@@ -111,5 +112,36 @@ trait HandlesSupervisorContext
         $this->shareSupervisorContext($request, $supervisor);
 
         return $supervisor;
+    }
+
+    protected function buildSupervisorOptionsForBusqueda(Request $request, ?string $primaryRole): Collection
+    {
+        if (!in_array($primaryRole, ['ejecutivo', 'administrativo', 'superadmin'], true)) {
+            return collect();
+        }
+
+        $query = Supervisor::query()
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'ejecutivo_id')
+            ->orderBy('nombre')
+            ->orderBy('apellido_p')
+            ->orderBy('apellido_m');
+
+        if ($primaryRole === 'ejecutivo') {
+            $ejecutivo = Ejecutivo::firstWhere('user_id', $request->user()?->id);
+            abort_if(!$ejecutivo, 403, 'Perfil de ejecutivo no configurado.');
+
+            $query->where('ejecutivo_id', $ejecutivo->id);
+        }
+
+        return $query->get()->map(function (Supervisor $supervisor) {
+            return [
+                'id' => $supervisor->id,
+                'nombre' => collect([
+                    $supervisor->nombre,
+                    $supervisor->apellido_p,
+                    $supervisor->apellido_m,
+                ])->filter()->implode(' '),
+            ];
+        });
     }
 }

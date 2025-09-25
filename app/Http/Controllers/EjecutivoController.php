@@ -979,33 +979,6 @@ class EjecutivoController extends Controller
         return view('mobile.ejecutivo.informes.reportes');
     }
 
-    private function buildSupervisorOptionsForBusqueda(Request $request, string $primaryRole): Collection
-    {
-        $query = Supervisor::query()
-            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'ejecutivo_id')
-            ->orderBy('nombre')
-            ->orderBy('apellido_p')
-            ->orderBy('apellido_m');
-
-        if ($primaryRole === 'ejecutivo') {
-            $ejecutivo = Ejecutivo::firstWhere('user_id', $request->user()?->id);
-            abort_if(!$ejecutivo, 403, 'Perfil de ejecutivo no configurado.');
-
-            $query->where('ejecutivo_id', $ejecutivo->id);
-        }
-
-        return $query->get()->map(function (Supervisor $supervisor) {
-            return [
-                'id' => $supervisor->id,
-                'nombre' => collect([
-                    $supervisor->nombre,
-                    $supervisor->apellido_p,
-                    $supervisor->apellido_m,
-                ])->filter()->implode(' '),
-            ];
-        });
-    }
-
     /*
      * -----------------------------------------------------------------
      * Faltan metodos para Cartera Activa, Falla Actual, Cartera Vencida, Cartera Inactiva
