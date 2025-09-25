@@ -252,7 +252,16 @@
                             ></span>
                         </div>
 
-                        <div class="text-right">
+                        <div class="flex flex-col items-end gap-1">
+                            <button
+                                type="button"
+                                class="text-xs text-red-500 hover:text-red-600 font-semibold"
+                                @click.stop="$store.multiPay.remove(cliente.id)"
+                                aria-label="Quitar"
+                            >
+                                X
+                            </button>
+
                             <p
                                 class="text-sm font-semibold"
                                 :class="$store.multiPay.summaryAmountClasses(cliente.tipo)"

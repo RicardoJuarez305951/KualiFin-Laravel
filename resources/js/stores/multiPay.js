@@ -304,11 +304,67 @@ document.addEventListener('alpine:init', () => {
 
             const amount = baseAmount !== null ? baseAmount : 0;
 
+            const deferredCandidates = [
+                payment?.monto_proyectado,
+                payment?.monto_pago,
+                payment?.pago_semanal,
+                payment?.monto_semanal,
+                payment?.monto,
+                cliente?.monto_proyectado,
+                cliente?.monto_pago,
+                cliente?.monto_semanal,
+                cliente?.pago_semanal,
+            ];
+
+            let deferredLimit = null;
+
+            for (const candidate of deferredCandidates) {
+                const numeric = this.normalizeNumber(candidate);
+                if (numeric !== null) {
+                    deferredLimit = numeric;
+                    break;
+                }
+            }
+
+            if (deferredLimit === null) {
+                deferredLimit = amount;
+            }
+
             return {
                 default: amount,
                 completo: amount,
-                diferido: 0,
+                diferido: deferredLimit,
+                limites: {
+                    diferido: deferredLimit,
+                },
             };
+        },
+
+        splitMontosYLimites(amounts) {
+            const montos = {};
+            const limites = {};
+
+            if (!amounts || typeof amounts !== 'object' || Array.isArray(amounts)) {
+                return { montos, limites };
+            }
+
+            for (const [key, value] of Object.entries(amounts)) {
+                if (key === 'limites' && value && typeof value === 'object' && !Array.isArray(value)) {
+                    Object.assign(limites, value);
+                    continue;
+                }
+
+                montos[key] = value;
+            }
+
+            if (limites.diferido === undefined && Object.prototype.hasOwnProperty.call(montos, 'diferido')) {
+                const numeric = this.normalizeNumber(montos.diferido);
+                if (numeric !== null) {
+                    limites.diferido = numeric;
+                }
+            }
+
+            return { montos, limites };
         },
 
         resolveDefaultType() {
@@ -317,6 +373,7 @@ document.addEventListener('alpine:init', () => {
 
         buildClientRecord(cliente, id, pagoProyectadoId) {
             const amounts = this.resolveClientAmounts(cliente);
+            const { montos, limites } = this.splitMontosYLimites(amounts);
             const defaultType = this.normalizeType(this.resolveDefaultType(cliente));
 
             return {
@@ -324,8 +381,9 @@ document.addEventListener('alpine:init', () => {
                 pago_proyectado_id: pagoProyectadoId,
                 nombre: this.resolveClientName(cliente),
                 tipo: defaultType,
-                monto: amounts[defaultType] ?? amounts.default ?? 0,
-                montos: amounts,
+                monto: montos[defaultType] ?? montos.default ?? 0,
+                montos,
+                limites,
             };
         },
 
@@ -398,13 +456,19 @@ document.addEventListener('alpine:init', () => {
                     clientId: record.id,
                     pagoProyectadoId: record.pago_proyectado_id,
                 },
-                onAccept: (result) => {
-                    this.applyCalculatorResult(cliente, result);
+                clientData: {
+                    id: record.id,
+                    tipo: record.tipo,
+                    montos: { ...(record.montos ?? {}) },
+                    limites: { ...(record.limites ?? {}) },
                 },
             });
 
+            calcStore.mode = record.tipo === 'diferido' ? 'deferred' : null;
             if (record.tipo === 'diferido') {
-                calcStore.mode = 'deferred';
+                calcStore.amount = String(record.monto ?? '');
+            } else {
+                calcStore.amount = '';
             }
         },
 
@@ -466,11 +530,98 @@ document.addEventListener('alpine:init', () => {
             this.clients[index].monto = numeric;
         },
 
-        applyCalculatorResult(cliente, result = {}) {
+        applyCalculatorSubmission({ clienteId, tipo, monto, cliente } = {}) {
             if (!this.active) {
-                return;
+                return false;
             }
 
+            const resolvedId = this.resolveId(clienteId ?? cliente);
+            const fallbackClient = cliente && typeof cliente === 'object' ? cliente : null;
+
+            let targetIndex = resolvedId !== null ? this.findIndex(resolvedId) : -1;
+
+            if (targetIndex === -1 && fallbackClient) {
+                const ensured = this.ensureClientRecord(fallbackClient);
+                targetIndex = ensured.index;
+            }
+
+            if (targetIndex === -1) {
+                console.warn('No se encontró el cliente para actualizar desde la calculadora.', clienteId, cliente);
+                return false;
+            }
+
+            const record = { ...this.clients[targetIndex] };
+            const normalizedType = this.normalizeType(tipo ?? record.tipo);
+            record.tipo = normalizedType;
+
+            if (normalizedType === 'diferido') {
+                const limitCandidates = [
+                    record?.limites?.diferido,
+                    record?.montos?.diferido,
+                    record?.montos?.default,
+                ];
+
+                let limit = null;
+
+                for (const candidate of limitCandidates) {
+                    const numeric = this.normalizeNumber(candidate);
+                    if (numeric !== null) {
+                        limit = numeric;
+                        break;
+                    }
+                }
+
+                const amountCandidates = [monto, record?.montos?.diferido, record?.montos?.default];
+                let amountValue = null;
+
+                for (const candidate of amountCandidates) {
+                    const numeric = this.normalizeNumber(candidate);
+                    if (numeric !== null) {
+                        amountValue = numeric;
+                        break;
+                    }
+                }
+
+                const safeAmount = amountValue !== null ? Math.max(amountValue, 0) : 0;
+                const tolerance = 0.005;
+
+                if (limit !== null && safeAmount - limit > tolerance) {
+                    const formatter =
+                        typeof Intl !== 'undefined' && typeof Intl.NumberFormat === 'function'
+                            ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })
+                            : null;
+                    const limitText = formatter ? formatter.format(limit) : `${limit}`;
+                    const message = `El monto diferido no puede exceder el pago proyectado de ${limitText}.`;
+
+                    this.lastError = message;
+
+                    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+                        window.alert(message);
+                    }
+
+                    return false;
+                }
+
+                record.monto = safeAmount;
+                record.montos = { ...(record.montos ?? {}), diferido: safeAmount };
+                record.limites = { ...(record.limites ?? {}) };
+
+                if (record.limites.diferido === undefined || record.limites.diferido === null) {
+                    record.limites.diferido = limit !== null ? limit : safeAmount;
+                }
+
+                this.lastError = null;
+            } else {
+                this.updateRecordAmountForType(record);
+                this.lastError = null;
+            }
+
+            this.clients.splice(targetIndex, 1, { ...record });
+
+            return true;
+        },
+
+        applyCalculatorResult(cliente, result = {}) {
             const clientId =
                 this.resolveId(cliente)
                 ?? this.normalizeId(result.clientId)
@@ -478,17 +629,6 @@ document.addEventListener('alpine:init', () => {
                 ?? this.normalizeId(result?.context?.clienteId)
                 ?? this.normalizeId(result?.context?.id);
 
-            const fallbackClient = cliente && typeof cliente === 'object' ? cliente : null;
-            const { index } = this.ensureClientRecord(fallbackClient ?? clientId);
-
-            const targetIndex = index !== -1 ? index : this.findIndex(clientId);
-
-            if (targetIndex === -1) {
-                console.warn('No se encontró el cliente para actualizar desde la calculadora.', cliente, result);
-                return;
-            }
-
-            const record = this.clients[targetIndex];
             const rawMode = typeof result.mode === 'string' ? result.mode.trim().toLowerCase() : '';
             const rawType = typeof result.type === 'string' ? result.type.trim().toLowerCase() : '';
 
@@ -502,21 +642,12 @@ document.addEventListener('alpine:init', () => {
                 }
             }
 
-            if (targetType) {
-                record.tipo = targetType;
-            }
-
-            if (record.tipo === 'diferido') {
-                const numeric = this.normalizeNumber(result.amount ?? result.monto);
-                const safeAmount = numeric !== null ? numeric : 0;
-
-                record.monto = safeAmount;
-                record.montos = { ...(record.montos ?? {}), diferido: safeAmount };
-            } else {
-                this.updateRecordAmountForType(record);
-            }
-
-            this.clients.splice(targetIndex, 1, { ...record });
+            return this.applyCalculatorSubmission({
+                clienteId: clientId,
+                tipo: targetType ?? undefined,
+                monto: result.amount ?? result.monto,
+                cliente,
+            });
         },
 
         typeLabel(type) {
