@@ -3,6 +3,8 @@ document.addEventListener('alpine:init', () => {
         active: false,
         clients: [],
 
+        lastError: null,
+
         toggleMode() {
             if (this.active) {
                 this.cancel();
@@ -13,6 +15,7 @@ document.addEventListener('alpine:init', () => {
 
         reset() {
             this.clients = [];
+            this.lastError = null;
         },
 
         normalizeId(value) {
@@ -480,16 +483,65 @@ document.addEventListener('alpine:init', () => {
         },
 
         confirm() {
-            const { pago_proyectado_ids: ids } = this.payload;
-            if (!ids.length) {
+            const payload = this.detailedPayload;
+            const { pagos } = payload;
+
+            if (!pagos.length) {
                 return Promise.resolve();
             }
 
+            this.lastError = null;
+
             return axios
-                .post('/mobile/promotor/pagos-multiples', { pago_proyectado_ids: ids })
+                .post('/mobile/promotor/pagos-multiples', payload)
                 .then((response) => {
                     this.cancel();
                     return response;
+                })
+                .catch((error) => {
+                    console.error('Error al registrar pagos múltiples.', error);
+
+                    const response = error?.response;
+                    const data = response?.data ?? {};
+                    const baseMessage =
+                        typeof data.message === 'string' && data.message.trim().length
+                            ? data.message.trim()
+                            : 'No se pudieron registrar los pagos seleccionados.';
+
+                    const rawErrors = data?.errors;
+                    let errors = [];
+
+                    if (Array.isArray(rawErrors)) {
+                        errors = rawErrors;
+                    } else if (rawErrors && typeof rawErrors === 'object') {
+                        errors = Object.values(rawErrors).reduce((accumulator, value) => {
+                            if (Array.isArray(value)) {
+                                return accumulator.concat(value);
+                            }
+
+                            if (typeof value === 'string') {
+                                accumulator.push(value);
+                            }
+
+                            return accumulator;
+                        }, []);
+                    }
+
+                    const details = errors
+                        .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+                        .filter(Boolean);
+
+                    const message = details.length
+                        ? `${baseMessage}\n- ${details.join('\n- ')}`
+                        : baseMessage;
+
+                    this.lastError = message;
+
+                    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+                        window.alert(message);
+                    }
+
+                    throw error;
                 });
         },
 
