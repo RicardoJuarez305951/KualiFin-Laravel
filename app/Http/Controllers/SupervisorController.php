@@ -385,7 +385,7 @@ class SupervisorController extends Controller
 
         $supervisor = $this->resolveSupervisorContext($request, [
             'promotores' => function ($query) {
-                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago', 'venta_maxima', 'venta_proyectada_objetivo')
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'dia_de_pago', 'hora_de_pago', 'venta_maxima', 'venta_proyectada_objetivo')
                     ->orderBy('nombre')
                     ->orderBy('apellido_p')
                     ->orderBy('apellido_m');
@@ -443,7 +443,8 @@ class SupervisorController extends Controller
 
         return view('mobile.supervisor.venta.horarios_definir', [
             'promotor' => $promotor,
-            'diasPago' => trim((string) ($promotor->dias_de_pago ?? '')),
+            'diaPago' => trim((string) ($promotor->dia_de_pago ?? '')),
+            'horaPago' => $promotor->hora_de_pago,
             'supervisorNombre' => $this->buildFullName($promotor->supervisor, 'Sin supervisor'),
         ]);
     }
@@ -460,13 +461,16 @@ class SupervisorController extends Controller
         $this->ensurePromotorBelongsToContext($supervisor, $promotor, $primaryRole);
 
         $validated = $request->validate([
-            'dias_de_pago' => ['nullable', 'string', 'max:100'],
+            'dia_de_pago' => ['required', 'string', 'max:50'],
+            'hora_de_pago' => ['required', 'date_format:H:i'],
         ]);
 
-        $dias = isset($validated['dias_de_pago']) ? trim((string) $validated['dias_de_pago']) : null;
+        $dia = trim((string) ($validated['dia_de_pago'] ?? ''));
+        $hora = $validated['hora_de_pago'] ?? null;
 
         $promotor->forceFill([
-            'dias_de_pago' => $dias !== '' ? $dias : null,
+            'dia_de_pago' => $dia !== '' ? $dia : null,
+            'hora_de_pago' => $hora,
         ])->save();
 
         $supervisorContextQuery = $request->attributes->get('supervisor_context_query', []);
@@ -476,7 +480,7 @@ class SupervisorController extends Controller
                 'mobile.supervisor.horarios.definir',
                 array_merge($supervisorContextQuery, ['promotor' => $promotor->id])
             )
-            ->with('status', 'Los días de pago se actualizaron correctamente.');
+            ->with('status', 'El horario de pago se actualizó correctamente.');
     }
 
     public function ingresar_cliente()
@@ -607,7 +611,7 @@ class SupervisorController extends Controller
 
         $supervisor = $this->resolveSupervisorContext($request, [
             'promotores' => function ($query) {
-                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'dia_de_pago', 'hora_de_pago')
                     ->orderBy('nombre')
                     ->orderBy('apellido_p')
                     ->orderBy('apellido_m');
@@ -985,11 +989,11 @@ class SupervisorController extends Controller
         }
 
         $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
-            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dia_de_pago', 'hora_de_pago')
             ->orderBy('nombre')
             ->paginate(5);
 
-        $blocks = collect($promotoresPaginator->items())->map(function ($p) {
+        $blocks = collect($promotoresPaginator->items())->map(function (Promotor $p) {
             $clientes = Cliente::where('promotor_id', $p->id)
                 ->whereHas('credito', fn($q) => $q->where('estado', 'activo'))
                 ->with(['credito.pagosProyectados.pagosReales.pagoCompleto', 'credito.pagosProyectados.pagosReales.pagoAnticipo', 'credito.pagosProyectados.pagosReales.pagoDiferido'])
@@ -1040,7 +1044,9 @@ class SupervisorController extends Controller
 
             return [
                 'nombre'       => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
-                'dias_de_pago' => trim((string) ($p->dias_de_pago ?? '')),
+                'dia_de_pago'  => trim((string) ($p->dia_de_pago ?? '')),
+                'hora_de_pago' => $p->hora_de_pago,
+                'horario_pago' => $p->horario_pago_resumen,
                 'dinero'       => $dinero,
                 'clientes'     => $items,
             ];
@@ -1066,11 +1072,11 @@ class SupervisorController extends Controller
         }
 
         $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
-            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dia_de_pago', 'hora_de_pago')
             ->orderBy('nombre')
             ->paginate(5);
 
-        $blocks = collect($promotoresPaginator->items())->map(function ($p) {
+        $blocks = collect($promotoresPaginator->items())->map(function (Promotor $p) {
             $clientes = Cliente::where('promotor_id', $p->id)
                 ->with(['credito.pagosProyectados.pagosReales.pagoCompleto', 'credito.pagosProyectados.pagosReales.pagoAnticipo', 'credito.pagosProyectados.pagosReales.pagoDiferido'])
                 ->get();
@@ -1109,7 +1115,9 @@ class SupervisorController extends Controller
 
             return [
                 'nombre'       => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
-                'dias_de_pago' => trim((string) ($p->dias_de_pago ?? '')),
+                'dia_de_pago'  => trim((string) ($p->dia_de_pago ?? '')),
+                'hora_de_pago' => $p->hora_de_pago,
+                'horario_pago' => $p->horario_pago_resumen,
                 'dinero'       => $dineroVencido,
                 'vencido'      => $porcentajeVencido,
                 'clientes'     => $items->values(),
@@ -1136,11 +1144,11 @@ class SupervisorController extends Controller
         }
 
         $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
-            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dia_de_pago', 'hora_de_pago')
             ->orderBy('nombre')
             ->paginate(5);
 
-        $blocks = collect($promotoresPaginator->items())->map(function ($p) {
+        $blocks = collect($promotoresPaginator->items())->map(function (Promotor $p) {
             $clientes = Cliente::where('promotor_id', $p->id)
                 ->where(function ($q) { $q->where('activo', false)->orWhereNull('activo'); })
                 ->with(['credito.pagosProyectados.pagosReales.pagoCompleto', 'credito.pagosProyectados.pagosReales.pagoAnticipo', 'credito.pagosProyectados.pagosReales.pagoDiferido', 'credito.datoContacto'])
@@ -1177,7 +1185,9 @@ class SupervisorController extends Controller
 
             return [
                 'nombre'       => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
-                'dias_de_pago' => trim((string) ($p->dias_de_pago ?? '')),
+                'dia_de_pago'  => trim((string) ($p->dia_de_pago ?? '')),
+                'hora_de_pago' => $p->hora_de_pago,
+                'horario_pago' => $p->horario_pago_resumen,
                 'clientes'     => $items,
             ];
         });
@@ -1202,11 +1212,11 @@ class SupervisorController extends Controller
         }
 
         $promotoresPaginator = Promotor::where('supervisor_id', $supervisor->id)
-            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dias_de_pago')
+            ->select('id', 'nombre', 'apellido_p', 'apellido_m', 'dia_de_pago', 'hora_de_pago')
             ->orderBy('nombre')
             ->paginate(5);
 
-        $blocks = collect($promotoresPaginator->items())->map(function ($p) {
+        $blocks = collect($promotoresPaginator->items())->map(function (Promotor $p) {
             $clientes = Cliente::where('promotor_id', $p->id)
                 ->with(['credito.pagosProyectados.pagosReales.pagoCompleto', 'credito.pagosProyectados.pagosReales.pagoAnticipo', 'credito.pagosProyectados.pagosReales.pagoDiferido'])
                 ->get();
@@ -1244,7 +1254,9 @@ class SupervisorController extends Controller
 
             return [
                 'nombre'       => trim($p->nombre . ' ' . $p->apellido_p . ' ' . ($p->apellido_m ?? '')),
-                'dias_de_pago' => trim((string) ($p->dias_de_pago ?? '')),
+                'dia_de_pago'  => trim((string) ($p->dia_de_pago ?? '')),
+                'hora_de_pago' => $p->hora_de_pago,
+                'horario_pago' => $p->horario_pago_resumen,
                 'dinero'       => $dineroFalla,
                 'falla'        => $porcentajeFalla,
                 'clientes'     => $items->values(),
@@ -1280,17 +1292,13 @@ class SupervisorController extends Controller
 
         $query = trim((string) $request->query('q', ''));
 
-        $promotores = $supervisor?->promotores ?? collect();
-        $promotores = $promotores instanceof Collection ? $promotores : collect($promotores);
-        $promotorIds = $promotores->pluck('id');
+        $resultados = null;
+        $totalResultados = 0;
 
-        $resultados = collect();
-
-        if ($query !== '' && $promotorIds->isNotEmpty()) {
+        if ($query !== '') {
             $pattern = '%' . str_replace(' ', '%', $query) . '%';
 
             $clientes = Cliente::query()
-                ->whereIn('promotor_id', $promotorIds->all())
                 ->where(function ($clienteQuery) use ($pattern) {
                     $clienteQuery
                         ->where('nombre', 'like', $pattern)
@@ -1329,16 +1337,21 @@ class SupervisorController extends Controller
                 ])
                 ->orderBy('nombre')
                 ->orderBy('apellido_p')
-                ->limit(30)
-                ->get();
+                ->paginate(30)
+                ->withQueryString();
 
-            $resultados = $clientes->map(fn (Cliente $cliente) => $this->mapBusquedaCliente($cliente, $supervisor));
+            $clientes->getCollection()->transform(
+                fn (Cliente $cliente) => $this->mapBusquedaCliente($cliente, $supervisor)
+            );
+
+            $resultados = $clientes;
+            $totalResultados = $clientes->total();
         }
 
         return view('mobile.supervisor.busqueda.busqueda', [
             'query' => $query,
             'resultados' => $resultados,
-            'puedeBuscar' => $promotorIds->isNotEmpty(),
+            'totalResultados' => $totalResultados,
         ]);
     }
 
@@ -1351,7 +1364,7 @@ class SupervisorController extends Controller
     {
         $with = [
             'promotores' => function ($query) {
-                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo', 'dias_de_pago')
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo', 'dia_de_pago', 'hora_de_pago')
                     ->with([
                         'clientes' => function ($clienteQuery) {
                             $clienteQuery->select('id', 'promotor_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'fecha_nacimiento', 'tiene_credito_activo', 'monto_maximo', 'horario_de_pago', 'activo')
@@ -1566,7 +1579,7 @@ class SupervisorController extends Controller
     {
         return [
             'promotores' => function ($query) {
-                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo', 'dias_de_pago')
+                $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo', 'dia_de_pago', 'hora_de_pago')
                     ->with(['clientes' => function ($clienteQuery) {
                         $clienteQuery->select('id', 'promotor_id', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'tiene_credito_activo', 'horario_de_pago')
                             ->orderBy('nombre');
@@ -1785,6 +1798,22 @@ class SupervisorController extends Controller
             ? (string) Str::of($estadoCredito)->replace('_', ' ')->title()
             : 'Sin crédito';
 
+        $supervisorNombre = $this->buildFullName($supervisor, 'Sin supervisor');
+
+        $response = [
+            'id' => $cliente->id,
+            'nombre' => $this->buildFullName($cliente, 'Sin nombre'),
+            'estatus_credito' => $estadoCreditoTexto,
+            'supervisor' => $supervisorNombre,
+            'promotor' => $this->buildFullName($promotor, 'Sin promotor'),
+            'puede_detallar' => $belongsToContext,
+            'detalle' => null,
+        ];
+
+        if (!$belongsToContext) {
+            return $response;
+        }
+
         $datoContacto = $credito?->datoContacto;
         $telefonosCliente = $datoContacto
             ? collect([$datoContacto->tel_cel, $datoContacto->tel_fijo])->filter()->unique()->values()->all()
@@ -1826,34 +1855,26 @@ class SupervisorController extends Controller
 
         $avalTelefonos = $aval ? collect([$aval->telefono])->filter()->unique()->values()->all() : [];
         $avalDireccion = $aval?->direccion;
-
-        $supervisorNombre = $this->buildFullName($supervisor, 'Sin supervisor');
         $avalNombre = $aval ? $this->buildFullName($aval, 'Sin aval') : 'Sin aval';
 
-        return [
-            'id' => $cliente->id,
-            'nombre' => $this->buildFullName($cliente, 'Sin nombre'),
-            'estatus_credito' => $estadoCreditoTexto,
+        $response['aval'] = $avalNombre;
+        $response['detalle'] = [
             'supervisor' => $supervisorNombre,
-            'aval' => $avalNombre,
-            'promotor' => $this->buildFullName($promotor, 'Sin promotor'),
-            'puede_detallar' => $belongsToContext,
-            'detalle' => [
-                'supervisor' => $supervisorNombre,
-                'estatus_credito' => $estadoCreditoTexto,
-                'cliente' => [
-                    'telefonos' => $telefonosCliente,
-                    'domicilio' => $domicilioCliente,
-                    'documentos' => $clienteDocs,
-                ],
-                'aval' => [
-                    'nombre' => $avalNombre,
-                    'telefonos' => $avalTelefonos,
-                    'domicilio' => $avalDireccion,
-                    'documentos' => $avalDocs,
-                ],
+            'estatus_credito' => $estadoCreditoTexto,
+            'cliente' => [
+                'telefonos' => $telefonosCliente,
+                'domicilio' => $domicilioCliente,
+                'documentos' => $clienteDocs,
+            ],
+            'aval' => [
+                'nombre' => $avalNombre,
+                'telefonos' => $avalTelefonos,
+                'domicilio' => $avalDireccion,
+                'documentos' => $avalDocs,
             ],
         ];
+
+        return $response;
     }
 
 }

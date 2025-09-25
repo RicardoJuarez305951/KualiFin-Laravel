@@ -54,7 +54,7 @@
 
         @role('supervisor|ejecutivo|administrativo|superadmin')
           {{-- Busquedas --}}
-          <a href="{{ route("mobile.$role.busqueda") }}"
+          <a href="{{ route("mobile.supervisor.busqueda") }}"
             class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
             {{-- Icono Lupa --}}
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"

@@ -66,10 +66,10 @@
                     <span class="text-sm font-semibold text-gray-900">
                       {{ $p->nombre }} {{ $p->apellido_p }} {{ $p->apellido_m }}
                     </span>
-                    @php $diasPago = trim((string) ($p->dias_de_pago ?? '')); @endphp
-                    @if($diasPago !== '')
-                      <span class="text-[11px] text-gray-500">Días de pago: {{ $diasPago }}</span>
-                    @endif
+                    @php $horarioPago = trim((string) ($p->horario_pago_resumen ?? '')); @endphp
+                      @if($horarioPago !== '')
+                      <span class="text-[11px] text-gray-500">Horario de pago: {{ $horarioPago }}</span>
+                      @endif
                   </div>
                 </div>
               </div>

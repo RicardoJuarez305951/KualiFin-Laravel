@@ -89,6 +89,9 @@
               @empty
                 <p class="px-3 py-4 text-sm text-gray-500 text-center">Sin solicitudes de recredito</p>
               @endforelse
+              
+              
+
             </div>
           </div>
         </div>
