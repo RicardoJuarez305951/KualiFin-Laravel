@@ -128,6 +128,8 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('venta/horarios', 'horarios')                   ->name('horarios');
                       Route::get('venta/horarios/{promotor}', 'horariosDefinir') ->name('horarios.definir');
                       Route::put('venta/horarios/{promotor}', 'horariosActualizar')->name('horarios.actualizar');
+                      Route::post('prospectos/{cliente}/aprobar', 'aprobarProspecto')->name('prospectos.aprobar');
+                      Route::post('prospectos/{cliente}/rechazar', 'rechazarProspecto')->name('prospectos.rechazar');
                   });
          });
 
