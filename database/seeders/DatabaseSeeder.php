@@ -60,6 +60,7 @@ class DatabaseSeeder extends Seeder
             AdministrativoSeeder::class,
             TipoDocumentoSeeder::class,
             DocumentoSeeder::class,
+            CreditoFiltroScenarioSeeder::class,
             UserSeeder::class,
         ]);
 
