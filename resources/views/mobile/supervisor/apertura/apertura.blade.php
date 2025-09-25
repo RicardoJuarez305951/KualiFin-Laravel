@@ -1,21 +1,29 @@
-{{-- resources/views/mobile/supervisor/Apertura/apertura.blade.php --}}
+{{-- resources/views/mobile/supervisor/apertura/apertura.blade.php --}}
 <x-layouts.mobile.mobile-layout title="Alta de Promotor">
 @php
-    $faker = \Faker\Factory::create('es_MX');
-    $diasPagoEjemplo = $faker->randomElement([
-        'lunes, miércoles',
-        'martes, jueves',
-        'viernes',
-        'lunes a viernes',
-    ]);
+    $formContext = $formData ?? [];
+
+    $nombreCompleto = trim(collect([
+        data_get($formContext, 'nombre'),
+        data_get($formContext, 'apellido_p'),
+        data_get($formContext, 'apellido_m'),
+    ])->filter()->join(' '));
+
+    $formValues = [
+        'nombre' => old('nombre', $nombreCompleto ?: data_get($formContext, 'nombre', '')),
+        'domicilio' => old('domicilio', data_get($formContext, 'domicilio', '')),
+        'telefono' => old('telefono', data_get($formContext, 'telefono', '')),
+        'correo' => old('correo', data_get($formContext, 'correo', data_get($formContext, 'email', ''))),
+        'diasPago' => old('dias_pago', data_get($formContext, 'dias_pago', data_get($formContext, 'diasPago', data_get($formContext, 'dias_de_pago', '')))),
+    ];
 @endphp
     <div
         x-data="{
-            nombre: '',
-            domicilio: '',
-            telefono: '',
-            correo: '',
-            diasPago: @json($diasPagoEjemplo),
+            nombre: @js($formValues['nombre']),
+            domicilio: @js($formValues['domicilio']),
+            telefono: @js($formValues['telefono']),
+            correo: @js($formValues['correo']),
+            diasPago: @js($formValues['diasPago']),
             ineUploaded: false,
             compUploaded: false,
             submit() {
@@ -59,9 +67,11 @@
                 <label class="block text-sm font-medium text-gray-700">Nombre completo</label>
                 <input
                     type="text"
-                    value="{{ $faker->name() }}"
+                    name="nombre"
+                    value="{{ $formValues['nombre'] }}"
                     x-model="nombre"
                     class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Nombre y apellidos"
                 />
             </div>
 
@@ -69,9 +79,11 @@
                 <label class="block text-sm font-medium text-gray-700">Domicilio</label>
                 <input
                     type="text"
-                    value="{{ $faker->streetAddress() . ', ' . $faker->city() }}"
+                    name="domicilio"
+                    value="{{ $formValues['domicilio'] }}"
                     x-model="domicilio"
                     class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Calle, número, colonia, ciudad"
                 />
             </div>
 
@@ -79,8 +91,11 @@
                 <label class="block text-sm font-medium text-gray-700">Teléfono</label>
                 <input
                     type="text"
-                    value="{{ $faker->phoneNumber() }}"
+                    name="telefono"
+                    value="{{ $formValues['telefono'] }}"
+                    x-model="telefono"
                     class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Ej. 5551234567"
                 />
             </div>
 
@@ -88,9 +103,11 @@
                 <label class="block text-sm font-medium text-gray-700">Correo electrónico</label>
                 <input
                     type="email"
-                    value="{{ $faker->safeEmail() }}"
+                    name="correo"
+                    value="{{ $formValues['correo'] }}"
                     x-model="correo"
                     class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="persona@dominio.com"
                 />
             </div>
 
@@ -98,6 +115,7 @@
                 <label class="block text-sm font-medium text-gray-700">Días de pago</label>
                 <input
                     type="text"
+                    name="dias_pago"
                     x-model="diasPago"
                     placeholder="Ej. lunes, miércoles"
                     class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
