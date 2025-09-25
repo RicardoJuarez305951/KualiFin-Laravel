@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Cliente;
 use App\Models\Credito;
+use App\Models\Supervisor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
@@ -14,6 +16,10 @@ use Throwable;
 
 class NuevoClienteController extends Controller
 {
+    public function __construct(private FiltrosController $filtrosController)
+    {
+    }
+
     public function store(Request $request): JsonResponse
     {
         $formInput = $request->input('form', []);
@@ -97,6 +103,8 @@ class NuevoClienteController extends Controller
 
             'form.credito.monto_total' => ['required', 'numeric', 'min:0'],
             'form.credito.periodicidad' => ['required', 'string', 'max:100'],
+            'form.credito.tipo_solicitud' => ['nullable', 'string', Rule::in(['nuevo', 'recredito'])],
+            'form.credito.autorizacion_especial_domicilio' => ['nullable', 'boolean'],
             'form.credito.fecha_inicio' => ['required', 'date'],
             'form.credito.fecha_final' => ['required', 'date', 'after_or_equal:form.credito.fecha_inicio'],
 
@@ -197,6 +205,53 @@ class NuevoClienteController extends Controller
 
         $validated = $validator->validate();
         $form = $validated['form'];
+        if (isset($form['credito']['autorizacion_especial_domicilio'])) {
+            $form['credito']['autorizacion_especial_domicilio'] = (bool) ($this->toBoolean($form['credito']['autorizacion_especial_domicilio']) ?? false);
+        } else {
+            $form['credito']['autorizacion_especial_domicilio'] = false;
+        }
+        if (isset($form['credito']['tipo_solicitud']) && is_string($form['credito']['tipo_solicitud'])) {
+            $form['credito']['tipo_solicitud'] = strtolower($form['credito']['tipo_solicitud']);
+        }
+
+        $clienteContexto = Cliente::with(['promotor.supervisor', 'creditos' => fn ($query) => $query->orderByDesc('fecha_inicio')])
+            ->findOrFail($validated['cliente_id']);
+
+        $usuario = Auth::user();
+        $promotorActual = $usuario?->promotor;
+        $supervisorActualId = $usuario ? Supervisor::where('user_id', $usuario->id)->value('id') : null;
+
+        $ultimoCredito = $clienteContexto->creditos->first();
+
+        $tipoSolicitud = $form['credito']['tipo_solicitud'] ?? ($clienteContexto->cartera_estado === 'moroso' ? 'recredito' : 'nuevo');
+
+        $contextoFiltros = [
+            'tipo_solicitud' => $tipoSolicitud,
+            'promotor_id' => $promotorActual?->id,
+            'supervisor_id' => $supervisorActualId,
+            'autorizacion_especial_domicilio' => (bool) ($form['credito']['autorizacion_especial_domicilio'] ?? false),
+            'fecha_solicitud' => now(),
+            'ultimo_credito' => $ultimoCredito,
+            'credito_actual_id' => $ultimoCredito?->id,
+        ];
+
+        // Aquí esta CURP unica filtro
+        // Aquí esta Doble Firma Aval filtro
+        // Aquí esta CreditoEnFalla filtro
+        // Aquí esta CreditoActivo filtro
+        // Aquí esta OtraPlaza filtro
+        // Aquí esta BloqueoFallaPromotora_5 filtro
+        // Aquí esta DobleDomicilio filtro
+        // Aquí esta BloqueoDeTiempoRecreditos filtro
+        $resultadoFiltros = $this->filtrosController->evaluar($clienteContexto, $form, $contextoFiltros);
+
+        if (!$resultadoFiltros['passed']) {
+            return response()->json([
+                'message' => $resultadoFiltros['message'] ?? 'El cliente no superó los filtros requeridos.',
+                'failed_filter' => $resultadoFiltros['failed_filter'],
+                'detalles' => $resultadoFiltros['results'],
+            ], 422);
+        }
 
         try {
                 $cliente = DB::transaction(function () use ($validated, $form, $garantiaFiles) {
