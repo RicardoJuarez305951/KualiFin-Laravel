@@ -29,15 +29,15 @@ class CreditoFiltroScenarioSeeder extends Seeder
         ];
 
         for ($ejecutivoIndex = 1; $ejecutivoIndex <= 3; $ejecutivoIndex++) {
+            [$nombreE, $apellidoPE, $apellidoME] = LatinoNameGenerator::person();
             $ejecutivoUser = User::factory()->create([
-                'name' => sprintf('Ejecutivo %02d', $ejecutivoIndex),
+                'name' => sprintf('%s %s %s', $nombreE, $apellidoPE, $apellidoME),
                 'email' => sprintf('ejecutivo.seed%02d@kualifin.com', $ejecutivoIndex),
                 'password' => Hash::make('password'),
                 'rol' => 'ejecutivo',
             ]);
             $ejecutivoUser->assignRole('ejecutivo');
 
-            [$nombreE, $apellidoPE, $apellidoME] = LatinoNameGenerator::person();
             $ejecutivo = Ejecutivo::create([
                 'user_id' => $ejecutivoUser->id,
                 'nombre' => $nombreE,
@@ -46,15 +46,15 @@ class CreditoFiltroScenarioSeeder extends Seeder
             ]);
 
             for ($supervisorIndex = 1; $supervisorIndex <= 5; $supervisorIndex++) {
+                [$nombreS, $apellidoPS, $apellidoMS] = LatinoNameGenerator::person();
                 $supervisorUser = User::factory()->create([
-                    'name' => sprintf('Supervisor %02d-%02d', $ejecutivoIndex, $supervisorIndex),
+                    'name' => sprintf('%s %s %s', $nombreS, $apellidoPS, $apellidoMS),
                     'email' => sprintf('supervisor.seed%02d%02d@kualifin.com', $ejecutivoIndex, $supervisorIndex),
                     'password' => Hash::make('password'),
                     'rol' => 'supervisor',
                 ]);
                 $supervisorUser->assignRole('supervisor');
 
-                [$nombreS, $apellidoPS, $apellidoMS] = LatinoNameGenerator::person();
                 $supervisor = Supervisor::create([
                     'user_id' => $supervisorUser->id,
                     'ejecutivo_id' => $ejecutivo->id,
@@ -64,15 +64,15 @@ class CreditoFiltroScenarioSeeder extends Seeder
                 ]);
 
                 for ($promotorIndex = 1; $promotorIndex <= 7; $promotorIndex++) {
+                    [$nombreP, $apellidoPP, $apellidoMP] = LatinoNameGenerator::person();
                     $promotorUser = User::factory()->create([
-                        'name' => sprintf('Promotor %02d-%02d-%02d', $ejecutivoIndex, $supervisorIndex, $promotorIndex),
+                        'name' => sprintf('%s %s %s', $nombreP, $apellidoPP, $apellidoMP),
                         'email' => sprintf('promotor.seed%02d%02d%02d@kualifin.com', $ejecutivoIndex, $supervisorIndex, $promotorIndex),
                         'password' => Hash::make('password'),
                         'rol' => 'promotor',
                     ]);
                     $promotorUser->assignRole('promotor');
 
-                    [$nombreP, $apellidoPP, $apellidoMP] = LatinoNameGenerator::person();
                     $horario = $faker->randomElement($horariosPago);
 
                     $promotor = Promotor::create([
