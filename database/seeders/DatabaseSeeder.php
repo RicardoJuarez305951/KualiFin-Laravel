@@ -67,7 +67,8 @@ class DatabaseSeeder extends Seeder
 
         [$superAdminNombre, $superAdminApellidoP, $superAdminApellidoM] = LatinoNameGenerator::person();
         $user = User::factory()->create([
-            'name' => sprintf('%s %s %s', $superAdminNombre, $superAdminApellidoP, $superAdminApellidoM),
+            // 'name' => sprintf('%s %s %s', $superAdminNombre, $superAdminApellidoP, $superAdminApellidoM),
+            'name' => 'Supervisor User Demo',
             'email' => 'superadmin@example.com',
             'password' => Hash::make('12345'),
             'telefono' => '1234567890',
@@ -77,7 +78,8 @@ class DatabaseSeeder extends Seeder
 
         [$adminNombre, $adminApellidoP, $adminApellidoM] = LatinoNameGenerator::person();
         $user = User::factory()->create([
-            'name' => sprintf('%s %s %s', $adminNombre, $adminApellidoP, $adminApellidoM),
+            // 'name' => sprintf('%s %s %s', $adminNombre, $adminApellidoP, $adminApellidoM),
+            'name' => ('Administrativo User Demo'),
             'email' => 'admin@example.com',
             'password' => Hash::make('12345'),
             'telefono' => '1234567890',
@@ -87,7 +89,8 @@ class DatabaseSeeder extends Seeder
 
         [$ejecutivoNombre, $ejecutivoApellidoP, $ejecutivoApellidoM] = LatinoNameGenerator::person();
         $user = User::factory()->create([
-            'name' => sprintf('%s %s %s', $ejecutivoNombre, $ejecutivoApellidoP, $ejecutivoApellidoM),
+            // 'name' => sprintf('%s %s %s', $ejecutivoNombre, $ejecutivoApellidoP, $ejecutivoApellidoM),
+            'name' => ('Ejecutivo User Demo'),
             'email' => 'ejecutivo@example.com',
             'password' => Hash::make('12345'),
             'telefono' => '0987654321',
@@ -136,7 +139,8 @@ class DatabaseSeeder extends Seeder
 
         [$supervisorNombre, $supervisorApellidoP, $supervisorApellidoM] = LatinoNameGenerator::person();
         $user = User::factory()->create([
-            'name' => sprintf('%s %s %s', $supervisorNombre, $supervisorApellidoP, $supervisorApellidoM),
+            // 'name' => sprintf('%s %s %s', $supervisorNombre, $supervisorApellidoP, $supervisorApellidoM),
+            'name' => ('Supervisor User Demo'),
             'email' => 'supervisor@example.com',
             'password' => Hash::make('12345'),
             'telefono' => '0987654321',
@@ -186,7 +190,8 @@ class DatabaseSeeder extends Seeder
 
         [$promotorNombre, $promotorApellidoP, $promotorApellidoM] = LatinoNameGenerator::person();
         $user = User::factory()->create([
-            'name' => sprintf('%s %s %s', $promotorNombre, $promotorApellidoP, $promotorApellidoM),
+            // 'name' => sprintf('%s %s %s', $promotorNombre, $promotorApellidoP, $promotorApellidoM),
+            'name' => ('Promotor User Demo'),
             'email' => 'promotor@example.com',
             'password' => Hash::make('12345'),
             'telefono' => '0987654321',
