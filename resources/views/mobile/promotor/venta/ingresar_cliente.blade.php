@@ -8,24 +8,16 @@
         errores: [],
         showError: false,
         clientCurpUploaded: false,
-        clientDomUploaded: false,
         clientIneUploaded: false,
-        clientCompUploaded: false,
         avalCurpUploaded: false,
-        avalDomUploaded: false,
         avalIneUploaded: false,
-        avalCompUploaded: false,
         r_newAval: false,
 
         // Recrédito (usar flags separados si quieres aislarlos del modal cliente)
         r_clientCurpUploaded: false,
-        r_clientDomUploaded: false,
         r_clientIneUploaded: false,
-        r_clientCompUploaded: false,
         r_avalCurpUploaded: false,
-        r_avalDomUploaded: false,
         r_avalIneUploaded: false,
-        r_avalCompUploaded: false,
 
         // Estado de inserción
         showResultado: false,
@@ -35,24 +27,16 @@
         resetClienteForm() {
           this.showCliente = false;
           this.clientCurpUploaded = false;
-          this.clientDomUploaded = false;
           this.clientIneUploaded = false;
-          this.clientCompUploaded = false;
           this.avalCurpUploaded = false;
-          this.avalDomUploaded = false;
           this.avalIneUploaded = false;
-          this.avalCompUploaded = false;
         },
         resetRecreditoForm() {
           this.showRecredito = false;
           this.r_clientCurpUploaded = false;
-          this.r_clientDomUploaded = false;
           this.r_clientIneUploaded = false;
-          this.r_clientCompUploaded = false;
           this.r_avalCurpUploaded = false;
-          this.r_avalDomUploaded = false;
           this.r_avalIneUploaded = false;
-          this.r_avalCompUploaded = false;
         },
         validateMonto(valor, max = 3000) {
           const monto = parseFloat(valor);
