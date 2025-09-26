@@ -23,6 +23,8 @@ class PromotorSeeder extends Seeder
             return;
         }
 
+        $this->ensurePromotorPruebaFiltros($supervisores);
+
         $this->command->info('Creando 20 promotores con logins de prueba...');
 
         $horariosPago = [
@@ -73,6 +75,7 @@ class PromotorSeeder extends Seeder
     }
 
     private function ensurePromotorPruebaFiltros(): void
+
     {
         $emailObjetivo = 'PromotorPruebaFiltros@example.com';
 
@@ -193,5 +196,6 @@ class PromotorSeeder extends Seeder
         if (! $user->hasRole($role)) {
             $user->assignRole($role);
         }
+
     }
 }
