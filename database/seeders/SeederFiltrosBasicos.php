@@ -17,7 +17,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * SeederFiltrosBasicos crea 20 clientes asociados al promotor promotor@example.com
+ * SeederFiltrosBasicos crea 20 clientes asociados al promotor
+ * PromotorPruebaFiltros@example.com
  * y datos auxiliares que permiten disparar los filtros principales del
  * FiltrosController.
  *
@@ -363,7 +364,7 @@ class SeederFiltrosBasicos extends Seeder
             ['ejecutivo_id' => $ejecutivo->id, 'nombre' => 'Samuel', 'apellido_p' => 'Supervisor', 'apellido_m' => 'Principal']
         );
 
-        $promotorPrincipalUser = $this->ensureUser('promotor@example.com', 'Paola Promotora', 'promotor', '5553000003');
+        $promotorPrincipalUser = $this->ensureUser('PromotorPruebaFiltros@example.com', 'Paola Promotora', 'promotor', '5553000003');
         $promotorPrincipal = Promotor::updateOrCreate(
             ['user_id' => $promotorPrincipalUser->id],
             [
