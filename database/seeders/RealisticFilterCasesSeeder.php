@@ -100,7 +100,7 @@ class RealisticFilterCasesSeeder extends Seeder
     private function ensureHierarchy(): array
     {
         $ejecutivoUser = $this->ensureUser(
-            'filtros.ejecutivo@example.com',
+            'ejecutivo@example.com',
             'Ernesto Campos Delgado',
             'ejecutivo',
             '5552000001'
@@ -116,7 +116,7 @@ class RealisticFilterCasesSeeder extends Seeder
         );
 
         $supervisorUser = $this->ensureUser(
-            'filtros.supervisor@example.com',
+            'supervisor@example.com',
             'Beatriz Mendoza Rios',
             'supervisor',
             '5552000002'
@@ -133,7 +133,7 @@ class RealisticFilterCasesSeeder extends Seeder
         );
 
         $promotorPrincipalUser = $this->ensureUser(
-            'filtros.promotor@example.com',
+            'promotor@example.com',
             'Claudia Vazquez Romero',
             'promotor',
             '5552000003'
@@ -156,7 +156,7 @@ class RealisticFilterCasesSeeder extends Seeder
         );
 
         $promotorSecundarioUser = $this->ensureUser(
-            'filtros.promotor.alt@example.com',
+            'promotor2@example.com',
             'Luis Serrano Cano',
             'promotor',
             '5552000004'
