@@ -12,7 +12,9 @@
         isLoading: false,
         r_newAval: false,
         r_clientIneUploaded: false,
+        r_clientCompUploaded: false,
         r_avalIneUploaded: false,
+        r_avalCompUploaded: false,
         result: {
             show: false,
             success: false,
@@ -45,7 +47,9 @@
                 if (response.ok) {
                     form.reset();
                     this.r_clientIneUploaded = false;
+                    this.r_clientCompUploaded = false;
                     this.r_avalIneUploaded = false;
+                    this.r_avalCompUploaded = false;
                 }
 
             } catch (error) {
@@ -61,7 +65,9 @@
             this.$refs.formRecredito.reset();
             this.r_newAval = false;
             this.r_clientIneUploaded = false;
+            this.r_clientCompUploaded = false;
             this.r_avalIneUploaded = false;
+            this.r_avalCompUploaded = false;
             this.result.show = false;
         }
     }">
@@ -111,13 +117,22 @@
                     <span class="border rounded-lg px-3 py-5 bg-gray-100"></span>
                 </div>
 
-                <div class="grid grid-cols-1 gap-3 pt-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                     {{-- INE Cliente --}}
                     <div>
                         <label class="text-sm font-medium block mb-1">INE (Opcional)</label>
                         <input type="file" name="cliente_ine" accept="image/*,application/pdf" class="hidden" x-ref="r_cliIne" @change="r_clientIneUploaded = true">
                         <button type="button" @click="$refs.r_cliIne.click()" :class="r_clientIneUploaded ? 'bg-green-600 text-white' : 'bg-yellow-400 text-black hover:bg-yellow-500'" class="w-full rounded-lg px-3 py-2 font-medium transition">
                             <span x-text="r_clientIneUploaded ? '✔ INE cargado' : 'Subir INE'"></span>
+                        </button>
+                    </div>
+
+                    {{-- Comprobante Domicilio Cliente --}}
+                    <div>
+                        <label class="text-sm font-medium block mb-1">Comprobante (Opcional)</label>
+                        <input type="file" name="cliente_comprobante" accept="image/*,application/pdf" class="hidden" x-ref="r_cliComp" @change="r_clientCompUploaded = true">
+                        <button type="button" @click="$refs.r_cliComp.click()" :class="r_clientCompUploaded ? 'bg-green-600 text-white' : 'bg-yellow-400 text-black hover:bg-yellow-500'" class="w-full rounded-lg px-3 py-2 font-medium transition">
+                            <span x-text="r_clientCompUploaded ? '✔ Comprobante cargado' : 'Subir Comprobante'"></span>
                         </button>
                     </div>
                 </div>
@@ -153,13 +168,22 @@
                        title="El CURP debe contener 18 caracteres alfanuméricos en mayúsculas."
                        @input="event.target.value = event.target.value.toUpperCase()">
 
-                <div class="grid grid-cols-1 gap-3 pt-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                     {{-- INE Aval --}}
                     <div>
                         <label class="text-sm font-medium block mb-1">INE (Opcional)</label>
                         <input name="aval_ine" type="file" accept="image/*,application/pdf" class="hidden" x-ref="r_avalIne" @change="r_avalIneUploaded = true">
                         <button type="button" @click="$refs.r_avalIne.click()" :class="r_avalIneUploaded ? 'bg-green-600 text-white' : 'bg-yellow-400 text-black hover:bg-yellow-500'" class="w-full rounded-lg px-3 py-2 font-medium transition">
                             <span x-text="r_avalIneUploaded ? '✔ INE cargado' : 'Subir INE'"></span>
+                        </button>
+                    </div>
+
+                    {{-- Comprobante Domicilio Aval --}}
+                    <div>
+                        <label class="text-sm font-medium block mb-1">Comprobante (Opcional)</label>
+                        <input name="aval_comprobante" type="file" accept="image/*,application/pdf" class="hidden" x-ref="r_avalComp" @change="r_avalCompUploaded = true">
+                        <button type="button" @click="$refs.r_avalComp.click()" :class="r_avalCompUploaded ? 'bg-green-600 text-white' : 'bg-yellow-400 text-black hover:bg-yellow-500'" class="w-full rounded-lg px-3 py-2 font-medium transition">
+                            <span x-text="r_avalCompUploaded ? '✔ Comprobante cargado' : 'Subir Comprobante'"></span>
                         </button>
                     </div>
                 </div>
