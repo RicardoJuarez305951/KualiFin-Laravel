@@ -111,7 +111,6 @@
 
           <div class="space-y-2 text-sm">
             <p x-show="selected.telefono"><span class="font-semibold">Telefono:</span> <span x-text="selected.telefono"></span></p>
-            <p x-show="selected.horario_de_pago"><span class="font-semibold">Horario de pago:</span> <span x-text="selected.horario_de_pago"></span></p>
             <p x-show="selected.direccion"><span class="font-semibold">Direccion:</span> <span x-text="selected.direccion"></span></p>
             <p x-show="selected.credito && selected.credito.estado"><span class="font-semibold">Estado del credito:</span> <span x-text="selected.credito.estado"></span></p>
             <p x-show="selected.credito && selected.credito.fecha_inicio"><span class="font-semibold">Fecha inicio credito:</span> <span x-text="selected.credito.fecha_inicio"></span></p>
@@ -225,7 +224,6 @@
             nombre: '',
             curp: '',
             telefono: '',
-            horario_de_pago: '',
             direccion: '',
             promotor: '',
             monto: null,

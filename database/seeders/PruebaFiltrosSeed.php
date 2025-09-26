@@ -195,7 +195,6 @@ class PruebaFiltrosSeed extends Seeder
             'promotor_id' => $promotor->id,
             'fecha_nacimiento' => '1990-05-10',
             'monto_maximo' => 6000,
-            'horario_de_pago' => '09:00',
             'tiene_credito_activo' => false,
             'cartera_estado' => 'inactivo',
             'activo' => true,
@@ -250,7 +249,6 @@ class PruebaFiltrosSeed extends Seeder
                 'apellido_m' => 'Valdez',
                 'fecha_nacimiento' => '1988-03-15',
                 'monto_maximo' => 8200,
-                'horario_de_pago' => '10:00',
                 'activo' => true,
             ], $estados));
 
@@ -303,7 +301,6 @@ class PruebaFiltrosSeed extends Seeder
             'tiene_credito_activo' => false,
             'cartera_estado' => 'inactivo',
             'monto_maximo' => 6000,
-            'horario_de_pago' => '11:00',
             'activo' => true,
         ]);
     }
@@ -326,7 +323,6 @@ class PruebaFiltrosSeed extends Seeder
             'apellido_m' => 'Solano',
             'fecha_nacimiento' => '1985-02-20',
             'monto_maximo' => 5000,
-            'horario_de_pago' => '12:00',
             'activo' => true,
         ], $estados));
 
@@ -375,7 +371,6 @@ class PruebaFiltrosSeed extends Seeder
             'apellido_m' => 'Rocha',
             'fecha_nacimiento' => '1991-11-11',
             'monto_maximo' => 9000,
-            'horario_de_pago' => '13:00',
             'activo' => true,
         ], $estados));
 
@@ -424,7 +419,6 @@ class PruebaFiltrosSeed extends Seeder
             'tiene_credito_activo' => false,
             'cartera_estado' => 'inactivo',
             'monto_maximo' => 7000,
-            'horario_de_pago' => '11:30',
             'activo' => true,
         ]);
     }
@@ -454,7 +448,6 @@ class PruebaFiltrosSeed extends Seeder
                 'apellido_m' => 'Nava',
                 'fecha_nacimiento' => '1987-01-01',
                 'monto_maximo' => 6500,
-                'horario_de_pago' => '14:00',
                 'activo' => true,
             ], $estados));
 
@@ -495,7 +488,6 @@ class PruebaFiltrosSeed extends Seeder
             'tiene_credito_activo' => false,
             'cartera_estado' => 'inactivo',
             'monto_maximo' => 7000,
-            'horario_de_pago' => '15:00',
             'activo' => true,
         ]);
     }
@@ -526,7 +518,6 @@ class PruebaFiltrosSeed extends Seeder
                 'apellido_m' => 'Perez',
                 'fecha_nacimiento' => '1990-12-12',
                 'monto_maximo' => 7500,
-                'horario_de_pago' => '16:00',
                 'activo' => true,
             ], $estados));
 
@@ -567,7 +558,6 @@ class PruebaFiltrosSeed extends Seeder
             'tiene_credito_activo' => false,
             'cartera_estado' => 'inactivo',
             'monto_maximo' => 6500,
-            'horario_de_pago' => '17:00',
             'activo' => true,
         ]);
     }
@@ -621,7 +611,6 @@ class PruebaFiltrosSeed extends Seeder
                 'apellido_m' => $data['apellido_m'],
                 'fecha_nacimiento' => '1989-09-09',
                 'monto_maximo' => 9000,
-                'horario_de_pago' => '18:00',
                 'activo' => true,
             ], $estados));
 

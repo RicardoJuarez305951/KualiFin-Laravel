@@ -176,7 +176,6 @@ class CreditoFiltroScenarioSeeder extends Seeder
     {
         [$nombre, $apellidoP, $apellidoM] = LatinoNameGenerator::person();
         $curp = $this->generarCurpUnica($faker);
-        $horarioPago = $faker->randomElement(['07:30', '08:00', '09:00', '10:15']);
 
         $cliente = Cliente::create([
             'promotor_id' => $promotor->id,
@@ -188,7 +187,6 @@ class CreditoFiltroScenarioSeeder extends Seeder
             'tiene_credito_activo' => $escenario['tiene_credito_activo'],
             'cartera_estado' => $escenario['cartera_estado'],
             'monto_maximo' => $faker->numberBetween(3000, 20000),
-            'horario_de_pago' => $horarioPago,
             'activo' => $escenario['cartera_estado'] !== 'inactivo',
         ]);
 
