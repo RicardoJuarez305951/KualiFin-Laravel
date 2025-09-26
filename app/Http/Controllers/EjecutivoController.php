@@ -172,9 +172,84 @@ class EjecutivoController extends Controller
         $supervisores = $ejecutivo
             ? $ejecutivo->supervisors()
                 ->select('id', 'nombre', 'apellido_p', 'apellido_m')
+                ->with([
+                    'promotores' => function ($query) {
+                        $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m')
+                            ->with([
+                                'clientes' => function ($clienteQuery) {
+                                    $clienteQuery->select('id', 'promotor_id')
+                                        ->with([
+                                            'credito' => function ($creditoQuery) {
+                                                $creditoQuery->select('id', 'cliente_id', 'estado');
+                                            },
+                                        ]);
+                                },
+                            ])
+                            ->orderBy('nombre')
+                            ->orderBy('apellido_p')
+                            ->orderBy('apellido_m');
+                    },
+                ])
                 ->orderBy('nombre')
                 ->get()
             : collect();
+
+        $supervisores = $supervisores instanceof Collection ? $supervisores : collect($supervisores);
+
+        $activeStates = array_map('strtolower', FiltrosController::CREDIT_ACTIVE_STATES);
+        $failureStates = array_map('strtolower', FiltrosController::CREDIT_FAILURE_STATES);
+
+        $supervisores = $supervisores->map(function ($supervisor) use ($activeStates, $failureStates) {
+            $promotores = $supervisor->promotores instanceof Collection
+                ? $supervisor->promotores
+                : collect($supervisor->promotores ?? []);
+
+            $totalPromotores = $promotores->count();
+
+            $promotoresCumplidos = $promotores->filter(function ($promotor) use ($activeStates, $failureStates) {
+                $clientes = $promotor->clientes instanceof Collection
+                    ? $promotor->clientes
+                    : collect($promotor->clientes ?? []);
+
+                if ($clientes->isEmpty()) {
+                    return false;
+                }
+
+                $tieneActivo = false;
+                $tieneFalla = false;
+
+                foreach ($clientes as $cliente) {
+                    $credito = $cliente->credito ?? null;
+
+                    if (!$credito) {
+                        continue;
+                    }
+
+                    $estado = Str::lower((string) $credito->estado);
+
+                    if (in_array($estado, $failureStates, true)) {
+                        $tieneFalla = true;
+                        break;
+                    }
+
+                    if (in_array($estado, $activeStates, true)) {
+                        $tieneActivo = true;
+                    }
+                }
+
+                return $tieneActivo && !$tieneFalla;
+            })->count();
+
+            $porcentajeCumplimiento = $totalPromotores > 0
+                ? round(($promotoresCumplidos / $totalPromotores) * 100, 2)
+                : 0.0;
+
+            $supervisor->setAttribute('promotores_cumplidos', (int) $promotoresCumplidos);
+            $supervisor->setAttribute('total_promotores', (int) $totalPromotores);
+            $supervisor->setAttribute('porcentaje_cumplimiento', $porcentajeCumplimiento);
+
+            return $supervisor;
+        });
 
         [$cartera_activa, $cartera_vencida, $cartera_falla, $cartera_inactivaP] =
             $this->buildCarteraMetrics($supervisores);
