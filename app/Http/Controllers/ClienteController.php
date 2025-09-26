@@ -29,7 +29,6 @@ class ClienteController extends Controller
             'tiene_credito_activo'=> 'required|boolean',
             'cartera_estado'      => 'required|string',
             'monto_maximo'        => 'required|numeric',
-            'horario_de_pago'     => 'required|date_format:H:i',
             'activo'              => 'required|boolean',
         ]);
 
@@ -53,7 +52,6 @@ class ClienteController extends Controller
             'nombre'              => 'required|string',
             'apellido_p'          => 'required|string',
             'apellido_m'          => 'nullable|string',
-            'horario_de_pago'     => 'required|date_format:H:i',
             'tiene_credito_activo'=> 'required|boolean',
             'cartera_estado'      => 'required|string',
             'monto_maximo'        => 'required|numeric',

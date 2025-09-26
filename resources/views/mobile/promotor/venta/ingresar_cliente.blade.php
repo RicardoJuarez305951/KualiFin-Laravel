@@ -64,7 +64,6 @@
             f.nombre.value.trim() &&
             f.apellido_p.value.trim() &&
             f['CURP'].value.trim().length === 18 &&
-            f.horario_de_pago.value &&
             this.validateMonto(f.monto.value);
           if (!valido) {
             this.resultadoExito = false;

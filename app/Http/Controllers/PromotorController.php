@@ -226,7 +226,6 @@ class PromotorController extends Controller
                 'apellido_m' => 'nullable|string|max:100',
                 'CURP' => 'required|string|size:18',
                 'monto' => 'required|numeric|min:0|max:3000',
-                'horario_de_pago' => 'required|date_format:H:i',
                 'aval_nombre' => 'required|string|max:100',
                 'aval_apellido_p' => 'required|string|max:100',
                 'aval_apellido_m' => 'nullable|string|max:100',
@@ -272,7 +271,6 @@ class PromotorController extends Controller
                     'tiene_credito_activo' => false,
                     'cartera_estado' => 'inactivo',
                     'monto_maximo' => $data['monto'],
-                    'horario_de_pago' => $data['horario_de_pago'],
                     'activo' => false,
                 ]);
 

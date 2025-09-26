@@ -197,7 +197,6 @@ class DemoClientSeeder extends Seeder
             'tiene_credito_activo' => $tieneActivo,
             'cartera_estado' => $scenario['cartera_estado'],
             'monto_maximo' => $scenario['monto_total'] + 2000,
-            'horario_de_pago' => sprintf('%02d:00', 8 + $scenarioIndex % 10),
             'creado_en' => Carbon::now(),
             'actualizado_en' => Carbon::now(),
             'activo' => $tieneActivo,

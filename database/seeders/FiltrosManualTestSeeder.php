@@ -69,7 +69,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => false,
                 'cartera_estado' => 'activo',
-                'horario_de_pago' => '09:00',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -85,7 +84,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => false,
                 'cartera_estado' => 'activo',
-                'horario_de_pago' => '10:00',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -101,7 +99,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => false,
                 'cartera_estado' => 'activo',
-                'horario_de_pago' => '11:00',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -122,7 +119,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => true,
                 'cartera_estado' => 'activo',
-                'horario_de_pago' => '12:00',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -172,7 +168,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => true,
                 'cartera_estado' => 'activo',
-                'horario_de_pago' => '12:30',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -223,7 +218,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => true,
                 'cartera_estado' => 'desembolsado',
-                'horario_de_pago' => '13:00',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -277,7 +271,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => true,
                 'cartera_estado' => 'moroso',
-                'horario_de_pago' => '14:00',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -314,7 +307,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => false,
                 'cartera_estado' => 'regularizado',
-                'horario_de_pago' => '15:00',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -354,7 +346,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => true,
                 'cartera_estado' => 'desembolsado',
-                'horario_de_pago' => '16:00',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -391,7 +382,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => true,
                 'cartera_estado' => 'desembolsado',
-                'horario_de_pago' => '16:30',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -431,7 +421,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => false,
                 'cartera_estado' => 'activo',
-                'horario_de_pago' => '17:00',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -447,7 +436,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => false,
                 'cartera_estado' => 'activo',
-                'horario_de_pago' => '17:30',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -466,7 +454,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => false,
                 'cartera_estado' => 'inactivo',
-                'horario_de_pago' => '18:00',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -504,7 +491,6 @@ class FiltrosManualTestSeeder extends Seeder
                 [
                     'tiene_credito_activo' => true,
                     'cartera_estado' => 'desembolsado',
-                    'horario_de_pago' => '08:3' . $i,
                     'creado_en' => $now,
                     'actualizado_en' => $now,
                 ]
@@ -554,7 +540,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => true,
                 'cartera_estado' => 'activo',
-                'horario_de_pago' => '09:15',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -579,7 +564,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => true,
                 'cartera_estado' => 'supervisado',
-                'horario_de_pago' => '09:45',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -614,7 +598,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => true,
                 'cartera_estado' => 'activo',
-                'horario_de_pago' => '10:15',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -639,7 +622,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => true,
                 'cartera_estado' => 'activo',
-                'horario_de_pago' => '10:45',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -665,7 +647,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => false,
                 'cartera_estado' => 'activo',
-                'horario_de_pago' => '11:15',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -705,7 +686,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => true,
                 'cartera_estado' => 'desembolsado',
-                'horario_de_pago' => '12:15',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -742,7 +722,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => true,
                 'cartera_estado' => 'activo',
-                'horario_de_pago' => '12:45',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -779,7 +758,6 @@ class FiltrosManualTestSeeder extends Seeder
             [
                 'tiene_credito_activo' => true,
                 'cartera_estado' => 'moroso',
-                'horario_de_pago' => '13:15',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]

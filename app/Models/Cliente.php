@@ -23,7 +23,6 @@ class Cliente extends Model
         'tiene_credito_activo',
         'cartera_estado',
         'monto_maximo',
-        'horario_de_pago',
         'creado_en',
         'actualizado_en',
         'activo',
@@ -35,7 +34,6 @@ class Cliente extends Model
         'activo' => 'boolean',
         'creado_en' => 'datetime',
         'actualizado_en' => 'datetime',
-        'horario_de_pago' => 'string',
     ];
 
     public function promotor()

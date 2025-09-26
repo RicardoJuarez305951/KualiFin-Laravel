@@ -22,9 +22,6 @@
         <p class="font-semibold mt-2">CURP:</p>
         <input name="CURP" type="text" placeholder="CURP" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
 
-        <p class="font-semibold mt-2">Horario de pago:</p>
-        <input name="horario_de_pago" type="time" step="60" required class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
-
         <p class="font-semibold mt-2">Monto del crédito:</p>
         <input name="monto" type="number" step="100.00" min="0" max="3000" placeholder="Monto" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">

@@ -457,7 +457,6 @@ class FiltroTest extends TestCase
             'tiene_credito_activo' => $clienteOverrides['tiene_credito_activo'] ?? false,
             'cartera_estado' => $clienteOverrides['cartera_estado'] ?? 'inactivo',
             'monto_maximo' => 5000,
-            'horario_de_pago' => '08:00',
             'activo' => (($clienteOverrides['cartera_estado'] ?? 'inactivo') !== 'inactivo'),
         ], $clienteOverrides);
         $cliente = Cliente::create($clienteData);
