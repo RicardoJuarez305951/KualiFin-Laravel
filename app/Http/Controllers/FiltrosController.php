@@ -12,8 +12,8 @@ use Illuminate\Support\Str;
 /*
  * Demo filters data (RealisticFilterCasesSeeder):
  * - Run seeder: php artisan db:seed --class=RealisticFilterCasesSeeder
- * - Promotor principal: promotor@example.com (password: Filtros2024!)
- * - Promotor alterno: promotor2@example.com (password: Filtros2024!)
+ * - Promotor principal: promotor@example.com (password: 12345)
+ * - Promotor alterno: promotor2@example.com (password: 12345)
  * - Obten clientes con Cliente::where('CURP', '...')->firstOrFail()
  * - Escenarios con app(self::class)->evaluar($cliente, $form, $contexto):
  *   curp_unica => cliente Laura Cardenas Lopez (CURP RFCD900101HDFLLA01)
@@ -40,6 +40,7 @@ use Illuminate\Support\Str;
  *         Natalia Ramirez Caso2 (CURP RFRQ950505MDFLNA22) falla por atrasos
  *         Olivia Ramirez Caso3 (CURP RFRQ960606HDFLOA23) aprueba
  */
+class FiltrosController extends Controller
 {
     public const FILTER_CURP_UNICA = 'curp_unica';
     public const FILTER_DOBLE_FIRMA_AVAL = 'doble_firma_aval';

@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Hash;
 
 class RealisticFilterCasesSeeder extends Seeder
 {
-    private const PASSWORD = 'Filtros2024!';
+    private const PASSWORD = '12345';
 
     private const CLIENT_CURPS = [
         'RFCD900101HDFLLA01',
