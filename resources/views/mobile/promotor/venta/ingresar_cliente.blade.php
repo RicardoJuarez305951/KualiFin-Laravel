@@ -8,7 +8,6 @@
         errores: [],
         showError: false,
         clientCurpUploaded: false,
-        clientDomUploaded: false,
         clientIneUploaded: false,
         clientCompUploaded: false,
         avalCurpUploaded: false,
@@ -19,7 +18,6 @@
 
         // Recrédito (usar flags separados si quieres aislarlos del modal cliente)
         r_clientCurpUploaded: false,
-        r_clientDomUploaded: false,
         r_clientIneUploaded: false,
         r_clientCompUploaded: false,
         r_avalCurpUploaded: false,
@@ -35,7 +33,6 @@
         resetClienteForm() {
           this.showCliente = false;
           this.clientCurpUploaded = false;
-          this.clientDomUploaded = false;
           this.clientIneUploaded = false;
           this.clientCompUploaded = false;
           this.avalCurpUploaded = false;
@@ -46,7 +43,6 @@
         resetRecreditoForm() {
           this.showRecredito = false;
           this.r_clientCurpUploaded = false;
-          this.r_clientDomUploaded = false;
           this.r_clientIneUploaded = false;
           this.r_clientCompUploaded = false;
           this.r_avalCurpUploaded = false;

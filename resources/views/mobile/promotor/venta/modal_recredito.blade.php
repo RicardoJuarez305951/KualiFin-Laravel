@@ -101,8 +101,8 @@
             {{-- div1: Cliente --}}
             <div class="space-y-3 border rounded-xl p-4">
                 <p class="font-semibold mt-2">CURP del Cliente:</p>
-                <input name="CURP" type="text" placeholder="CURP (18 caracteres)" 
-                       class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 uppercase" 
+                <input name="CURP" type="text" placeholder="CURP (18 caracteres)"
+                       class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 uppercase"
                        required minlength="18" maxlength="18" pattern="[A-Z0-9]{18}"
                        title="El CURP debe contener 18 caracteres alfanuméricos en mayúsculas."
                        @input="event.target.value = event.target.value.toUpperCase()">

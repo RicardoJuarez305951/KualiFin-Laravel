@@ -21,7 +21,7 @@ class EjecutivoController extends Controller
     use HandlesSupervisorContext;
     /*
      * -----------------------------------------------------------------
-     * Métodos administrativos
+     * MÃ©todos administrativos
      * -----------------------------------------------------------------
      */
 
@@ -79,7 +79,7 @@ class EjecutivoController extends Controller
 
     /*
      * -----------------------------------------------------------------
-     * Métodos para vista mobile
+     * MÃ©todos para vista mobile
      * -----------------------------------------------------------------
      */
 
@@ -218,7 +218,7 @@ class EjecutivoController extends Controller
 
         $blocks = collect($promotoresPaginator->items())->map(function (Promotor $promotor) {
             $clientes = Cliente::where('promotor_id', $promotor->id)
-                ->whereHas('credito', fn ($query) => $query->where('estado', 'activo'))
+                ->whereHas('credito', fn ($query) => $query->whereIn('estado', FiltrosController::CREDIT_ACTIVE_STATES))
                 ->with([
                     'credito.pagosProyectados.pagosReales.pagoCompleto',
                     'credito.pagosProyectados.pagosReales.pagoAnticipo',
@@ -333,7 +333,7 @@ class EjecutivoController extends Controller
 
         $blocks = collect($promotoresPaginator->items())->map(function (Promotor $promotor) {
             $clientes = Cliente::where('promotor_id', $promotor->id)
-                ->whereHas('credito', fn ($query) => $query->where('estado', 'vencido'))
+                ->whereHas('credito', fn ($query) => $query->whereIn('estado', FiltrosController::CREDIT_FAILURE_STATES))
                 ->with([
                     'credito.pagosProyectados.pagosReales.pagoCompleto',
                     'credito.pagosProyectados.pagosReales.pagoAnticipo',
@@ -708,7 +708,7 @@ class EjecutivoController extends Controller
     }
 
     /**
-     * Calcula los totales básicos de cartera a partir de la lista de supervisores.
+     * Calcula los totales bÃ¡sicos de cartera a partir de la lista de supervisores.
      */
     private function buildCarteraMetrics(Collection $supervisores): array
     {
@@ -742,14 +742,15 @@ class EjecutivoController extends Controller
             : 0.0;
 
         $cartera_activa = (float) Credito::whereIn('cliente_id', $clienteIds)
-            ->where('estado', 'activo')
+            ->whereIn('estado', FiltrosController::CREDIT_ACTIVE_STATES)
             ->sum('monto_total');
 
         $cartera_vencida = (float) Credito::whereIn('cliente_id', $clienteIds)
-            ->where('estado', 'vencido')
+            ->whereIn('estado', FiltrosController::CREDIT_FAILURE_STATES)
             ->sum('monto_total');
 
         $creditos = Credito::whereIn('cliente_id', $clienteIds)
+            ->whereIn('estado', FiltrosController::CREDIT_FAILURE_STATES)
             ->with([
                 'pagosProyectados' => function ($query) {
                     $query->where('fecha_limite', '<', now())
@@ -972,7 +973,7 @@ class EjecutivoController extends Controller
 
         $credito = $cliente->credito;
 
-        abort_unless($credito, 404, 'El cliente no cuenta con cr�dito activo.');
+        abort_unless($credito, 404, 'El cliente no cuenta con crédito activo.');
 
         $pagosProyectados = $credito->pagosProyectados instanceof Collection
             ? $credito->pagosProyectados

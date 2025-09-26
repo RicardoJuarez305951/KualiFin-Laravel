@@ -15,6 +15,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 /**
  * SeederFiltrosBasicos crea 20 clientes asociados al promotor
@@ -33,19 +34,14 @@ use Illuminate\Support\Facades\Hash;
  * - FILTER_DOBLE_FIRMA_AVAL: El aval "Rosa Aval Compromiso" (CURP ROAV780512MDFRMO20)
  *   ya respalda los créditos activos de "Carla Aval Primera" y "Diego Aval Segundo".
  *   Al evaluar a "Elena Aval Candidata" capture la CURP ROAV780512MDFRMO20 en el
- *   apartado del aval ['aval' => ['curp' => 'ROAV780512MDFRMO20']].
- * 
+ *   apartado del aval ['aval' => ['curp' => 'ROAV780512MDFRMO20']] y utilice la
+ *   acción "Rechazar al Aval" cuando el sistema lo solicite para completar la validación.
+ *
  * - FILTER_OTRA_PLAZA: "Fernando Plaza Local - PLLO820606HDFRLY05" pertenece al promotor principal.
  *   Evalúelo enviando en el contexto ['promotor_id' => $promotorAlterno->id,
  *   'supervisor_id' => $promotorAlterno->supervisor_id] donde $promotorAlterno es el
  *   promotor del correo promotor.secundario@example.com.
- * 
- * - FILTER_DOBLE_DOMICILIO: "Irene Domicilio Candidata" debe capturar en el
- *   formulario de contacto la dirección de Av. de las Flores 123, interior B,
- *   colonia Jardines del Centro, Miguel Hidalgo, CP 11510 y los mismos datos
- *   telefónicos para activar el filtro. Use los campos contacto[...] y el campo
- *   credito['fecha_inicio'] de la solicitud.
- * 
+ *
  * - FILTER_BLOQUEO_TIEMPO_REACREDITOS: Para semanas insuficientes evalúe a
  *   "Jorge Recredito Temprano - REAT800101HDFRMC09" con ['tipo_solicitud' => 'recredito'].
  *   Para atrasos utilice a "Karla Recredito Morosa - REAM800202MDFRMD10" con el mismo contexto.
@@ -56,6 +52,12 @@ class SeederFiltrosBasicos extends Seeder
     private const PASSWORD = '12345';
 
     private const AVAL_CURP_DOBLE_FIRMA = 'ROAV780512MDFRMO20';
+
+    private const LEGACY_FILTER_CURPS = [
+        'DOUN810707MDFRLZ06',
+        'DODS810808HDFRMA07',
+        'DOCA810909MDFRMB08',
+    ];
 
     private const CLIENTS = [
         [
@@ -139,74 +141,6 @@ class SeederFiltrosBasicos extends Seeder
             'apellido_p' => 'Plaza',
             'apellido_m' => 'Local',
             'CURP' => 'PLLO820606HDFRLY05',
-        ],
-        [
-            'nombre' => 'Gabriela',
-            'apellido_p' => 'Domicilio',
-            'apellido_m' => 'Uno',
-            'CURP' => 'DOUN810707MDFRLZ06',
-            'tiene_credito_activo' => true,
-            'creditos' => [
-                [
-                    'estado' => 'desembolsado',
-                    'monto_total' => 11000,
-                    'interes' => 14.5,
-                    'periodicidad' => 'Semanal 13',
-                    'fecha_inicio_weeks_ago' => 40,
-                    'fecha_final_weeks_ahead' => 20,
-                    'contacto' => [
-                        'calle' => 'Av. de las Flores',
-                        'numero_ext' => '123',
-                        'numero_int' => 'B',
-                        'monto_mensual' => 2500,
-                        'colonia' => 'Jardines del Centro',
-                        'municipio' => 'Miguel Hidalgo',
-                        'estado' => 'Ciudad de México',
-                        'cp' => '11510',
-                        'tiempo_en_residencia' => '5 años',
-                        'tel_fijo' => '5553002001',
-                        'tel_cel' => '5512340001',
-                        'tipo_de_vivienda' => 'Propia',
-                    ],
-                ],
-            ],
-        ],
-        [
-            'nombre' => 'Hector',
-            'apellido_p' => 'Domicilio',
-            'apellido_m' => 'Dos',
-            'CURP' => 'DODS810808HDFRMA07',
-            'tiene_credito_activo' => true,
-            'creditos' => [
-                [
-                    'estado' => 'supervisado',
-                    'monto_total' => 10800,
-                    'interes' => 13.5,
-                    'periodicidad' => 'Semanal 14',
-                    'fecha_inicio_weeks_ago' => 32,
-                    'fecha_final_weeks_ahead' => 18,
-                    'contacto' => [
-                        'calle' => 'Av. de las Flores',
-                        'numero_ext' => '123',
-                        'numero_int' => 'B',
-                        'monto_mensual' => 2400,
-                        'colonia' => 'Jardines del Centro',
-                        'municipio' => 'Miguel Hidalgo',
-                        'estado' => 'Ciudad de México',
-                        'cp' => '11510',
-                        'tiempo_en_residencia' => '4 años',
-                        'tel_fijo' => '5553002002',
-                        'tel_cel' => '5512340002',
-                        'tipo_de_vivienda' => 'Renta',
-                    ],
-                ],
-            ],
-        ],
-        [
-            'nombre' => 'Irene',
-            'apellido_p' => 'Domicilio',
-            'apellido_m' => 'Candidata',
-            'CURP' => 'DOCA810909MDFRMB08',
         ],
         [
             'nombre' => 'Jorge',
@@ -330,7 +264,10 @@ class SeederFiltrosBasicos extends Seeder
 
     private function purgeExistingData(): void
     {
-        $curps = array_unique(array_map(static fn ($cliente) => $cliente['CURP'], self::CLIENTS));
+        $curps = array_unique(array_merge(
+            array_map(static fn ($cliente) => $cliente['CURP'], self::CLIENTS),
+            self::LEGACY_FILTER_CURPS
+        ));
 
         $clientes = Cliente::whereIn('CURP', $curps)->get();
 
@@ -417,6 +354,8 @@ class SeederFiltrosBasicos extends Seeder
                 'rol' => $role,
             ]
         );
+
+        Role::findOrCreate($role);
 
         if (! $user->hasRole($role)) {
             $user->assignRole($role);

@@ -11,21 +11,22 @@
     <form method="POST" action="{{ route('mobile.promotor.store_cliente') }}" @submit.prevent="submitNuevoCliente($event)" class="space-y-4">
       @csrf
       {{-- div1: Cliente --}}
-      <div class="space-y-3 border rounded-xl p-4">   
+      <div class="space-y-3 border rounded-xl p-4">
         <p class="font-semibold">Nombre del cliente:</p>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <input name="nombre" type="text" placeholder="Nombre" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
-          <input name="apellido_p" type="text" placeholder="Apellido Paterno" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+          <input name="nombre" type="text" placeholder="Nombre" required class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+          <input name="apellido_p" type="text" placeholder="Apellido Paterno" required class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
           <input name="apellido_m" type="text" placeholder="Apellido Materno" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
         </div>
 
         <p class="font-semibold mt-2">CURP:</p>
-        <input name="CURP" type="text" placeholder="CURP" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+        <input name="CURP" type="text" placeholder="CURP" maxlength="18" minlength="18" required class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 uppercase" @input="event.target.value = event.target.value.toUpperCase()">
 
         <p class="font-semibold mt-2">Monto del crédito:</p>
-        <input name="monto" type="number" step="100.00" min="0" max="3000" placeholder="Monto" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+        <input name="monto" type="number" step="100.00" min="0" max="3000" placeholder="Monto" required class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-          
+
           {{-- INE Cliente --}}
           <div>
             <label class="text-sm font-medium block mb-1">INE</label>
@@ -51,13 +52,13 @@
       <div class="space-y-3 border rounded-xl p-4">
         <p class="font-semibold">Nombre del aval:</p>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <input name="aval_nombre" type="text" placeholder="Nombre" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
-          <input name="aval_apellido_p" type="text" placeholder="Apellido Paterno" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+          <input name="aval_nombre" type="text" placeholder="Nombre" required class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+          <input name="aval_apellido_p" type="text" placeholder="Apellido Paterno" required class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
           <input name="aval_apellido_m" type="text" placeholder="Apellido Materno" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
         </div>
 
         <p class="font-semibold mt-2">CURP:</p>
-        <input name="aval_CURP" type="text" placeholder="CURP" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+        <input name="aval_CURP" type="text" placeholder="CURP" maxlength="18" minlength="18" required class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 uppercase" @input="event.target.value = event.target.value.toUpperCase()">
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
           {{-- INE Aval --}}
