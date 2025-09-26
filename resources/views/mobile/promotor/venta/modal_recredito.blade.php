@@ -101,14 +101,28 @@
             {{-- div1: Cliente --}}
             <div class="space-y-3 border rounded-xl p-4">
                 <p class="font-semibold mt-2">CURP del Cliente:</p>
-                <input name="CURP" type="text" placeholder="CURP (18 caracteres)" 
-                       class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 uppercase" 
+                <input name="CURP" type="text" placeholder="CURP (18 caracteres)"
+                       class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 uppercase"
                        required minlength="18" maxlength="18" pattern="[A-Z0-9]{18}"
                        title="El CURP debe contener 18 caracteres alfanuméricos en mayúsculas."
                        @input="event.target.value = event.target.value.toUpperCase()">
 
                 <p class="font-semibold">Monto del recrédito:</p>
                 <input name="monto" type="number" step="100.00" min="0" max="20000" placeholder="Monto" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400" required>
+
+                <p class="font-semibold">Domicilio del cliente:</p>
+                <div class="space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <input name="contacto[calle]" type="text" placeholder="Calle" required class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+                        <input name="contacto[numero_ext]" type="text" placeholder="Número Exterior" required class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <input name="contacto[numero_int]" type="text" placeholder="Número Interior (opcional)" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+                        <input name="contacto[colonia]" type="text" placeholder="Colonia" required class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+                        <input name="contacto[municipio]" type="text" placeholder="Municipio" required class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+                    </div>
+                    <input name="contacto[cp]" type="text" placeholder="Código Postal" required class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
+                </div>
 
                 <p class="font-semibold">Nombre del cliente (autocompletado):</p>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
