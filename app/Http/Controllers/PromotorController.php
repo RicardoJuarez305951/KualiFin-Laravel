@@ -385,12 +385,13 @@ class PromotorController extends Controller
             'CURP' => 'required|string|size:18|exists:clientes,CURP',
             'monto' => 'required|numeric|min:0|max:20000',
             'r_newAval' => 'required|boolean',
-            'contacto.calle' => 'required|string|max:255',
-            'contacto.numero_ext' => 'required|string|max:25',
+            'contacto' => 'nullable|array',
+            'contacto.calle' => 'nullable|string|max:255',
+            'contacto.numero_ext' => 'nullable|string|max:25',
             'contacto.numero_int' => 'nullable|string|max:25',
-            'contacto.colonia' => 'required|string|max:255',
-            'contacto.municipio' => 'required|string|max:255',
-            'contacto.cp' => 'required|string|max:10',
+            'contacto.colonia' => 'nullable|string|max:255',
+            'contacto.municipio' => 'nullable|string|max:255',
+            'contacto.cp' => 'nullable|string|max:10',
         ];
 
         if ($isNewAval) {
@@ -467,7 +468,7 @@ class PromotorController extends Controller
                     'aval' => [
                         'curp' => $avalCurp ?? '',
                     ],
-                    'contacto' => $data['contacto'],
+                    'contacto' => $data['contacto'] ?? [],
                     'credito' => [
                         'fecha_inicio' => Carbon::now()->toDateString(),
                     ],
