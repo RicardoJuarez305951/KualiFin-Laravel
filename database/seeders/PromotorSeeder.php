@@ -20,6 +20,8 @@ class PromotorSeeder extends Seeder
             return;
         }
 
+        $this->ensurePromotorPruebaFiltros($supervisores);
+
         $this->command->info('Creando 20 promotores con logins de prueba...');
 
         $horariosPago = [
@@ -67,5 +69,54 @@ class PromotorSeeder extends Seeder
 
         $this->command->info('¡Promotores creados con éxito!');
         $this->command->warn('Contraseña (para todos): password');
+    }
+
+    private function ensurePromotorPruebaFiltros($supervisores): void
+    {
+        $emailObjetivo = 'PromotorPruebaFiltros@example.com';
+
+        $promotorExistente = Promotor::whereHas('user', static function ($query) use ($emailObjetivo) {
+            $query->where('email', $emailObjetivo);
+        })->first();
+
+        if ($promotorExistente) {
+            return;
+        }
+
+        $supervisor = $supervisores->first();
+
+        if (! $supervisor) {
+            return;
+        }
+
+        $user = User::updateOrCreate(
+            ['email' => $emailObjetivo],
+            [
+                'name' => 'Paola Promotora',
+                'telefono' => '5553000003',
+                'password' => Hash::make('password'),
+                'rol' => 'promotor',
+            ]
+        );
+
+        if (! $user->hasRole('promotor')) {
+            $user->assignRole('promotor');
+        }
+
+        Promotor::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'supervisor_id' => $supervisor->id,
+                'nombre' => 'Paola',
+                'apellido_p' => 'Promotora',
+                'apellido_m' => 'Filtros',
+                'venta_maxima' => 18000,
+                'colonia' => 'Centro Histórico',
+                'venta_proyectada_objetivo' => 11000,
+                'bono' => 700,
+                'dia_de_pago' => 'Lunes',
+                'hora_de_pago' => '09:00',
+            ]
+        );
     }
 }
