@@ -7,6 +7,7 @@ use App\Models\Cliente;
 use App\Models\Credito;
 use App\Models\DatoContacto;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /*
@@ -156,19 +157,58 @@ class FiltrosController extends Controller
 
         $creditoActualId = $contexto['credito_actual_id'] ?? null;
 
-        $creditosActivos = Aval::where('CURP', $avalCurp)
+        $creditosBloqueantes = Aval::where('CURP', $avalCurp)
             ->when($creditoActualId, fn ($query) => $query->where('credito_id', '<>', $creditoActualId))
             ->whereHas('credito', function ($query) {
-                $query->whereIn('estado', self::CREDIT_ACTIVE_STATES);
+                $query->whereIn(DB::raw('LOWER(estado)'), self::CREDIT_ACTIVE_STATES);
             })
-            ->count();
+            ->with(['credito.cliente'])
+            ->get()
+            ->map(fn (Aval $aval) => $aval->credito)
+            ->filter(fn (?Credito $credito) => $credito !== null)
+            ->filter(function (Credito $credito) {
+                return in_array(Str::lower((string) $credito->estado), self::CREDIT_ACTIVE_STATES, true);
+            })
+            ->values();
+
+        $creditosActivos = $creditosBloqueantes->count();
 
         if ($creditosActivos >= 2) {
+            $detalles = $creditosBloqueantes->map(function (Credito $credito) {
+                $cliente = $credito->cliente;
+                $nombreCliente = $cliente
+                    ? trim(implode(' ', array_filter([
+                        $cliente->nombre,
+                        $cliente->apellido_p,
+                        $cliente->apellido_m,
+                    ])))
+                    : 'Cliente sin información';
+
+                return [
+                    'id' => $credito->id,
+                    'cliente' => $nombreCliente,
+                    'estado' => Str::lower((string) $credito->estado),
+                ];
+            });
+
+            $detallesTexto = $detalles
+                ->map(fn (array $detalle) => sprintf('#%s %s (%s)', $detalle['id'], $detalle['cliente'], $detalle['estado']))
+                ->implode('; ');
+
             return $this->resultado(
                 self::FILTER_DOBLE_FIRMA_AVAL,
                 false,
-                'El aval ya participa en dos créditos activos y no puede respaldar un tercero.',
-                ['aval_curp' => $avalCurp, 'creditos_activos' => $creditosActivos]
+                sprintf(
+                    'El aval con CURP %s ya participa en %d créditos activos y no puede respaldar un tercero. Créditos: %s.',
+                    $avalCurp,
+                    $creditosActivos,
+                    $detallesTexto
+                ),
+                [
+                    'aval_curp' => $avalCurp,
+                    'creditos_activos' => $creditosActivos,
+                    'creditos_conflictivos' => $detalles->all(),
+                ]
             );
         }
 
