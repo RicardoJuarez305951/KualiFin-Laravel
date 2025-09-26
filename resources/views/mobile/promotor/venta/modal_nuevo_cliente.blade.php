@@ -24,23 +24,14 @@
 
         <p class="font-semibold mt-2">Monto del crédito:</p>
         <input name="monto" type="number" step="100.00" min="0" max="3000" placeholder="Monto" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-          
+        <div class="grid grid-cols-1 gap-3 pt-2">
+
           {{-- INE Cliente --}}
           <div>
             <label class="text-sm font-medium block mb-1">INE</label>
             <input type="file" accept="image/*,application/pdf" class="hidden" x-ref="cliIne" @change="clientIneUploaded = true">
             <button type="button" @click="$refs.cliIne.click()" :class="clientIneUploaded ? 'bg-green-600 text-white' : 'bg-yellow-400 text-black hover:bg-yellow-500'" class="w-full rounded-lg px-3 py-2 font-medium transition">
               <span x-text="clientIneUploaded ? '✔ INE cargado' : 'Subir INE'"></span>
-            </button>
-          </div>
-
-          {{-- Comprobante Domicilio Cliente --}}
-          <div>
-            <label class="text-sm font-medium block mb-1">Comprobante Domicilio</label>
-            <input type="file" accept="image/*,application/pdf" class="hidden" x-ref="cliComp" @change="clientCompUploaded = true">
-            <button type="button" @click="$refs.cliComp.click()" :class="clientCompUploaded ? 'bg-green-600 text-white' : 'bg-yellow-400 text-black hover:bg-yellow-500'" class="w-full rounded-lg px-3 py-2 font-medium transition">
-              <span x-text="clientCompUploaded ? '✔ Comprobante cargado' : 'Subir Comprobante'"></span>
             </button>
           </div>
 
@@ -59,22 +50,13 @@
         <p class="font-semibold mt-2">CURP:</p>
         <input name="aval_CURP" type="text" placeholder="CURP" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+        <div class="grid grid-cols-1 gap-3 pt-2">
           {{-- INE Aval --}}
           <div>
             <label class="text-sm font-medium block mb-1">INE</label>
             <input type="file" accept="image/*,application/pdf" class="hidden" x-ref="avalIne" @change="avalIneUploaded = true">
             <button type="button" @click="$refs.avalIne.click()" :class="avalIneUploaded ? 'bg-green-600 text-white' : 'bg-yellow-400 text-black hover:bg-yellow-500'" class="w-full rounded-lg px-3 py-2 font-medium transition">
               <span x-text="avalIneUploaded ? '✔ INE cargado' : 'Subir INE'"></span>
-            </button>
-          </div>
-
-          {{-- Comprobante Domicilio Aval --}}
-          <div>
-            <label class="text-sm font-medium block mb-1">Comprobante Domicilio</label>
-            <input type="file" accept="image/*,application/pdf" class="hidden" x-ref="avalComp" @change="avalCompUploaded = true">
-            <button type="button" @click="$refs.avalComp.click()" :class="avalCompUploaded ? 'bg-green-600 text-white' : 'bg-yellow-400 text-black hover:bg-yellow-500'" class="w-full rounded-lg px-3 py-2 font-medium transition">
-              <span x-text="avalCompUploaded ? '✔ Comprobante cargado' : 'Subir Comprobante'"></span>
             </button>
           </div>
         </div>
