@@ -408,7 +408,7 @@ class SeederFiltrosBasicos extends Seeder
 
     private function ensureUser(string $email, string $name, string $role, string $phone): User
     {
-        return User::updateOrCreate(
+        $user = User::updateOrCreate(
             ['email' => $email],
             [
                 'name' => $name,
@@ -417,6 +417,12 @@ class SeederFiltrosBasicos extends Seeder
                 'rol' => $role,
             ]
         );
+
+        if (! $user->hasRole($role)) {
+            $user->assignRole($role);
+        }
+
+        return $user;
     }
 
     private function createCliente(Promotor $promotor, array $data): Cliente
