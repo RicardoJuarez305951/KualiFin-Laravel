@@ -15,6 +15,8 @@
   $cartera_inactivaP = $cartera_inactivaP ?? 0;
 
   /** ================= Helpers inline (sustitutos simples de X-Components) ================= */
+  $formatMoney = fn($value) => '$' . number_format((float) $value, 2, '.', ',');
+  $formatPercentage = fn($value) => number_format((float) $value, 2, '.', ',') . '%';
   $statRow = function(string $label, $value = null, $slotHtml = null) {
       $left  = '<span class="text-sm text-gray-600">'.e($label).'</span>';
       $right = !is_null($value)
@@ -63,7 +65,7 @@
             <div class="flex items-center justify-between">
               <span class="text-sm text-gray-700">Cartera Activa</span>
               <div class="flex items-center gap-3">
-                <span class="text-sm font-semibold text-gray-900">{{ $cartera_activa }}</span>
+                <span class="text-sm font-semibold text-gray-900">{{ $formatMoney($cartera_activa) }}</span>
                 {!! $pillLink(route('mobile.'.$role.'.cartera_activa'), 'D') !!}
               </div>
             </div>
@@ -73,7 +75,7 @@
             <div class="flex items-center justify-between">
               <span class="text-sm text-gray-700">Falla Actual</span>
               <div class="flex items-center gap-3">
-                <span class="text-sm font-semibold text-gray-900">{{ $cartera_falla }}</span>
+                <span class="text-sm font-semibold text-gray-900">{{ $formatMoney($cartera_falla) }}</span>
                 {!! $pillLink(route('mobile.'.$role.'.cartera_falla'), 'D') !!}
               </div>
             </div>
@@ -83,7 +85,7 @@
             <div class="flex items-center justify-between">
               <span class="text-sm text-gray-700">Cartera Vencida</span>
               <div class="flex items-center gap-3">
-                <span class="text-sm font-semibold text-gray-900">{{ $cartera_vencida }}</span>
+                <span class="text-sm font-semibold text-gray-900">{{ $formatMoney($cartera_vencida) }}</span>
                 {!! $pillLink(route('mobile.'.$role.'.cartera_vencida'), 'D') !!}
               </div>
             </div>
@@ -93,7 +95,7 @@
             <div class="flex items-center justify-between">
               <span class="text-sm text-gray-700">Cartera Inactiva</span>
               <div class="flex items-center gap-3">
-                <span class="text-sm font-semibold text-gray-900">{{ $cartera_inactivaP }}</span>
+                <span class="text-sm font-semibold text-gray-900">{{ $formatPercentage($cartera_inactivaP) }}</span>
                 {!! $pillLink(route('mobile.'.$role.'.cartera_inactiva'), 'D') !!}
               </div>
             </div>

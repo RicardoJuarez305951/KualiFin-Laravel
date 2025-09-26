@@ -52,7 +52,7 @@ class FiltrosController extends Controller
     public const FILTER_DOBLE_DOMICILIO = 'doble_domicilio';
     public const FILTER_BLOQUEO_TIEMPO_REACREDITOS = 'bloqueo_tiempo_recreditos';
 
-    private const CREDIT_ACTIVE_STATES = [
+    public const CREDIT_ACTIVE_STATES = [
         'prospectado',
         'prospectado_recredito',
         'solicitado',
@@ -61,7 +61,7 @@ class FiltrosController extends Controller
         'desembolsado',
     ];
 
-    private const CREDIT_FAILURE_STATES = [
+    public const CREDIT_FAILURE_STATES = [
         'vencido',
     ];
 
