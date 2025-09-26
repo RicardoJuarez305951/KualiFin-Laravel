@@ -235,12 +235,6 @@ class PromotorController extends Controller
                 'aval_apellido_p' => 'required|string|max:100',
                 'aval_apellido_m' => 'nullable|string|max:100',
                 'aval_CURP' => 'required|string|size:18',
-                'contacto.calle' => 'required|string|max:255',
-                'contacto.numero_ext' => 'required|string|max:25',
-                'contacto.numero_int' => 'nullable|string|max:25',
-                'contacto.colonia' => 'required|string|max:255',
-                'contacto.municipio' => 'required|string|max:255',
-                'contacto.cp' => 'required|string|max:10',
             ]);
 
             $clienteExistente = Cliente::where('CURP', $data['CURP'])->first();
@@ -291,7 +285,7 @@ class PromotorController extends Controller
                 'aval' => [
                     'curp' => $data['aval_CURP'],
                 ],
-                'contacto' => $data['contacto'],
+                'contacto' => $data['contacto'] ?? [],
                 'credito' => [
                     'fecha_inicio' => Carbon::now()->toDateString(),
                 ],
