@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Throwable;
 
@@ -263,7 +264,8 @@ class NuevoClienteController extends Controller
                 $credito->periodicidad = $form['credito']['periodicidad'];
                 $credito->fecha_inicio = $form['credito']['fecha_inicio'];
                 $credito->fecha_final = $form['credito']['fecha_final'];
-                $credito->estado = $credito->estado ?? 'pendiente';
+                $estadoActual = $credito->estado ?? 'pendiente';
+                $credito->estado = Str::lower($estadoActual);
                 $credito->interes = $credito->interes ?? 0;
                 $credito->save();
 
@@ -405,11 +407,11 @@ class NuevoClienteController extends Controller
 
         DB::transaction(function () use ($accion, $cliente, $credito) {
             if ($accion === 'aprobar') {
-                $credito->estado = 'Supervisado';
+                $credito->estado = 'supervisado';
                 $cliente->cartera_estado = 'activo';
                 $cliente->activo = true;
             } else {
-                $credito->estado = 'Rechazado';
+                $credito->estado = 'rechazado';
                 $cliente->cartera_estado = 'inactivo';
                 $cliente->activo = false;
             }
