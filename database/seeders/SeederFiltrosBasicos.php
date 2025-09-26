@@ -26,14 +26,14 @@ use Illuminate\Support\Facades\Hash;
  *
  * Instrucciones para probar los filtros:
  * - FILTER_CURP_UNICA: El cliente "Bruno Curp Duplicado" debe capturar manualmente
- *   la CURP BFB-CURP-UNICA-001 en el formulario al evaluarse
- *   ['cliente' => ['curp' => 'BFB-CURP-UNICA-001']]. El seeder deja preparada a
+ *   la CURP CUBA850101MDFRLN00 en el formulario al evaluarse
+ *   ['cliente' => ['curp' => 'CUBA850101MDFRLN00']]. El seeder deja preparada a
  *   "Ana Curp Base" como registro base con esa CURP para disparar el filtro.
- * 
- * - FILTER_DOBLE_FIRMA_AVAL: El aval "Rosa Aval Compromiso" (CURP BFB-AVAL-DOBLE-001)
+ *
+ * - FILTER_DOBLE_FIRMA_AVAL: El aval "Rosa Aval Compromiso" (CURP ROAV780512MDFRMO20)
  *   ya respalda los créditos activos de "Carla Aval Primera" y "Diego Aval Segundo".
- *   Al evaluar a "Elena Aval Candidata" capture la CURP BFB-AVAL-DOBLE-001 en el
- *   apartado del aval ['aval' => ['curp' => 'BFB-AVAL-DOBLE-001']].
+ *   Al evaluar a "Elena Aval Candidata" capture la CURP ROAV780512MDFRMO20 en el
+ *   apartado del aval ['aval' => ['curp' => 'ROAV780512MDFRMO20']].
  * 
  * - FILTER_OTRA_PLAZA: "Fernando Plaza Local" pertenece al promotor principal.
  *   Evalúelo enviando en el contexto ['promotor_id' => $promotorAlterno->id,
@@ -55,26 +55,26 @@ class SeederFiltrosBasicos extends Seeder
 {
     private const PASSWORD = '12345';
 
-    private const AVAL_CURP_DOBLE_FIRMA = 'BFB-AVAL-DOBLE-001';
+    private const AVAL_CURP_DOBLE_FIRMA = 'ROAV780512MDFRMO20';
 
     private const CLIENTS = [
         [
             'nombre' => 'Ana',
             'apellido_p' => 'Curp',
             'apellido_m' => 'Base',
-            'CURP' => 'BFB-CURP-UNICA-001',
+            'CURP' => 'CUBA850101MDFRLN00',
         ],
         [
             'nombre' => 'Bruno',
             'apellido_p' => 'Curp',
             'apellido_m' => 'Duplicado',
-            'CURP' => 'BFB-CURP-UNICA-002',
+            'CURP' => 'CUDU850202HDFRLR01',
         ],
         [
             'nombre' => 'Carla',
             'apellido_p' => 'Aval',
             'apellido_m' => 'Primera',
-            'CURP' => 'BFB-AVA-CLI-101',
+            'CURP' => 'AVPR830303MDFRLV02',
             'tiene_credito_activo' => true,
             'creditos' => [
                 [
@@ -103,7 +103,7 @@ class SeederFiltrosBasicos extends Seeder
             'nombre' => 'Diego',
             'apellido_p' => 'Aval',
             'apellido_m' => 'Segundo',
-            'CURP' => 'BFB-AVA-CLI-102',
+            'CURP' => 'AVSE830404HDFRLW03',
             'tiene_credito_activo' => true,
             'creditos' => [
                 [
@@ -132,19 +132,19 @@ class SeederFiltrosBasicos extends Seeder
             'nombre' => 'Elena',
             'apellido_p' => 'Aval',
             'apellido_m' => 'Candidata',
-            'CURP' => 'BFB-AVA-CLI-103',
+            'CURP' => 'AVCA830505MDFRLX04',
         ],
         [
             'nombre' => 'Fernando',
             'apellido_p' => 'Plaza',
             'apellido_m' => 'Local',
-            'CURP' => 'BFB-PLZ-CLI-201',
+            'CURP' => 'PLLO820606HDFRLY05',
         ],
         [
             'nombre' => 'Gabriela',
             'apellido_p' => 'Domicilio',
             'apellido_m' => 'Uno',
-            'CURP' => 'BFB-DOM-CLI-301',
+            'CURP' => 'DOUN810707MDFRLZ06',
             'tiene_credito_activo' => true,
             'creditos' => [
                 [
@@ -175,7 +175,7 @@ class SeederFiltrosBasicos extends Seeder
             'nombre' => 'Hector',
             'apellido_p' => 'Domicilio',
             'apellido_m' => 'Dos',
-            'CURP' => 'BFB-DOM-CLI-302',
+            'CURP' => 'DODS810808HDFRMA07',
             'tiene_credito_activo' => true,
             'creditos' => [
                 [
@@ -206,13 +206,13 @@ class SeederFiltrosBasicos extends Seeder
             'nombre' => 'Irene',
             'apellido_p' => 'Domicilio',
             'apellido_m' => 'Candidata',
-            'CURP' => 'BFB-DOM-CLI-303',
+            'CURP' => 'DOCA810909MDFRMB08',
         ],
         [
             'nombre' => 'Jorge',
             'apellido_p' => 'Recredito',
             'apellido_m' => 'Temprano',
-            'CURP' => 'BFB-REA-CLI-401',
+            'CURP' => 'REAT800101HDFRMC09',
             'creditos' => [
                 [
                     'estado' => 'liquidado',
@@ -228,7 +228,7 @@ class SeederFiltrosBasicos extends Seeder
             'nombre' => 'Karla',
             'apellido_p' => 'Recredito',
             'apellido_m' => 'Morosa',
-            'CURP' => 'BFB-REA-CLI-402',
+            'CURP' => 'REAM800202MDFRMD10',
             'cartera_estado' => 'moroso',
             'creditos' => [
                 [
@@ -245,7 +245,7 @@ class SeederFiltrosBasicos extends Seeder
             'nombre' => 'Luis',
             'apellido_p' => 'Recredito',
             'apellido_m' => 'Listo',
-            'CURP' => 'BFB-REA-CLI-403',
+            'CURP' => 'REAL800303HDFRME11',
             'creditos' => [
                 [
                     'estado' => 'liquidado',
@@ -261,49 +261,49 @@ class SeederFiltrosBasicos extends Seeder
             'nombre' => 'Monica',
             'apellido_p' => 'Base',
             'apellido_m' => 'Uno',
-            'CURP' => 'BFB-BASE-CLI-501',
+            'CURP' => 'BAUN790404MDFRMF12',
         ],
         [
             'nombre' => 'Nestor',
             'apellido_p' => 'Base',
             'apellido_m' => 'Dos',
-            'CURP' => 'BFB-BASE-CLI-502',
+            'CURP' => 'BADO790505HDFRMG13',
         ],
         [
             'nombre' => 'Olga',
             'apellido_p' => 'Base',
             'apellido_m' => 'Tres',
-            'CURP' => 'BFB-BASE-CLI-503',
+            'CURP' => 'BATR790606MDFRMH14',
         ],
         [
             'nombre' => 'Pablo',
             'apellido_p' => 'Base',
             'apellido_m' => 'Cuatro',
-            'CURP' => 'BFB-BASE-CLI-504',
+            'CURP' => 'BACU790707HDFRMI15',
         ],
         [
             'nombre' => 'Quetzal',
             'apellido_p' => 'Base',
             'apellido_m' => 'Cinco',
-            'CURP' => 'BFB-BASE-CLI-505',
+            'CURP' => 'BACN790808HDFRMJ16',
         ],
         [
             'nombre' => 'Rosa',
             'apellido_p' => 'Base',
             'apellido_m' => 'Seis',
-            'CURP' => 'BFB-BASE-CLI-506',
+            'CURP' => 'BASE790909MDFRMK17',
         ],
         [
             'nombre' => 'Sergio',
             'apellido_p' => 'Base',
             'apellido_m' => 'Siete',
-            'CURP' => 'BFB-BASE-CLI-507',
+            'CURP' => 'BASI791010HDFRML18',
         ],
         [
             'nombre' => 'Teresa',
             'apellido_p' => 'Base',
             'apellido_m' => 'Ocho',
-            'CURP' => 'BFB-BASE-CLI-508',
+            'CURP' => 'BAOC791111MDFRMM19',
         ],
     ];
 
