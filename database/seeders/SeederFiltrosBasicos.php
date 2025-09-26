@@ -17,16 +17,18 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * SeederFiltrosBasicos crea 20 clientes asociados al promotor promotor@example.com
+ * SeederFiltrosBasicos crea 20 clientes asociados al promotor
+ * PromotorPruebaFiltros@example.com
  * y datos auxiliares que permiten disparar los filtros principales del
  * FiltrosController.
  *
  * Ejecución: php artisan db:seed --class=SeederFiltrosBasicos
  *
  * Instrucciones para probar los filtros:
- * - FILTER_CURP_UNICA: El cliente "Bruno Curp Duplicado" (CURP BFB-CURP-UNICA-001)
- *   comparte CURP con "Ana Curp Base". Al evaluar a Bruno, indique en el formulario
- *   de cliente ['cliente' => ['curp' => 'BFB-CURP-UNICA-001']].
+ * - FILTER_CURP_UNICA: El cliente "Bruno Curp Duplicado" debe capturar manualmente
+ *   la CURP BFB-CURP-UNICA-001 en el formulario al evaluarse
+ *   ['cliente' => ['curp' => 'BFB-CURP-UNICA-001']]. El seeder deja preparada a
+ *   "Ana Curp Base" como registro base con esa CURP para disparar el filtro.
  * 
  * - FILTER_DOBLE_FIRMA_AVAL: El aval "Rosa Aval Compromiso" (CURP BFB-AVAL-DOBLE-001)
  *   ya respalda los créditos activos de "Carla Aval Primera" y "Diego Aval Segundo".
@@ -66,7 +68,7 @@ class SeederFiltrosBasicos extends Seeder
             'nombre' => 'Bruno',
             'apellido_p' => 'Curp',
             'apellido_m' => 'Duplicado',
-            'CURP' => 'BFB-CURP-UNICA-001',
+            'CURP' => 'BFB-CURP-UNICA-002',
         ],
         [
             'nombre' => 'Carla',
@@ -362,7 +364,7 @@ class SeederFiltrosBasicos extends Seeder
             ['ejecutivo_id' => $ejecutivo->id, 'nombre' => 'Samuel', 'apellido_p' => 'Supervisor', 'apellido_m' => 'Principal']
         );
 
-        $promotorPrincipalUser = $this->ensureUser('promotor@example.com', 'Paola Promotora', 'promotor', '5553000003');
+        $promotorPrincipalUser = $this->ensureUser('PromotorPruebaFiltros@example.com', 'Paola Promotora', 'promotor', '5553000003');
         $promotorPrincipal = Promotor::updateOrCreate(
             ['user_id' => $promotorPrincipalUser->id],
             [
