@@ -110,20 +110,6 @@
                 <p class="font-semibold">Monto del recrédito:</p>
                 <input name="monto" type="number" step="100.00" min="0" max="20000" placeholder="Monto" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400" required>
 
-                <p class="font-semibold">Domicilio del cliente:</p>
-                <div class="space-y-3">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <input name="contacto[calle]" type="text" placeholder="Calle" required class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
-                        <input name="contacto[numero_ext]" type="text" placeholder="Número Exterior" required class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <input name="contacto[numero_int]" type="text" placeholder="Número Interior (opcional)" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
-                        <input name="contacto[colonia]" type="text" placeholder="Colonia" required class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
-                        <input name="contacto[municipio]" type="text" placeholder="Municipio" required class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
-                    </div>
-                    <input name="contacto[cp]" type="text" placeholder="Código Postal" required class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400">
-                </div>
-
                 <p class="font-semibold">Nombre del cliente (autocompletado):</p>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <span class="border rounded-lg px-3 py-5 bg-gray-100"></span>
