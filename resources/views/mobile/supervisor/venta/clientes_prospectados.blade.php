@@ -118,7 +118,6 @@
 
           <div class="space-y-2 text-sm">
             <p x-show="selected.telefono"><span class="font-semibold">Telefono:</span> <span x-text="selected.telefono"></span></p>
-            <p x-show="selected.horario_de_pago"><span class="font-semibold">Horario de pago:</span> <span x-text="selected.horario_de_pago"></span></p>
             <p x-show="selected.direccion"><span class="font-semibold">Direccion:</span> <span x-text="selected.direccion"></span></p>
             <p x-show="selected.credito && selected.credito.estado"><span class="font-semibold">Estado del credito:</span> <span x-text="selected.credito.estado"></span></p>
             <p x-show="selected.credito && selected.credito.fecha_inicio"><span class="font-semibold">Fecha inicio credito:</span> <span x-text="selected.credito.fecha_inicio"></span></p>
@@ -202,11 +201,11 @@
 
      {{-- ===================== Navegación ===================== --}}
     <section class="grid grid-cols-3 gap-3">
-      <a href="{{ route('mobile.supervisor.venta', $contextQuery) }}" class="flex items-center justify-center rounded-xl border border-gray-300 text-white text-sm font-semibold px-3 py-2 bg-blue-600 hover:bg-blue-700 shadow-sm">
-        Regresar
+      <a href="{{ route('mobile.supervisor.venta', $contextQuery) }}" class="flex items-center justify-center rounded-xl border border-gray-300 text-white text-sm font-semibold px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 shadow-sm">
+        Regresar a Venta
       </a>
-      <a href="{{ route('mobile.supervisor.clientes_prospectados', $contextQuery) }}" class="inline-flex items-center justify-center rounded-xl bg-blue-600 text-white text-sm font-semibold px-3 py-2 hover:bg-blue-700 shadow">
-        Actualizar
+      <a href="{{ route('mobile.supervisor.clientes_prospectados', $contextQuery) }}" class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-semibold px-3 py-2 hover:from-blue-700 hover:to-blue-600 shadow">
+        Recargar
       </a>
       <a href="{{ route('mobile.supervisor.reporte', $contextQuery) }}" class="inline-flex items-center justify-center rounded-xl bg-indigo-600 text-white text-sm font-semibold px-3 py-2 hover:bg-indigo-700 shadow">
         Reporte
@@ -231,7 +230,6 @@
             nombre: '',
             curp: '',
             telefono: '',
-            horario_de_pago: '',
             direccion: '',
             promotor: '',
             monto: null,

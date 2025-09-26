@@ -1316,7 +1316,7 @@ class SupervisorController extends Controller
                 $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo', 'dia_de_pago', 'hora_de_pago')
                     ->with([
                         'clientes' => function ($clienteQuery) {
-                            $clienteQuery->select('id', 'promotor_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'fecha_nacimiento', 'tiene_credito_activo', 'monto_maximo', 'horario_de_pago', 'activo')
+                            $clienteQuery->select('id', 'promotor_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'fecha_nacimiento', 'tiene_credito_activo', 'monto_maximo', 'activo')
                                 ->with([
                                     'documentos',
                                     'credito' => function ($creditoQuery) {
@@ -1426,7 +1426,7 @@ class SupervisorController extends Controller
             'promotores' => function ($query) {
                 $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo', 'dia_de_pago', 'hora_de_pago')
                     ->with(['clientes' => function ($clienteQuery) {
-                        $clienteQuery->select('id', 'promotor_id', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'tiene_credito_activo', 'horario_de_pago')
+                        $clienteQuery->select('id', 'promotor_id', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'tiene_credito_activo')
                             ->orderBy('nombre');
                     }])
                     ->orderBy('nombre');
@@ -1512,7 +1512,6 @@ class SupervisorController extends Controller
             'monto' => (float) ($cliente->monto_maximo ?? $credito?->monto_total ?? 0),
             'telefono' => $dato?->tel_cel ?? $dato?->tel_fijo,
             'direccion' => $direccion,
-            'horario_de_pago' => $cliente->horario_de_pago,
             'documentos' => [
                 'ine' => $ineDoc['url'] ?? null,
                 'comprobante' => $domDoc['url'] ?? null,

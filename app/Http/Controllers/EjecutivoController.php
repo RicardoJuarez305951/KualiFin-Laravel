@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 
 class EjecutivoController extends Controller
 {
@@ -933,12 +934,221 @@ class EjecutivoController extends Controller
         return [$summaries, $totals, $ventaFecha];
     }
 
-    public function cliente_historial(Cliente $cliente)
+    public function cliente_historial(Request $request, Cliente $cliente)
     {
-        return view('mobile.ejecutivo.cartera.cliente_historial', compact('cliente'));
-    }
+        $user = $request->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
 
-    public function venta_supervisor()
+        $ejecutivo = $this->resolveEjecutivoContext($primaryRole, $user?->id, (int) $request->query('ejecutivo_id'));
+
+        if ($primaryRole === 'ejecutivo') {
+            abort_if(!$ejecutivo, 403, 'Perfil de ejecutivo no configurado.');
+        }
+
+        $cliente->load([
+            'promotor.supervisor',
+            'credito.pagosProyectados.pagosReales',
+            'credito.garantias',
+            'credito.avales.documentos',
+            'credito.datoContacto',
+            'documentos',
+        ]);
+
+        $promotor = $cliente->promotor;
+        $supervisor = $promotor?->supervisor;
+
+        abort_unless($supervisor, 404, 'Cliente sin supervisor asignado.');
+
+        if ($primaryRole === 'ejecutivo') {
+            abort_if($supervisor->ejecutivo_id !== $ejecutivo?->id, 403, 'Cliente fuera de tu alcance.');
+        } elseif ($primaryRole === 'supervisor') {
+            abort_if($supervisor->user_id !== $user?->id, 403, 'Cliente fuera de tu alcance.');
+        } elseif (!in_array($primaryRole, ['administrativo', 'superadmin'], true)) {
+            abort(403, 'Cliente fuera de tu alcance.');
+        }
+
+        $request->session()->put('mobile.supervisor_context', $supervisor->id);
+        $this->shareSupervisorContext($request, $supervisor);
+
+        $credito = $cliente->credito;
+
+        abort_unless($credito, 404, 'El cliente no cuenta con crédito activo.');
+
+        $pagosProyectados = $credito->pagosProyectados instanceof Collection
+            ? $credito->pagosProyectados
+            : collect($credito->pagosProyectados ?? []);
+
+        $totalWeeks = $pagosProyectados->count();
+        $fechaCredito = $credito->fecha_inicio ? Carbon::parse($credito->fecha_inicio) : null;
+
+        $currentWeek = 0;
+        if ($totalWeeks > 0 && $fechaCredito) {
+            $currentWeek = min(now()->diffInWeeks($fechaCredito) + 1, $totalWeeks);
+        }
+
+        $semanas = $pagosProyectados
+            ->sortBy('semana')
+            ->map(function ($pago) {
+                $fechaLimite = $pago->fecha_limite ? Carbon::parse($pago->fecha_limite) : null;
+                $primerPago = $pago->pagosReales instanceof Collection
+                    ? $pago->pagosReales->sortBy('fecha_pago')->first()
+                    : null;
+
+                if ($primerPago && $fechaLimite) {
+                    $fechaPago = Carbon::parse($primerPago->fecha_pago);
+
+                    if ($fechaPago->lt($fechaLimite)) {
+                        $estado = 'Adelantado';
+                    } elseif ($fechaPago->gt($fechaLimite)) {
+                        $estado = 'Atrasado';
+                    } else {
+                        $estado = 'Pagado';
+                    }
+                } elseif ($fechaLimite) {
+                    $estado = $fechaLimite->isPast() ? 'Atrasado' : 'Por pagar';
+                } else {
+                    $estado = 'Sin fecha';
+                }
+
+                return [
+                    'semana' => $pago->semana,
+                    'monto' => (float) ($pago->monto_proyectado ?? 0),
+                    'estado' => $estado,
+                ];
+            })
+            ->values();
+
+        $datoContacto = $credito->datoContacto;
+        $clienteDireccion = $datoContacto
+            ? collect([
+                trim(($datoContacto->calle ?? '') . ' ' . ($datoContacto->numero_ext ?? '')),
+                $datoContacto->numero_int ? 'Int. ' . $datoContacto->numero_int : null,
+                $datoContacto->colonia,
+                $datoContacto->municipio,
+                $datoContacto->estado,
+                $datoContacto->cp ? 'CP ' . $datoContacto->cp : null,
+            ])->filter()->implode(', ')
+            : null;
+
+        $clienteTelefonos = $datoContacto
+            ? collect([$datoContacto->tel_cel, $datoContacto->tel_fijo])->filter()->unique()->values()
+            : collect();
+
+        $garantias = $credito->garantias instanceof Collection ? $credito->garantias : collect($credito->garantias ?? []);
+
+        $garantiasCliente = $garantias
+            ->filter(fn ($garantia) => Str::lower((string) $garantia->propietario) === 'cliente')
+            ->map(function ($garantia) {
+                $descripcion = collect([
+                    $garantia->tipo,
+                    $garantia->marca,
+                    $garantia->modelo,
+                    $garantia->num_serie,
+                ])->filter()->implode(' - ');
+
+                return [
+                    'descripcion' => $descripcion !== '' ? $descripcion : ($garantia->tipo ?? 'Garantia'),
+                    'monto' => (float) ($garantia->monto_garantizado ?? 0),
+                    'foto_url' => $garantia->foto_url,
+                ];
+            })
+            ->values();
+
+        $garantiasAval = $garantias
+            ->filter(fn ($garantia) => Str::lower((string) $garantia->propietario) === 'aval')
+            ->map(function ($garantia) {
+                $descripcion = collect([
+                    $garantia->tipo,
+                    $garantia->marca,
+                    $garantia->modelo,
+                    $garantia->num_serie,
+                ])->filter()->implode(' - ');
+
+                return [
+                    'descripcion' => $descripcion !== '' ? $descripcion : ($garantia->tipo ?? 'Garantia'),
+                    'monto' => (float) ($garantia->monto_garantizado ?? 0),
+                    'foto_url' => $garantia->foto_url,
+                ];
+            })
+            ->values();
+
+        $documentosCliente = $cliente->documentos instanceof Collection
+            ? $cliente->documentos
+            : collect($cliente->documentos ?? []);
+
+        $documentosCliente = $documentosCliente
+            ->map(fn ($documento) => [
+                'titulo' => (string) Str::of($documento->tipo_doc ?? 'documento')->replace('_', ' ')->title(),
+                'url' => $documento->url_s3,
+            ])
+            ->values();
+
+        $avales = $credito->avales instanceof Collection ? $credito->avales : collect($credito->avales ?? []);
+        $aval = $avales->first();
+
+        $documentosAval = $avales
+            ->flatMap(function ($aval) {
+                $avalNombre = collect([$aval->nombre, $aval->apellido_p, $aval->apellido_m])->filter()->implode(' ');
+
+                $documentos = $aval->documentos instanceof Collection
+                    ? $aval->documentos
+                    : collect($aval->documentos ?? []);
+
+                return $documentos->map(function ($documento) use ($avalNombre) {
+                    $tituloDocumento = (string) Str::of($documento->tipo_doc ?? 'documento')->replace('_', ' ')->title();
+
+                    return [
+                        'titulo' => $avalNombre
+                            ? trim($avalNombre . ' - ' . $tituloDocumento)
+                            : $tituloDocumento,
+                        'url' => $documento->url_s3,
+                    ];
+                });
+            })
+            ->values();
+
+        $avalTelefonos = $aval
+            ? collect([$aval->telefono])->filter()->unique()->values()
+            : collect();
+
+        $clienteNombre = collect([$cliente->nombre, $cliente->apellido_p, $cliente->apellido_m])->filter()->implode(' ');
+        $promotorNombre = $promotor
+            ? collect([$promotor->nombre, $promotor->apellido_p, $promotor->apellido_m])->filter()->implode(' ')
+            : '';
+        $supervisorNombre = collect([$supervisor->nombre, $supervisor->apellido_p, $supervisor->apellido_m])->filter()->implode(' ');
+        $avalNombre = $aval
+            ? collect([$aval->nombre, $aval->apellido_p, $aval->apellido_m])->filter()->implode(' ')
+            : '';
+
+        $avalDireccion = $aval?->direccion;
+
+        $fechaCreditoTexto = $fechaCredito
+            ? $fechaCredito->clone()->locale('es')->translatedFormat('j \\de F \\de Y')
+            : null;
+
+        $montoCredito = (float) ($credito->monto_total ?? 0);
+
+        return view('mobile.ejecutivo.cartera.cliente_historial', compact(
+            'clienteNombre',
+            'supervisorNombre',
+            'promotorNombre',
+            'totalWeeks',
+            'currentWeek',
+            'fechaCreditoTexto',
+            'montoCredito',
+            'clienteDireccion',
+            'clienteTelefonos',
+            'garantiasCliente',
+            'documentosCliente',
+            'avalNombre',
+            'avalDireccion',
+            'avalTelefonos',
+            'garantiasAval',
+            'documentosAval',
+            'semanas'
+        ));
+    }
+public function venta_supervisor()
     {
         return view('mobile.ejecutivo.venta.venta_supervisor');
     }
@@ -1035,3 +1245,4 @@ class EjecutivoController extends Controller
      */
     
 }
+

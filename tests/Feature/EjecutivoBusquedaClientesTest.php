@@ -125,7 +125,6 @@ it('habilita detalles sin seleccionar supervisor para todos los clientes de sus 
         'tiene_credito_activo' => true,
         'cartera_estado' => 'activo',
         'monto_maximo' => 18000,
-        'horario_de_pago' => '11:00',
         'creado_en' => now(),
         'actualizado_en' => now(),
         'activo' => true,

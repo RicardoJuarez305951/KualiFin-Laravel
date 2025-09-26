@@ -9,6 +9,37 @@ use App\Models\DatoContacto;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
+/*
+ * Demo filters data (RealisticFilterCasesSeeder):
+ * - Run seeder: php artisan db:seed --class=RealisticFilterCasesSeeder
+ * - Promotor principal: promotor@example.com (password: 12345)
+ * - Promotor alterno: promotor2@example.com (password: 12345)
+ * - Obten clientes con Cliente::where('CURP', '...')->firstOrFail()
+ * - Escenarios con app(self::class)->evaluar($cliente, $form, $contexto):
+ *   curp_unica => cliente Laura Cardenas Lopez (CURP RFCD900101HDFLLA01)
+ *                 Form: ['cliente' => ['curp' => 'RFCD900101HDFLLA01']]
+ *   doble_firma_aval => cliente Rocio Arriaga Delgado (CURP RFAV920202MDFLRA04)
+ *                        Form: ['aval' => ['curp' => 'RFMG750707HPLCND06']]
+ *                        Contexto: ['credito_actual_id' => $cliente->creditos()->latest()->value('id')]
+ *   credito_en_falla => cliente Francisco Lara Medina (CURP RFFL850505HDFLRA05)
+ *                        Contexto: ['tipo_solicitud' => 'nuevo']
+ *   credito_activo => cliente Gabriela Garcia Andrade (CURP RFAC880808MDFLGA06)
+ *                      Contexto: ['tipo_solicitud' => 'nuevo']
+ *   otra_plaza => cliente Hector Estrada Nolasco (CURP RFOP900909HDFLHE07)
+ *                 Contexto: ['promotor_id' => $promotorAlterno->id, 'supervisor_id' => $promotorAlterno->supervisor_id]
+ *                 Nota: $promotorAlterno es el promotor del correo promotor2@example.com
+ *   bloqueo_falla_promotora_5 => cliente Isabel Quintero (CURP RFPF911111HDFLKK18)
+ *                                 Contexto: ['tipo_solicitud' => 'nuevo']
+ *   doble_domicilio => cliente Laura Alvarado Campos (CURP RFDD930303HDFLLA20)
+ *                      Form contacto: calle Av. Azcapotzalco, numero_ext 312, numero_int C, colonia San Alvaro,
+ *                                      municipio Azcapotzalco, cp 02020
+ *                      Form credito: ['credito' => ['fecha_inicio' => now()->toDateString()]]
+ *                      Contexto: ['autorizacion_especial_domicilio' => false]
+ *   bloqueo_tiempo_recreditos => contexto base: ['tipo_solicitud' => 'recredito', 'fecha_solicitud' => now()]
+ *         Manuel Ramirez Caso1 (CURP RFRQ940404MDFLMA21) falla por semanas
+ *         Natalia Ramirez Caso2 (CURP RFRQ950505MDFLNA22) falla por atrasos
+ *         Olivia Ramirez Caso3 (CURP RFRQ960606HDFLOA23) aprueba
+ */
 class FiltrosController extends Controller
 {
     public const FILTER_CURP_UNICA = 'curp_unica';
@@ -482,3 +513,4 @@ class FiltrosController extends Controller
         ];
     }
 }
+

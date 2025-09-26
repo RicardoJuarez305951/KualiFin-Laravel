@@ -206,7 +206,6 @@ function createClienteParaSupervisorObjetivo(Promotor $promotor, string $curp, s
         'tiene_credito_activo' => true,
         'cartera_estado' => 'activo',
         'monto_maximo' => 15000,
-        'horario_de_pago' => '10:00',
         'creado_en' => now(),
         'actualizado_en' => now(),
         'activo' => true,
