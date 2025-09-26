@@ -35,7 +35,7 @@ use Illuminate\Support\Facades\Hash;
  *   Al evaluar a "Elena Aval Candidata" capture la CURP ROAV780512MDFRMO20 en el
  *   apartado del aval ['aval' => ['curp' => 'ROAV780512MDFRMO20']].
  * 
- * - FILTER_OTRA_PLAZA: "Fernando Plaza Local" pertenece al promotor principal.
+ * - FILTER_OTRA_PLAZA: "Fernando Plaza Local - PLLO820606HDFRLY05" pertenece al promotor principal.
  *   Evalúelo enviando en el contexto ['promotor_id' => $promotorAlterno->id,
  *   'supervisor_id' => $promotorAlterno->supervisor_id] donde $promotorAlterno es el
  *   promotor del correo promotor.secundario@example.com.
@@ -47,9 +47,9 @@ use Illuminate\Support\Facades\Hash;
  *   credito['fecha_inicio'] de la solicitud.
  * 
  * - FILTER_BLOQUEO_TIEMPO_REACREDITOS: Para semanas insuficientes evalúe a
- *   "Jorge Recredito Temprano" con ['tipo_solicitud' => 'recredito'].
- *   Para atrasos utilice a "Karla Recredito Morosa" con el mismo contexto.
- *   "Luis Recredito Listo" sirve como caso aprobado.
+ *   "Jorge Recredito Temprano - REAT800101HDFRMC09" con ['tipo_solicitud' => 'recredito'].
+ *   Para atrasos utilice a "Karla Recredito Morosa - REAM800202MDFRMD10" con el mismo contexto.
+ *   "Luis Recredito Listo - REAL800303HDFRME11" sirve como caso aprobado.
  */
 class SeederFiltrosBasicos extends Seeder
 {
