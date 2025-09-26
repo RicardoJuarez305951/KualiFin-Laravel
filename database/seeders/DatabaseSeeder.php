@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             DemoCoreUserSeeder::class,
             DemoHierarchySeeder::class,
             DemoClientSeeder::class,
+            SeederFiltrosBasicos::class,
             // RealisticFilterCasesSeeder::class,
         ]);
     }

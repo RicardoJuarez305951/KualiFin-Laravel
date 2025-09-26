@@ -27,19 +27,23 @@ use Illuminate\Support\Facades\Hash;
  * - FILTER_CURP_UNICA: El cliente "Bruno Curp Duplicado" (CURP BFB-CURP-UNICA-001)
  *   comparte CURP con "Ana Curp Base". Al evaluar a Bruno, indique en el formulario
  *   de cliente ['cliente' => ['curp' => 'BFB-CURP-UNICA-001']].
+ * 
  * - FILTER_DOBLE_FIRMA_AVAL: El aval "Rosa Aval Compromiso" (CURP BFB-AVAL-DOBLE-001)
  *   ya respalda los créditos activos de "Carla Aval Primera" y "Diego Aval Segundo".
  *   Al evaluar a "Elena Aval Candidata" capture la CURP BFB-AVAL-DOBLE-001 en el
  *   apartado del aval ['aval' => ['curp' => 'BFB-AVAL-DOBLE-001']].
+ * 
  * - FILTER_OTRA_PLAZA: "Fernando Plaza Local" pertenece al promotor principal.
  *   Evalúelo enviando en el contexto ['promotor_id' => $promotorAlterno->id,
  *   'supervisor_id' => $promotorAlterno->supervisor_id] donde $promotorAlterno es el
  *   promotor del correo promotor.secundario@example.com.
+ * 
  * - FILTER_DOBLE_DOMICILIO: "Irene Domicilio Candidata" debe capturar en el
  *   formulario de contacto la dirección de Av. de las Flores 123, interior B,
  *   colonia Jardines del Centro, Miguel Hidalgo, CP 11510 y los mismos datos
  *   telefónicos para activar el filtro. Use los campos contacto[...] y el campo
  *   credito['fecha_inicio'] de la solicitud.
+ * 
  * - FILTER_BLOQUEO_TIEMPO_REACREDITOS: Para semanas insuficientes evalúe a
  *   "Jorge Recredito Temprano" con ['tipo_solicitud' => 'recredito'].
  *   Para atrasos utilice a "Karla Recredito Morosa" con el mismo contexto.
