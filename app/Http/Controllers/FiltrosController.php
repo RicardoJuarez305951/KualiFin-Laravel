@@ -12,8 +12,8 @@ use Illuminate\Support\Str;
 /*
  * Demo filters data (RealisticFilterCasesSeeder):
  * - Run seeder: php artisan db:seed --class=RealisticFilterCasesSeeder
- * - Promotor principal: filtros.promotor@example.com (password: Filtros2024!)
- * - Promotor alterno: filtros.promotor.alt@example.com (password: Filtros2024!)
+ * - Promotor principal: promotor@example.com (password: Filtros2024!)
+ * - Promotor alterno: promotor2@example.com (password: Filtros2024!)
  * - Obten clientes con Cliente::where('CURP', '...')->firstOrFail()
  * - Escenarios con app(self::class)->evaluar($cliente, $form, $contexto):
  *   curp_unica => cliente Laura Cardenas Lopez (CURP RFCD900101HDFLLA01)
@@ -27,7 +27,7 @@ use Illuminate\Support\Str;
  *                      Contexto: ['tipo_solicitud' => 'nuevo']
  *   otra_plaza => cliente Hector Estrada Nolasco (CURP RFOP900909HDFLHE07)
  *                 Contexto: ['promotor_id' => $promotorAlterno->id, 'supervisor_id' => $promotorAlterno->supervisor_id]
- *                 Nota: $promotorAlterno es el promotor del correo filtros.promotor.alt@example.com
+ *                 Nota: $promotorAlterno es el promotor del correo promotor2@example.com
  *   bloqueo_falla_promotora_5 => cliente Isabel Quintero (CURP RFPF911111HDFLKK18)
  *                                 Contexto: ['tipo_solicitud' => 'nuevo']
  *   doble_domicilio => cliente Laura Alvarado Campos (CURP RFDD930303HDFLLA20)
