@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 
+use App\Http\Controllers\FiltrosController;
 use App\Models\Aval;
 use App\Models\Cliente;
 use App\Models\Credito;
@@ -20,6 +21,10 @@ use Illuminate\Validation\ValidationException;
 
 class PromotorController extends Controller
 {
+    public function __construct(private FiltrosController $filtrosController)
+    {
+    }
+
     private const AVAL_CREDIT_STATUS_BLOCKLIST = [
         'prospectado',
         'prospectado_recredito',
@@ -230,6 +235,12 @@ class PromotorController extends Controller
                 'aval_apellido_p' => 'required|string|max:100',
                 'aval_apellido_m' => 'nullable|string|max:100',
                 'aval_CURP' => 'required|string|size:18',
+                'contacto.calle' => 'required|string|max:255',
+                'contacto.numero_ext' => 'required|string|max:25',
+                'contacto.numero_int' => 'nullable|string|max:25',
+                'contacto.colonia' => 'required|string|max:255',
+                'contacto.municipio' => 'required|string|max:255',
+                'contacto.cp' => 'required|string|max:10',
             ]);
 
             $clienteExistente = Cliente::where('CURP', $data['CURP'])->first();
@@ -258,6 +269,50 @@ class PromotorController extends Controller
                         'nombre' => 'El cliente aparece en la lista de deudores y no puede registrarse.',
                     ]);
                 }
+            }
+
+            $clienteEvaluado = new Cliente([
+                'id' => 0,
+                'promotor_id' => $promotor->id,
+                'CURP' => $data['CURP'],
+                'nombre' => $data['nombre'],
+                'apellido_p' => $data['apellido_p'],
+                'apellido_m' => $data['apellido_m'] ?? '',
+                'tiene_credito_activo' => false,
+                'cartera_estado' => 'inactivo',
+            ]);
+            $clienteEvaluado->setRelation('promotor', $promotor);
+            $clienteEvaluado->setRelation('creditos', collect());
+
+            $formulario = [
+                'cliente' => [
+                    'curp' => $data['CURP'],
+                ],
+                'aval' => [
+                    'curp' => $data['aval_CURP'],
+                ],
+                'contacto' => $data['contacto'],
+                'credito' => [
+                    'fecha_inicio' => Carbon::now()->toDateString(),
+                ],
+            ];
+
+            $contexto = [
+                'tipo_solicitud' => 'nuevo',
+                'promotor_id' => $promotor->id,
+                'supervisor_id' => $promotor->supervisor_id,
+                'fecha_solicitud' => Carbon::now(),
+                'ultimo_credito' => null,
+            ];
+
+            $resultadoFiltros = $this->filtrosController->evaluar($clienteEvaluado, $formulario, $contexto);
+
+            if (!$resultadoFiltros['passed']) {
+                $mensajeFiltro = $resultadoFiltros['message'] ?? 'La solicitud no cumple con los criterios requeridos.';
+
+                return $request->expectsJson()
+                    ? response()->json(['success' => false, 'message' => $mensajeFiltro], 422)
+                    : back()->with('error', $mensajeFiltro)->withInput();
             }
 
             DB::transaction(function () use ($data, $promotor) {
@@ -336,6 +391,12 @@ class PromotorController extends Controller
             'CURP' => 'required|string|size:18|exists:clientes,CURP',
             'monto' => 'required|numeric|min:0|max:20000',
             'r_newAval' => 'required|boolean',
+            'contacto.calle' => 'required|string|max:255',
+            'contacto.numero_ext' => 'required|string|max:25',
+            'contacto.numero_int' => 'nullable|string|max:25',
+            'contacto.colonia' => 'required|string|max:255',
+            'contacto.municipio' => 'required|string|max:255',
+            'contacto.cp' => 'required|string|max:10',
         ];
 
         if ($isNewAval) {
@@ -350,7 +411,10 @@ class PromotorController extends Controller
         try {
             $data = $request->validate($rules);
 
-            $clienteRegistro = Cliente::where('CURP', $data['CURP'])->first();
+            $clienteRegistro = Cliente::where('CURP', $data['CURP'])
+                ->with(['creditos' => fn ($query) => $query->orderByDesc('fecha_inicio')])
+                ->with('promotor')
+                ->first();
 
             if ($clienteRegistro) {
                 $nombreCompleto = $this->formatFullName(
@@ -391,6 +455,47 @@ class PromotorController extends Controller
                     throw ValidationException::withMessages([
                         'aval_CURP' => 'El aval tiene un credito activo o en proceso y no puede respaldar esta solicitud.',
                     ]);
+                }
+            }
+
+            if ($clienteRegistro) {
+                $clienteRegistro->setRelation('creditos', $clienteRegistro->creditos ?? collect());
+                if ($clienteRegistro->relationLoaded('promotor')) {
+                    $clienteRegistro->promotor?->loadMissing('supervisor');
+                }
+
+                $ultimoCredito = $clienteRegistro->creditos->first();
+
+                $formulario = [
+                    'cliente' => [
+                        'curp' => $clienteRegistro->CURP,
+                    ],
+                    'aval' => [
+                        'curp' => $avalCurp ?? '',
+                    ],
+                    'contacto' => $data['contacto'],
+                    'credito' => [
+                        'fecha_inicio' => Carbon::now()->toDateString(),
+                    ],
+                ];
+
+                $contexto = [
+                    'tipo_solicitud' => 'recredito',
+                    'promotor_id' => $promotor->id,
+                    'supervisor_id' => $promotor->supervisor_id,
+                    'fecha_solicitud' => Carbon::now(),
+                    'ultimo_credito' => $ultimoCredito,
+                    'credito_actual_id' => $ultimoCredito?->id,
+                ];
+
+                $resultadoFiltros = $this->filtrosController->evaluar($clienteRegistro, $formulario, $contexto);
+
+                if (!$resultadoFiltros['passed']) {
+                    $mensajeFiltro = $resultadoFiltros['message'] ?? 'La solicitud no cumple con los criterios requeridos.';
+
+                    return $request->expectsJson()
+                        ? response()->json(['success' => false, 'message' => $mensajeFiltro], 422)
+                        : back()->with('error', $mensajeFiltro)->withInput();
                 }
             }
         } catch (ValidationException $exception) {

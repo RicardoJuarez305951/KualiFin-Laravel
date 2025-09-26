@@ -64,7 +64,12 @@
             f.nombre.value.trim() &&
             f.apellido_p.value.trim() &&
             f['CURP'].value.trim().length === 18 &&
-            this.validateMonto(f.monto.value);
+            this.validateMonto(f.monto.value) &&
+            f['contacto[calle]'].value.trim() &&
+            f['contacto[numero_ext]'].value.trim() &&
+            f['contacto[colonia]'].value.trim() &&
+            f['contacto[municipio]'].value.trim() &&
+            f['contacto[cp]'].value.trim();
           if (!valido) {
             this.resultadoExito = false;
             this.resultadoMensaje = 'Datos incorrectos o incompletos. Por favor, verifica el formulario.';
@@ -98,7 +103,12 @@
           const f = e.target;
           const valido =
             f['CURP'].value.trim().length === 18 &&
-            this.validateMonto(f.monto.value);
+            this.validateMonto(f.monto.value) &&
+            f['contacto[calle]'] && f['contacto[calle]'].value.trim() &&
+            f['contacto[numero_ext]'] && f['contacto[numero_ext]'].value.trim() &&
+            f['contacto[colonia]'] && f['contacto[colonia]'].value.trim() &&
+            f['contacto[municipio]'] && f['contacto[municipio]'].value.trim() &&
+            f['contacto[cp]'] && f['contacto[cp]'].value.trim();
           if (!valido) {
             this.showError = true;
             return;
