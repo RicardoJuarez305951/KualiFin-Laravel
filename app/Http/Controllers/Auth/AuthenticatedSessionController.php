@@ -7,7 +7,6 @@ use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
@@ -24,33 +23,28 @@ class AuthenticatedSessionController extends Controller
      * Handle an incoming authentication request.
      */
     public function store(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
-        ]);
+{
+    $request->validate([
+        'email' => ['required', 'string', 'email'],
+        'password' => ['required', 'string'],
+    ]);
 
-        $credentials = [
-            'email' => Str::lower($request->input('email')),
-            'password' => $request->input('password'),
-        ];
+    if (Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
+        $request->session()->regenerate();
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
-            $request->session()->regenerate();
-
-            // Redirigir todos los roles permitidos a mobile
-            if (Auth::user()->hasAnyRole(['promotor', 'supervisor', 'ejecutivo', 'administrativo', 'superadmin'])) {
-                return redirect()->intended(route('mobile.index'));
-            }
-
-            // fallback (ej. admin u otros roles)
-            return redirect()->intended('/dashboard');
+        // Redirigir todos los roles permitidos a mobile
+        if (Auth::user()->hasAnyRole(['promotor', 'supervisor', 'ejecutivo', 'administrativo', 'superadmin'])) {
+            return redirect()->intended(route('mobile.index'));
         }
 
-        return back()->withErrors([
-            'email' => 'Las credenciales no coinciden.',
-        ]);
+        // fallback (ej. admin u otros roles)
+        return redirect()->intended('/dashboard');
     }
+
+    return back()->withErrors([
+        'email' => 'Las credenciales no coinciden.',
+    ]);
+}
 
 
 
