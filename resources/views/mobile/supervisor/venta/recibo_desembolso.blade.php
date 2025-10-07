@@ -6,6 +6,32 @@
         $promotor->apellido_p ?? null,
         $promotor->apellido_m ?? null,
     ])->filter()->implode(' '));
+
+    $supervisorNombre = trim((string) ($supervisorNombre ?? ''));
+
+    if ($supervisorNombre === '' && $promotor->supervisor) {
+        $supervisorNombre = trim(collect([
+            $promotor->supervisor->nombre ?? null,
+            $promotor->supervisor->apellido_p ?? null,
+            $promotor->supervisor->apellido_m ?? null,
+        ])->filter()->implode(' '));
+    }
+
+    $ejecutivoNombre = trim((string) ($ejecutivoNombre ?? ''));
+
+    if ($ejecutivoNombre === '' && $promotor->supervisor && $promotor->supervisor->ejecutivo) {
+        $ejecutivoNombre = trim(collect([
+            $promotor->supervisor->ejecutivo->nombre ?? null,
+            $promotor->supervisor->ejecutivo->apellido_p ?? null,
+            $promotor->supervisor->ejecutivo->apellido_m ?? null,
+        ])->filter()->implode(' '));
+    }
+
+    $reciboDeNombre = trim((string) ($reciboDeNombre ?? ''));
+
+    if ($reciboDeNombre === '') {
+        $reciboDeNombre = $ejecutivoNombre !== '' ? $ejecutivoNombre : $supervisorNombre;
+    }
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Formato Recibo Desembolso">
@@ -14,13 +40,21 @@
         x-data="reciboDesembolso({
             clientes: @json($clientes),
             promotorNombre: @json($promotorNombre),
+            supervisorNombre: @json($supervisorNombre),
+            ejecutivoNombre: @json($ejecutivoNombre),
             fechaHoy: @json($fechaHoy),
+            comisionPromotor: @json($comisionPromotor ?? 0),
+            comisionSupervisor: @json($comisionSupervisor ?? 0),
+            carteraActual: @json($carteraActual ?? 0),
+            reciboDeNombre: @json($reciboDeNombre),
         })"
     >
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
                 <h1 class="text-xl font-semibold text-gray-800">Formato Recibo Desembolso</h1>
                 <p class="text-sm text-gray-500">Promotor: <span class="font-medium text-gray-700" x-text="form.promotor"></span></p>
+                <p class="text-sm text-gray-500">Supervisor: <span class="font-medium text-gray-700" x-text="supervisorNombre || 'Sin supervisor'"></span></p>
+                <p class="text-sm text-gray-500">Ejecutivo: <span class="font-medium text-gray-700" x-text="ejecutivoNombre || 'Sin ejecutivo'"></span></p>
             </div>
             <div class="text-sm text-gray-500 flex items-center gap-2">
                 <span>Fecha:</span>
@@ -234,7 +268,7 @@
                 <div class="bg-white rounded-2xl shadow p-4 sm:p-6 space-y-4">
                     <div>
                         <h3 class="text-lg font-semibold text-gray-700 text-center uppercase">Recibo de dinero</h3>
-                        <p class="text-sm text-gray-500 text-center">RECIBÍ DE: MARCO ANTONIO GÜEMES ABUD</p>
+                        <p class="text-sm text-gray-500 text-center" x-text="reciboDeNombre ? `RECIBÍ DE: ${reciboDeNombre.toUpperCase()}` : 'RECIBÍ DE: —'"></p>
                     </div>
                     <div class="space-y-2 text-sm text-gray-600">
                         <div class="flex justify-between">
@@ -270,16 +304,19 @@
                 rows: [],
                 form: {
                     promotor: config.promotorNombre || '',
-                    promotoraReconocimiento: '',
-                    ejecutivo: '',
-                    comisionPromotor: 0,
-                    comisionSupervisor: 0,
-                    carteraActual: 0,
+                    promotoraReconocimiento: config.promotorNombre || '',
+                    ejecutivo: config.ejecutivoNombre || '',
+                    comisionPromotor: Number(config.comisionPromotor ?? 0),
+                    comisionSupervisor: Number(config.comisionSupervisor ?? 0),
+                    carteraActual: Number(config.carteraActual ?? 0),
                     nombrePromotor: config.promotorNombre || '',
-                    nombreSupervisor: '',
+                    nombreSupervisor: config.supervisorNombre || '',
                     fecha: config.fechaHoy || '',
                 },
                 clientes: config.clientes || [],
+                supervisorNombre: config.supervisorNombre || '',
+                ejecutivoNombre: config.ejecutivoNombre || '',
+                reciboDeNombre: config.reciboDeNombre || '',
                 currencyFormatter: new Intl.NumberFormat('es-MX', {
                     style: 'currency',
                     currency: 'MXN',
@@ -287,11 +324,12 @@
                 }),
                 init() {
                     const iniciales = (this.clientes || [])
-                        .filter(c => c && (c.prestamo_anterior || c.prestamo_solicitado))
                         .map(c => this.nuevaFila({
                             cliente: c.nombre || '',
                             prestamoAnterior: c.prestamo_anterior || 0,
                             prestamoSolicitado: c.prestamo_solicitado || 0,
+                            recreditoNuevo: c.recredito_nuevo || 0,
+                            totalRecredito: c.total_recredito || 0,
                         }));
 
                     this.rows = iniciales.length ? iniciales : [this.nuevaFila()];
