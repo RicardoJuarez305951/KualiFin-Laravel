@@ -387,9 +387,13 @@ class SupervisorController extends Controller
             'clientes.creditos' => function ($query) {
                 $query->orderByDesc('fecha_inicio')->orderByDesc('id');
             },
+            'supervisor.ejecutivo',
         ]);
 
-        $clientes = $promotor->clientes->map(function (Cliente $cliente) {
+        $clientes = collect();
+        $carteraActual = 0.0;
+
+        foreach ($promotor->clientes as $cliente) {
             $creditos = $cliente->creditos
                 ->sortByDesc(function (Credito $credito) {
                     if ($credito->fecha_inicio) {
@@ -403,7 +407,11 @@ class SupervisorController extends Controller
             $creditoActual = $creditos->get(0);
             $creditoAnterior = $creditos->get(1);
 
-            return [
+            if ($cliente->tiene_credito_activo && $creditoActual) {
+                $carteraActual += (float) ($creditoActual->monto_total ?? 0);
+            }
+
+            $clientes->push([
                 'id' => $cliente->id,
                 'nombre' => trim(collect([
                     $cliente->nombre,
@@ -412,15 +420,55 @@ class SupervisorController extends Controller
                 ])->filter()->implode(' ')),
                 'prestamo_anterior' => $creditoAnterior ? (float) ($creditoAnterior->monto_total ?? 0) : 0.0,
                 'prestamo_solicitado' => $creditoActual ? (float) ($creditoActual->monto_total ?? 0) : 0.0,
-            ];
-        });
+                'recredito_nuevo' => 0.0,
+                'total_recredito' => 0.0,
+            ]);
+        }
 
+        $clientes = $clientes->sortBy('nombre')->values();
+
+        $supervisorRelacion = $promotor->supervisor;
+        $supervisorNombre = '';
+        $ejecutivoNombre = '';
+
+        if ($supervisorRelacion) {
+            $supervisorNombre = trim(collect([
+                $supervisorRelacion->nombre,
+                $supervisorRelacion->apellido_p,
+                $supervisorRelacion->apellido_m,
+            ])->filter()->implode(' '));
+
+            $ejecutivo = $supervisorRelacion->ejecutivo;
+
+            if ($ejecutivo) {
+                $ejecutivoNombre = trim(collect([
+                    $ejecutivo->nombre,
+                    $ejecutivo->apellido_p,
+                    $ejecutivo->apellido_m,
+                ])->filter()->implode(' '));
+            }
+        }
+
+        $ultimaComisionPromotor = $promotor->comisiones()->orderByDesc('fecha_pago')->first();
+        $ultimaComisionSupervisor = $supervisorRelacion?->comisiones()->orderByDesc('fecha_pago')->first();
+
+        $comisionPromotor = $ultimaComisionPromotor ? (float) ($ultimaComisionPromotor->monto_pago ?? 0) : 0.0;
+        $comisionSupervisor = $ultimaComisionSupervisor ? (float) ($ultimaComisionSupervisor->monto_pago ?? 0) : 0.0;
+
+        $carteraActual = round($carteraActual, 2);
         $fechaHoy = now()->format('d/m/Y');
+        $reciboDeNombre = $ejecutivoNombre !== '' ? $ejecutivoNombre : $supervisorNombre;
 
         return view('mobile.supervisor.venta.recibo_desembolso', [
             'promotor' => $promotor,
             'clientes' => $clientes,
             'fechaHoy' => $fechaHoy,
+            'supervisorNombre' => $supervisorNombre,
+            'ejecutivoNombre' => $ejecutivoNombre,
+            'comisionPromotor' => $comisionPromotor,
+            'comisionSupervisor' => $comisionSupervisor,
+            'carteraActual' => $carteraActual,
+            'reciboDeNombre' => $reciboDeNombre,
         ]);
     }
 
