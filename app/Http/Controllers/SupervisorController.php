@@ -376,6 +376,54 @@ class SupervisorController extends Controller
         ));
     }
 
+    public function reciboDesembolso(Request $request, Promotor $promotor)
+    {
+        $supervisor = $this->resolveSupervisorContext($request);
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($request->user());
+
+        $this->ensurePromotorBelongsToContext($supervisor, $promotor, $primaryRole);
+
+        $promotor->load([
+            'clientes.creditos' => function ($query) {
+                $query->orderByDesc('fecha_inicio')->orderByDesc('id');
+            },
+        ]);
+
+        $clientes = $promotor->clientes->map(function (Cliente $cliente) {
+            $creditos = $cliente->creditos
+                ->sortByDesc(function (Credito $credito) {
+                    if ($credito->fecha_inicio) {
+                        return Carbon::parse($credito->fecha_inicio)->timestamp;
+                    }
+
+                    return PHP_INT_MIN + (int) $credito->id;
+                })
+                ->values();
+
+            $creditoActual = $creditos->get(0);
+            $creditoAnterior = $creditos->get(1);
+
+            return [
+                'id' => $cliente->id,
+                'nombre' => trim(collect([
+                    $cliente->nombre,
+                    $cliente->apellido_p,
+                    $cliente->apellido_m,
+                ])->filter()->implode(' ')),
+                'prestamo_anterior' => $creditoAnterior ? (float) ($creditoAnterior->monto_total ?? 0) : 0.0,
+                'prestamo_solicitado' => $creditoActual ? (float) ($creditoActual->monto_total ?? 0) : 0.0,
+            ];
+        });
+
+        $fechaHoy = now()->format('d/m/Y');
+
+        return view('mobile.supervisor.venta.recibo_desembolso', [
+            'promotor' => $promotor,
+            'clientes' => $clientes,
+            'fechaHoy' => $fechaHoy,
+        ]);
+    }
+
     public function solicitar_venta()
     {
         return view('mobile.supervisor.venta.solicitar_venta');

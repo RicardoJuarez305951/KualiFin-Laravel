@@ -87,6 +87,7 @@
                     </div>
                     <div class="flex flex-col items-end gap-2">
                         <a href="{{ route('mobile.promotor.venta', array_merge($supervisorContextQuery ?? [], ['promotor' => $p['id']])) }}" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
+                        <a href="{{ route('mobile.supervisor.venta.recibo_desembolso', array_merge($supervisorContextQuery ?? [], ['promotor' => $p['id']])) }}" class="px-3 py-1 text-sm font-semibold text-gray-900 bg-yellow-400 rounded shadow-sm">V</a>
                         @role('ejecutivo|administrativo')
                         <a href="{{ route('mobile.ejecutivo.desembolso', array_merge($supervisorContextQuery ?? [], [])) }}" class="px-3 py-1 text-sm font-semibold text-white bg-indigo-600 rounded">V</a>
                         @endrole
