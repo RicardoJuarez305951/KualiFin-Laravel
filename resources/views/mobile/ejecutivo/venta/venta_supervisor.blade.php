@@ -1,4 +1,5 @@
 ﻿{{-- resources/views/mobile/supervisor/venta/venta.blade.php --}}
+{{-- LEGACY CODE NOT USED --}}
 @php
     use Carbon\Carbon;
 
