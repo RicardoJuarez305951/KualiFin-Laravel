@@ -1,66 +1,157 @@
 {{-- resources/views/mobile/supervisor/venta/recibo_desembolso.blade.php --}}
 @php
-    /** @var \App\Models\Promotor $promotor */
-    $promotorNombre = trim(collect([
-        $promotor->nombre ?? null,
-        $promotor->apellido_p ?? null,
-        $promotor->apellido_m ?? null,
-    ])->filter()->implode(' '));
-
+    /** @var \App\Models\Promotor|null $promotor */
+    $promotorNombre = trim((string) ($promotorNombre ?? ''));
     $supervisorNombre = trim((string) ($supervisorNombre ?? ''));
-
-    if ($supervisorNombre === '' && $promotor->supervisor) {
-        $supervisorNombre = trim(collect([
-            $promotor->supervisor->nombre ?? null,
-            $promotor->supervisor->apellido_p ?? null,
-            $promotor->supervisor->apellido_m ?? null,
-        ])->filter()->implode(' '));
-    }
-
     $ejecutivoNombre = trim((string) ($ejecutivoNombre ?? ''));
+    $reciboDeNombre = trim((string) ($reciboDeNombre ?? ''));
+    $fechaHoy = isset($fechaHoy) && $fechaHoy !== '' ? $fechaHoy : now()->format('d/m/Y');
 
-    if ($ejecutivoNombre === '' && $promotor->supervisor && $promotor->supervisor->ejecutivo) {
-        $ejecutivoNombre = trim(collect([
-            $promotor->supervisor->ejecutivo->nombre ?? null,
-            $promotor->supervisor->ejecutivo->apellido_p ?? null,
-            $promotor->supervisor->ejecutivo->apellido_m ?? null,
+    if ($promotorNombre === '' && isset($promotor)) {
+        $promotorNombre = trim(collect([
+            $promotor->nombre ?? null,
+            $promotor->apellido_p ?? null,
+            $promotor->apellido_m ?? null,
         ])->filter()->implode(' '));
     }
 
-    $reciboDeNombre = trim((string) ($reciboDeNombre ?? ''));
+    $promotorSupervisor = isset($promotor) ? $promotor->supervisor : null;
+
+    if ($supervisorNombre === '' && $promotorSupervisor) {
+        $supervisorNombre = trim(collect([
+            $promotorSupervisor->nombre ?? null,
+            $promotorSupervisor->apellido_p ?? null,
+            $promotorSupervisor->apellido_m ?? null,
+        ])->filter()->implode(' '));
+    }
+
+    $promotorEjecutivo = $promotorSupervisor ? $promotorSupervisor->ejecutivo : null;
+
+    if ($ejecutivoNombre === '' && $promotorEjecutivo) {
+        $ejecutivoNombre = trim(collect([
+            $promotorEjecutivo->nombre ?? null,
+            $promotorEjecutivo->apellido_p ?? null,
+            $promotorEjecutivo->apellido_m ?? null,
+        ])->filter()->implode(' '));
+    }
 
     if ($reciboDeNombre === '') {
         $reciboDeNombre = $ejecutivoNombre !== '' ? $ejecutivoNombre : $supervisorNombre;
     }
+
+    if (!function_exists('reciboFormatCurrency')) {
+        function reciboFormatCurrency($value)
+        {
+            $number = is_numeric($value) ? (float) $value : 0;
+            return '$' . number_format($number, 2, '.', ',');
+        }
+    }
+
+    if (!function_exists('reciboFormatCurrencyNullable')) {
+        function reciboFormatCurrencyNullable($value)
+        {
+            return is_numeric($value) ? reciboFormatCurrency($value) : 'N/A';
+        }
+    }
+
+    if (!function_exists('reciboPercentOrNA')) {
+        function reciboPercentOrNA($value)
+        {
+            return is_numeric($value)
+                ? number_format((float) $value, 2, '.', ',') . '%'
+                : 'N/A';
+        }
+    }
+
+    if (!function_exists('reciboTextOrNA')) {
+        function reciboTextOrNA($value)
+        {
+            $text = trim((string) ($value ?? ''));
+            return $text !== '' ? $text : 'N/A';
+        }
+    }
+
+    $clientesCollection = collect($clientes ?? []);
+
+    $clienteRows = $clientesCollection
+        ->map(function ($cliente) {
+            $ultimoCredito = $cliente['ultimo_credito'] ?? null;
+            $creditoAnterior = $cliente['credito_anterior'] ?? null;
+
+            $prestamoSolicitado = isset($ultimoCredito['monto_total'])
+                ? (float) $ultimoCredito['monto_total']
+                : null;
+            $comisionCinco = $prestamoSolicitado !== null
+                ? round($prestamoSolicitado * 0.05, 2)
+                : null;
+            $totalPrestamo = $prestamoSolicitado !== null
+                ? $prestamoSolicitado - $comisionCinco
+                : null;
+
+            $prestamoAnterior = isset($creditoAnterior['monto_total'])
+                ? (float) $creditoAnterior['monto_total']
+                : null;
+
+            $recreditoNuevo = null; // Se definira posteriormente.
+            $totalRecredito = null;
+            $saldoPostRecredito = ($totalPrestamo !== null && $totalRecredito !== null)
+                ? $totalPrestamo - $totalRecredito
+                : null;
+
+            return [
+                'nombre' => trim((string) ($cliente['nombre'] ?? '')),
+                'credito_id' => $ultimoCredito['id'] ?? null,
+                'prestamo_anterior' => $prestamoAnterior,
+                'prestamo_solicitado' => $prestamoSolicitado,
+                'comision_cinco' => $comisionCinco,
+                'total_prestamo' => $totalPrestamo,
+                'recredito_nuevo' => $recreditoNuevo,
+                'total_recredito' => $totalRecredito,
+                'saldo_post_recredito' => $saldoPostRecredito,
+            ];
+        })
+        ->values();
+
+    $totalPrestamoSolicitado = $clienteRows->sum(function ($row) {
+        return $row['prestamo_solicitado'] ?? 0;
+    });
+
+    $comisionPromotor = isset($comisionPromotor) ? (float) $comisionPromotor : 0.0;
+    $comisionSupervisor = isset($comisionSupervisor) ? (float) $comisionSupervisor : 0.0;
+    $carteraActual = isset($carteraActual) ? (float) $carteraActual : 0.0;
+    $inversion = $comisionPromotor + $comisionSupervisor + $totalPrestamoSolicitado - $carteraActual;
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Formato Recibo Desembolso">
-    <div
-        class="max-w-5xl mx-auto space-y-6"
-        x-data="reciboDesembolso({
-            clientes: @json($clientes),
-            promotorNombre: @json($promotorNombre),
-            supervisorNombre: @json($supervisorNombre),
-            ejecutivoNombre: @json($ejecutivoNombre),
-            fechaHoy: @json($fechaHoy),
-            comisionPromotor: @json($comisionPromotor ?? 0),
-            comisionSupervisor: @json($comisionSupervisor ?? 0),
-            carteraActual: @json($carteraActual ?? 0),
-            reciboDeNombre: @json($reciboDeNombre),
-        })"
-    >
+    <div class="max-w-5xl mx-auto space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
                 <h1 class="text-xl font-semibold text-gray-800">Formato Recibo Desembolso</h1>
-                <p class="text-sm text-gray-500">Promotor: <span class="font-medium text-gray-700" x-text="form.promotor"></span></p>
-                <p class="text-sm text-gray-500">Supervisor: <span class="font-medium text-gray-700" x-text="supervisorNombre || 'Sin supervisor'"></span></p>
-                <p class="text-sm text-gray-500">Ejecutivo: <span class="font-medium text-gray-700" x-text="ejecutivoNombre || 'Sin ejecutivo'"></span></p>
+                <p class="text-sm text-gray-500">
+                    Promotor:
+                    <span class="font-medium text-gray-700">
+                        {{ $promotorNombre !== '' ? $promotorNombre : 'Sin promotor' }}
+                    </span>
+                </p>
+                <p class="text-sm text-gray-500">
+                    Supervisor:
+                    <span class="font-medium text-gray-700">
+                        {{ $supervisorNombre !== '' ? $supervisorNombre : 'Sin supervisor' }}
+                    </span>
+                </p>
+                <p class="text-sm text-gray-500">
+                    Ejecutivo:
+                    <span class="font-medium text-gray-700">
+                        {{ $ejecutivoNombre !== '' ? $ejecutivoNombre : 'Sin ejecutivo' }}
+                    </span>
+                </p>
             </div>
             <div class="text-sm text-gray-500 flex items-center gap-2">
                 <span>Fecha:</span>
                 <input
                     type="text"
-                    x-model="form.fecha"
+                    name="fecha"
+                    value="{{ $fechaHoy }}"
                     class="w-32 rounded-lg border border-gray-300 px-3 py-1 text-sm font-semibold text-gray-700 focus:border-blue-500 focus:ring focus:ring-blue-200"
                 >
             </div>
@@ -68,118 +159,61 @@
 
         <div class="bg-white rounded-2xl shadow p-4 sm:p-6 space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-2">
-                <h2 class="text-lg font-semibold text-gray-700">Detalle de desembolsos</h2>
-                <div class="flex items-center gap-2">
-                    <button
-                        type="button"
-                        class="inline-flex items-center justify-center rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                        @click="addRow()"
-                    >
-                        Agregar cliente
-                    </button>
-                </div>
+                <h2 class="text-lg font-semibold text-gray-700">Detalle de ultimos creditos</h2>
             </div>
 
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200 text-xs sm:text-sm">
-                    <thead class="bg-gray-50">
-                        <tr class="text-gray-600">
+                    <thead class="bg-gray-50 text-gray-600">
+                        <tr>
                             <th class="px-3 py-2 text-left font-semibold">Cliente</th>
-                            <th class="px-3 py-2 text-right font-semibold whitespace-nowrap">Préstamo crédito anterior</th>
-                            <th class="px-3 py-2 text-right font-semibold whitespace-nowrap">Préstamo solicitado</th>
-                            <th class="px-3 py-2 text-right font-semibold whitespace-nowrap">-5% (comisión)</th>
-                            <th class="px-3 py-2 text-right font-semibold whitespace-nowrap">Total préstamo</th>
-                            <th class="px-3 py-2 text-right font-semibold whitespace-nowrap">Recrédito nuevo</th>
-                            <th class="px-3 py-2 text-right font-semibold whitespace-nowrap">Total recrédito</th>
-                            <th class="px-3 py-2 text-right font-semibold whitespace-nowrap">Total préstamo - recrédito</th>
-                            <th class="px-3 py-2"></th>
+                            <th class="px-3 py-2 text-right font-semibold whitespace-nowrap">Prestamo credito anterior</th>
+                            <th class="px-3 py-2 text-right font-semibold whitespace-nowrap">Prestamo solicitado</th>
+                            <th class="px-3 py-2 text-right font-semibold whitespace-nowrap">-5% comision</th>
+                            <th class="px-3 py-2 text-right font-semibold whitespace-nowrap">Total prestamo</th>
+                            <th class="px-3 py-2 text-right font-semibold whitespace-nowrap">Recredito nuevo</th>
+                            <th class="px-3 py-2 text-right font-semibold whitespace-nowrap">Total recredito</th>
+                            <th class="px-3 py-2 text-right font-semibold whitespace-nowrap">Total prestamo - recredito</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        <template x-for="(row, index) in rows" :key="row.uid">
-                            <tr class="align-top">
-                                <td class="px-3 py-2 min-w-[160px]">
-                                    <input
-                                        type="text"
-                                        x-model="row.cliente"
-                                        list="clientes-sugeridos"
-                                        class="w-full rounded-lg border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-                                        placeholder="Nombre del cliente"
-                                    >
-                                </td>
+                        @forelse($clienteRows as $row)
+                            <tr class="text-gray-700">
                                 <td class="px-3 py-2">
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        x-model.number="row.prestamoAnterior"
-                                        class="w-full rounded-lg border border-gray-300 px-2 py-1 text-right text-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-                                        placeholder="0.00"
-                                    >
+                                    {{ $row['nombre'] !== '' ? $row['nombre'] : 'Sin nombre' }}
                                 </td>
-                                <td class="px-3 py-2">
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        x-model.number="row.prestamoSolicitado"
-                                        class="w-full rounded-lg border border-gray-300 px-2 py-1 text-right text-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-                                        placeholder="0.00"
-                                    >
+                                <td class="px-3 py-2 text-right">
+                                    {{ reciboFormatCurrencyNullable($row['prestamo_anterior']) }}
                                 </td>
-                                <td class="px-3 py-2 text-right font-medium text-gray-600" x-text="money(rowCommission(row))"></td>
-                                <td class="px-3 py-2 text-right font-medium text-gray-700" x-text="money(rowTotalPrestamo(row))"></td>
-                                <td class="px-3 py-2">
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        x-model.number="row.recreditoNuevo"
-                                        class="w-full rounded-lg border border-gray-300 px-2 py-1 text-right text-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-                                        placeholder="0.00"
-                                    >
+                                <td class="px-3 py-2 text-right font-medium">
+                                    {{ reciboFormatCurrencyNullable($row['prestamo_solicitado']) }}
                                 </td>
-                                <td class="px-3 py-2">
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        x-model.number="row.totalRecredito"
-                                        class="w-full rounded-lg border border-gray-300 px-2 py-1 text-right text-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-                                        placeholder="0.00"
-                                    >
+                                <td class="px-3 py-2 text-right">
+                                    {{ reciboFormatCurrencyNullable($row['comision_cinco']) }}
                                 </td>
-                                <td class="px-3 py-2 text-right font-semibold" x-text="money(rowTotalPrestamoMenosRecredito(row))"></td>
-                                <td class="px-3 py-2 text-center">
-                                    <button
-                                        type="button"
-                                        class="text-xs text-red-500 hover:text-red-600"
-                                        @click="removeRow(row.uid)"
-                                        x-show="rows.length > 1"
-                                    >
-                                        Eliminar
-                                    </button>
+                                <td class="px-3 py-2 text-right">
+                                    {{ reciboFormatCurrencyNullable($row['total_prestamo']) }}
+                                </td>
+                                <td class="px-3 py-2 text-right">
+                                    {{ reciboFormatCurrencyNullable($row['recredito_nuevo']) }}
+                                </td>
+                                <td class="px-3 py-2 text-right">
+                                    {{ reciboFormatCurrencyNullable($row['total_recredito']) }}
+                                </td>
+                                <td class="px-3 py-2 text-right">
+                                    {{ reciboFormatCurrencyNullable($row['saldo_post_recredito']) }}
                                 </td>
                             </tr>
-                        </template>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="px-3 py-4 text-center text-sm text-gray-500">
+                                    Sin clientes registrados.
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
-                    <tfoot class="bg-gray-50">
-                        <tr class="font-semibold text-gray-700">
-                            <td class="px-3 py-2 text-right">Totales:</td>
-                            <td class="px-3 py-2 text-right" x-text="money(totalAnterior())"></td>
-                            <td class="px-3 py-2 text-right" x-text="money(totalSolicitado())"></td>
-                            <td class="px-3 py-2 text-right" x-text="money(totalComision())"></td>
-                            <td class="px-3 py-2 text-right" x-text="money(totalPrestamo())"></td>
-                            <td class="px-3 py-2 text-right" x-text="money(totalRecreditoNuevo())"></td>
-                            <td class="px-3 py-2 text-right" x-text="money(totalRecredito())"></td>
-                            <td class="px-3 py-2 text-right" x-text="money(totalPrestamoMenosRecredito())"></td>
-                            <td class="px-3 py-2"></td>
-                        </tr>
-                    </tfoot>
                 </table>
             </div>
-
-            <datalist id="clientes-sugeridos">
-                @foreach($clientes as $cliente)
-                    <option value="{{ $cliente['nombre'] }}"></option>
-                @endforeach
-            </datalist>
         </div>
 
         <div class="bg-white rounded-2xl shadow p-4 sm:p-6 space-y-4">
@@ -189,7 +223,8 @@
                     <label class="block text-sm font-medium text-gray-600">Nombre de promotora de reconocimiento de clientes</label>
                     <input
                         type="text"
-                        x-model="form.promotoraReconocimiento"
+                        name="promotora_reconocimiento"
+                        value="{{ $promotorNombre }}"
                         class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
                         placeholder="Nombre completo"
                     >
@@ -201,7 +236,8 @@
                     <label class="block text-sm font-medium text-gray-600">Nombre de ejecutivo - Validar</label>
                     <input
                         type="text"
-                        x-model="form.ejecutivo"
+                        name="ejecutivo_validacion"
+                        value="{{ $ejecutivoNombre }}"
                         class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
                         placeholder="Nombre completo"
                     >
@@ -218,24 +254,26 @@
                 <table class="min-w-full divide-y divide-gray-200 text-sm">
                     <tbody class="divide-y divide-gray-100">
                         <tr>
-                            <th class="px-3 py-2 text-left font-medium text-gray-600">Comisión de promotor</th>
+                            <th class="px-3 py-2 text-left font-medium text-gray-600">Comision de promotor</th>
                             <td class="px-3 py-2 text-right">
                                 <input
                                     type="number"
                                     step="0.01"
-                                    x-model.number="form.comisionPromotor"
+                                    name="comision_promotor"
+                                    value="{{ number_format($comisionPromotor, 2, '.', '') }}"
                                     class="w-full max-w-[160px] rounded-lg border border-gray-300 px-2 py-1 text-right focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     placeholder="0.00"
                                 >
                             </td>
                         </tr>
                         <tr>
-                            <th class="px-3 py-2 text-left font-medium text-gray-600">Comisión de supervisor</th>
+                            <th class="px-3 py-2 text-left font-medium text-gray-600">Comision de supervisor</th>
                             <td class="px-3 py-2 text-right">
                                 <input
                                     type="number"
                                     step="0.01"
-                                    x-model.number="form.comisionSupervisor"
+                                    name="comision_supervisor"
+                                    value="{{ number_format($comisionSupervisor, 2, '.', '') }}"
                                     class="w-full max-w-[160px] rounded-lg border border-gray-300 px-2 py-1 text-right focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     placeholder="0.00"
                                 >
@@ -247,159 +285,61 @@
                                 <input
                                     type="number"
                                     step="0.01"
-                                    x-model.number="form.carteraActual"
+                                    name="cartera_actual"
+                                    value="{{ number_format($carteraActual, 2, '.', '') }}"
                                     class="w-full max-w-[160px] rounded-lg border border-gray-300 px-2 py-1 text-right focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     placeholder="0.00"
                                 >
                             </td>
                         </tr>
                         <tr>
-                            <th class="px-3 py-2 text-left font-semibold text-gray-700">Inversión</th>
-                            <td class="px-3 py-2 text-right text-lg font-semibold" :class="inversion() >= 0 ? 'text-emerald-600' : 'text-red-600'" x-text="money(inversion())"></td>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-700">Inversion</th>
+                            <td class="px-3 py-2 text-right text-lg font-semibold {{ $inversion >= 0 ? 'text-emerald-600' : 'text-red-600' }}">
+                                {{ reciboFormatCurrency($inversion) }}
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-            <p class="text-xs text-gray-500">La inversión se calcula como comisiones + total préstamo menos recrédito - cartera actual.</p>
+            <p class="text-xs text-gray-500">La inversion se calcula como comisiones + total de ultimos creditos - cartera actual.</p>
         </div>
 
         <div class="grid gap-4 lg:grid-cols-2">
-            <template x-for="tipo in ['Promotor', 'Supervisor']" :key="tipo">
+            @foreach (['Promotor' => $promotorNombre, 'Supervisor' => $supervisorNombre] as $tipo => $nombre)
                 <div class="bg-white rounded-2xl shadow p-4 sm:p-6 space-y-4">
                     <div>
                         <h3 class="text-lg font-semibold text-gray-700 text-center uppercase">Recibo de dinero</h3>
-                        <p class="text-sm text-gray-500 text-center" x-text="reciboDeNombre ? `RECIBÍ DE: ${reciboDeNombre.toUpperCase()}` : 'RECIBÍ DE: —'"></p>
+                        <p class="text-sm text-gray-500 text-center">
+                            RECIBI DE: {{ $reciboDeNombre !== '' ? strtoupper($reciboDeNombre) : '---' }}
+                        </p>
                     </div>
                     <div class="space-y-2 text-sm text-gray-600">
                         <div class="flex justify-between">
                             <span class="font-medium">Fecha:</span>
-                            <span x-text="form.fecha"></span>
+                            <span>{{ $fechaHoy }}</span>
                         </div>
                         <div class="space-y-1">
-                            <label class="block font-medium">Nombre completo de <span x-text="tipo.toLowerCase()"></span></label>
+                            <label class="block font-medium">
+                                Nombre completo de {{ strtolower($tipo) }}
+                            </label>
                             <input
                                 type="text"
                                 class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-                                :placeholder="'Nombre del ' + tipo.toLowerCase()"
-                                x-model="tipo === 'Promotor' ? form.nombrePromotor : form.nombreSupervisor"
+                                placeholder="Nombre del {{ strtolower($tipo) }}"
+                                value="{{ $nombre }}"
                             >
                         </div>
                         <div class="flex justify-between">
                             <span class="font-medium">Monto recibido:</span>
-                            <span class="font-semibold" x-text="money(totalSolicitado())"></span>
+                            <span class="font-semibold">{{ reciboFormatCurrency($totalPrestamoSolicitado) }}</span>
                         </div>
                     </div>
                     <div class="h-20 rounded-xl border border-dashed border-gray-300 flex items-end justify-center pb-2 text-xs text-gray-400">
                         Firma
                     </div>
-                    <p class="text-center text-xs sm:text-sm font-bold uppercase underline tracking-wide">POR CONCEPTO DE: OPERACIÓN FINANCIERA PARA PRESTAMOS INDIVIDUAL DE LAS PERONSAS MENCIONADAS EN ESTE DESEMBOLSO.</p>
+                    <p class="text-center text-xs sm:text-sm font-bold uppercase underline tracking-wide">POR CONCEPTO DE: OPERACION FINANCIERA PARA PRESTAMOS INDIVIDUAL DE LAS PERSONAS MENCIONADAS EN ESTE DESEMBOLSO.</p>
                 </div>
-            </template>
+            @endforeach
         </div>
     </div>
-
-    <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('reciboDesembolso', (config) => ({
-                rows: [],
-                form: {
-                    promotor: config.promotorNombre || '',
-                    promotoraReconocimiento: config.promotorNombre || '',
-                    ejecutivo: config.ejecutivoNombre || '',
-                    comisionPromotor: Number(config.comisionPromotor ?? 0),
-                    comisionSupervisor: Number(config.comisionSupervisor ?? 0),
-                    carteraActual: Number(config.carteraActual ?? 0),
-                    nombrePromotor: config.promotorNombre || '',
-                    nombreSupervisor: config.supervisorNombre || '',
-                    fecha: config.fechaHoy || '',
-                },
-                clientes: config.clientes || [],
-                supervisorNombre: config.supervisorNombre || '',
-                ejecutivoNombre: config.ejecutivoNombre || '',
-                reciboDeNombre: config.reciboDeNombre || '',
-                currencyFormatter: new Intl.NumberFormat('es-MX', {
-                    style: 'currency',
-                    currency: 'MXN',
-                    minimumFractionDigits: 2,
-                }),
-                init() {
-                    const iniciales = (this.clientes || [])
-                        .map(c => this.nuevaFila({
-                            cliente: c.nombre || '',
-                            prestamoAnterior: c.prestamo_anterior || 0,
-                            prestamoSolicitado: c.prestamo_solicitado || 0,
-                            recreditoNuevo: c.recredito_nuevo || 0,
-                            totalRecredito: c.total_recredito || 0,
-                        }));
-
-                    this.rows = iniciales.length ? iniciales : [this.nuevaFila()];
-                },
-                uid() {
-                    return Math.random().toString(36).slice(2) + Date.now().toString(36);
-                },
-                nuevaFila(data = {}) {
-                    return {
-                        uid: this.uid(),
-                        cliente: data.cliente || '',
-                        prestamoAnterior: Number(data.prestamoAnterior ?? data.prestamo_anterior ?? 0),
-                        prestamoSolicitado: Number(data.prestamoSolicitado ?? data.prestamo_solicitado ?? 0),
-                        recreditoNuevo: Number(data.recreditoNuevo ?? data.recredito_nuevo ?? 0),
-                        totalRecredito: Number(data.totalRecredito ?? data.total_recredito ?? 0),
-                    };
-                },
-                addRow() {
-                    this.rows.push(this.nuevaFila());
-                },
-                removeRow(uid) {
-                    this.rows = this.rows.filter(row => row.uid !== uid);
-                },
-                number(value) {
-                    const n = Number(value);
-                    return Number.isFinite(n) ? n : 0;
-                },
-                rowCommission(row) {
-                    return this.number(row.prestamoSolicitado) * 0.05;
-                },
-                rowTotalPrestamo(row) {
-                    return this.number(row.prestamoSolicitado) - this.rowCommission(row);
-                },
-                rowTotalPrestamoMenosRecredito(row) {
-                    return this.rowTotalPrestamo(row) - this.number(row.totalRecredito);
-                },
-                sumRows(mapper) {
-                    return this.rows.reduce((total, row) => total + mapper(row), 0);
-                },
-                totalAnterior() {
-                    return this.sumRows(row => this.number(row.prestamoAnterior));
-                },
-                totalSolicitado() {
-                    return this.sumRows(row => this.number(row.prestamoSolicitado));
-                },
-                totalComision() {
-                    return this.sumRows(row => this.rowCommission(row));
-                },
-                totalPrestamo() {
-                    return this.sumRows(row => this.rowTotalPrestamo(row));
-                },
-                totalRecreditoNuevo() {
-                    return this.sumRows(row => this.number(row.recreditoNuevo));
-                },
-                totalRecredito() {
-                    return this.sumRows(row => this.number(row.totalRecredito));
-                },
-                totalPrestamoMenosRecredito() {
-                    return this.sumRows(row => this.rowTotalPrestamoMenosRecredito(row));
-                },
-                inversion() {
-                    return this.number(this.form.comisionPromotor)
-                        + this.number(this.form.comisionSupervisor)
-                        + this.totalPrestamoMenosRecredito()
-                        - this.number(this.form.carteraActual);
-                },
-                money(value) {
-                    return this.currencyFormatter.format(this.number(value));
-                },
-            }));
-        });
-    </script>
 </x-layouts.mobile.mobile-layout>

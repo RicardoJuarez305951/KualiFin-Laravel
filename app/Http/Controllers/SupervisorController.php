@@ -411,6 +411,10 @@ class SupervisorController extends Controller
                 $carteraActual += (float) ($creditoActual->monto_total ?? 0);
             }
 
+            $ultimoCredito = $creditos->first();
+            $fechaInicio = $ultimoCredito?->fecha_inicio;
+            $fechaFinal = $ultimoCredito?->fecha_final;
+
             $clientes->push([
                 'id' => $cliente->id,
                 'nombre' => trim(collect([
@@ -418,36 +422,33 @@ class SupervisorController extends Controller
                     $cliente->apellido_p,
                     $cliente->apellido_m,
                 ])->filter()->implode(' ')),
-                'prestamo_anterior' => $creditoAnterior ? (float) ($creditoAnterior->monto_total ?? 0) : 0.0,
-                'prestamo_solicitado' => $creditoActual ? (float) ($creditoActual->monto_total ?? 0) : 0.0,
-                'recredito_nuevo' => 0.0,
-                'total_recredito' => 0.0,
+                'ultimo_credito' => $ultimoCredito ? [
+                    'id' => $ultimoCredito->id,
+                    'monto_total' => (float) ($ultimoCredito->monto_total ?? 0),
+                    'estado' => (string) ($ultimoCredito->estado ?? ''),
+                    'interes' => $ultimoCredito->interes !== null ? (float) $ultimoCredito->interes : null,
+                    'periodicidad' => (string) ($ultimoCredito->periodicidad ?? ''),
+                    'fecha_inicio' => $fechaInicio instanceof Carbon
+                        ? $fechaInicio->format('d/m/Y')
+                        : ($fechaInicio ? Carbon::parse($fechaInicio)->format('d/m/Y') : null),
+                    'fecha_final' => $fechaFinal instanceof Carbon
+                        ? $fechaFinal->format('d/m/Y')
+                        : ($fechaFinal ? Carbon::parse($fechaFinal)->format('d/m/Y') : null),
+                ] : null,
+                'credito_anterior' => $creditoAnterior ? [
+                    'id' => $creditoAnterior->id,
+                    'monto_total' => (float) ($creditoAnterior->monto_total ?? 0),
+                ] : null,
             ]);
         }
 
-        $clientes = $clientes->sortBy('nombre')->values();
+        $clientes = $clientes->sortBy('nombre')->values()->all();
 
+        $promotorNombre = $this->buildFullName($promotor, '');
         $supervisorRelacion = $promotor->supervisor;
-        $supervisorNombre = '';
-        $ejecutivoNombre = '';
-
-        if ($supervisorRelacion) {
-            $supervisorNombre = trim(collect([
-                $supervisorRelacion->nombre,
-                $supervisorRelacion->apellido_p,
-                $supervisorRelacion->apellido_m,
-            ])->filter()->implode(' '));
-
-            $ejecutivo = $supervisorRelacion->ejecutivo;
-
-            if ($ejecutivo) {
-                $ejecutivoNombre = trim(collect([
-                    $ejecutivo->nombre,
-                    $ejecutivo->apellido_p,
-                    $ejecutivo->apellido_m,
-                ])->filter()->implode(' '));
-            }
-        }
+        $supervisorNombre = $this->buildFullName($supervisorRelacion, '');
+        $ejecutivo = $supervisorRelacion?->ejecutivo;
+        $ejecutivoNombre = $this->buildFullName($ejecutivo, '');
 
         $ultimaComisionPromotor = $promotor->comisiones()->orderByDesc('fecha_pago')->first();
         $ultimaComisionSupervisor = $supervisorRelacion?->comisiones()->orderByDesc('fecha_pago')->first();
@@ -459,8 +460,11 @@ class SupervisorController extends Controller
         $fechaHoy = now()->format('d/m/Y');
         $reciboDeNombre = $ejecutivoNombre !== '' ? $ejecutivoNombre : $supervisorNombre;
 
+        
+
         return view('mobile.supervisor.venta.recibo_desembolso', [
             'promotor' => $promotor,
+            'promotorNombre' => $promotorNombre,
             'clientes' => $clientes,
             'fechaHoy' => $fechaHoy,
             'supervisorNombre' => $supervisorNombre,
