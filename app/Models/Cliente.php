@@ -55,4 +55,16 @@ class Cliente extends Model
     {
         return $this->hasMany(DocumentoCliente::class, 'cliente_id');
     }
+
+    /**
+     * Get the client's full name using PHP concatenation to remain database agnostic.
+     */
+    public function getNombreCompletoAttribute(): string
+    {
+        return trim(collect([
+            $this->nombre,
+            $this->apellido_p,
+            $this->apellido_m,
+        ])->filter(fn ($value) => filled($value))->implode(' '));
+    }
 }

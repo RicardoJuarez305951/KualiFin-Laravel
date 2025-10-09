@@ -62,4 +62,8 @@ class User extends Authenticatable
         return $this->hasOne(Promotor::class);
     }
 
+    public function ejecutivo()
+    {
+        return $this->hasOne(Ejecutivo::class);
+    }
 }

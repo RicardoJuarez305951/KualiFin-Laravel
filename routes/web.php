@@ -93,7 +93,8 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('cartera-inactiva',  'cartera_inactiva')  ->name('cartera_inactiva');
                       Route::get('horarios',  'horarios')  ->name('horarios');
                       Route::get('venta-supervisor',  'venta_supervisor')  ->name('venta_supervisor');
-                      Route::get('desembolso',  'desembolso')  ->name('desembolso');
+                      Route::get('desembolso',  'showDesembolsoReport')  ->name('desembolso');
+                      Route::post('desembolso/{credito}', 'markAsDisbursed')->name('desembolso.update');
                       Route::get('busqueda',  'busqueda')  ->name('busqueda');
                       Route::get('informes',  'informes')  ->name('informes');
                       Route::get('reportes',  'reportes')  ->name('reportes');

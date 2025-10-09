@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class EjecutivoController extends Controller
@@ -1154,9 +1155,40 @@ public function venta_supervisor()
         return view('mobile.ejecutivo.venta.venta_supervisor');
     }
     
-    public function desembolso()
+    public function showDesembolsoReport()
     {
-        return view('mobile.ejecutivo.venta.desembolso');
+        $ejecutivoId = Auth::user()?->ejecutivo?->id;
+
+        abort_if(!$ejecutivoId, 403, 'Perfil de ejecutivo no configurado.');
+
+        $creditosParaDesembolso = Credito::query()
+            ->where('estado', 'Autorizado')
+            ->whereHas('cliente.promotor.supervisor', function ($query) use ($ejecutivoId) {
+                $query->where('ejecutivo_id', $ejecutivoId);
+            })
+            ->with(['cliente.promotor', 'datoContacto'])
+            ->latest('id')
+            ->get();
+
+        return view('mobile.ejecutivo.venta.desembolso', compact('creditosParaDesembolso'));
+    }
+
+    public function markAsDisbursed(Credito $credito)
+    {
+        $ejecutivoId = Auth::user()?->ejecutivo?->id;
+
+        abort_if(!$ejecutivoId, 403, 'Perfil de ejecutivo no configurado.');
+
+        $supervisor = $credito->cliente->promotor?->supervisor;
+
+        abort_if(!$supervisor || $supervisor->ejecutivo_id !== $ejecutivoId, 403, 'Acción no autorizada.');
+
+        $credito->estado = 'Desembolsado';
+        $credito->save();
+
+        return redirect()
+            ->route('mobile.ejecutivo.desembolso')
+            ->with('status', 'Crédito #' . $credito->id . ' marcado como desembolsado.');
     }
     
     public function busqueda(Request $request, BusquedaClientesService $busquedaService)
