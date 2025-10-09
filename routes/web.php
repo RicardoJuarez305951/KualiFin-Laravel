@@ -12,6 +12,7 @@ use App\Http\Controllers\SupervisorController;
 use App\Http\Controllers\NuevoClienteController;
 use App\Http\Controllers\PagoRealController;
 use App\Http\Controllers\Pdf\ReciboDesembolsoPdfController;
+use App\Http\Controllers\Pdf\ReporteDesembolsoPdfController;
 use Illuminate\Support\Facades\Auth;
 use App\Support\RoleHierarchy;
 use App\Http\Controllers\ExcelController;
@@ -95,6 +96,7 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('horarios',  'horarios')  ->name('horarios');
                       Route::get('venta-supervisor',  'venta_supervisor')  ->name('venta_supervisor');
                       Route::get('desembolso',  'desembolso')  ->name('desembolso');
+                      Route::get('desembolso/{promotor}/pdf', [ReporteDesembolsoPdfController::class, '__invoke'])->name('desembolso.pdf');
                       Route::get('busqueda',  'busqueda')  ->name('busqueda');
                       Route::get('informes',  'informes')  ->name('informes');
                       Route::get('reportes',  'reportes')  ->name('reportes');
