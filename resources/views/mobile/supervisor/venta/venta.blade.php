@@ -7,16 +7,18 @@
         return '$' . number_format($v, 2, '.', ',');
     }
 
-    // Fecha limite obtenida del dia de final de semana
-    use Carbon\Carbon;
-     if (empty($fechaLimite ?? null)) {
-        $fechaLimite = Carbon::now()->endOfWeek(Carbon::FRIDAY)->format('d/m/Y');
-    }
+    use App\Support\SupervisionPeriodo;
+
+    $periodicidadDias = $periodicidadDias ?? 8; // Sábado a sábado (ambos incluidos)
+    $periodoActual = SupervisionPeriodo::periodoActual($periodicidadDias);
+
+    $fechaLimite = $fechaLimite ?? $periodoActual['limite']->format('d/m/Y');
+    $fechaInicioPeriodo = $fechaInicioPeriodo ?? $periodoActual['inicio']->format('d/m/Y');
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Venta - Supervisor">
   <div class="max-w-sm mx-auto space-y-6">
-    
+
     {{-- Objetivos del supervisor --}}
     <div class="bg-white rounded-2xl shadow-md p-6 grid grid-cols-2 gap-4 text-center">
         <div>
@@ -34,6 +36,9 @@
             </p>
             <p class="font-semibold text-yellow-600">
                 {{ $fechaLimite }}
+            </p>
+            <p class="text-[11px] text-gray-500 mt-1">
+                Periodo: {{ $fechaInicioPeriodo }} - {{ $fechaLimite }}
             </p>
             <div class="w-full bg-gray-200 rounded-full h-3 mt-4">
                 <div

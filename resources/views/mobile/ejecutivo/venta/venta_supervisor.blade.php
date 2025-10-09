@@ -15,6 +15,13 @@
         return '$' . number_format((float)$v, 2, '.', ',');
     }
 
+    use App\Support\SupervisionPeriodo;
+
+    $periodicidadDias = $periodicidadDias ?? 8;
+    $periodoActual = SupervisionPeriodo::periodoActual($periodicidadDias);
+    $fechaLimite = $fechaLimite ?? $periodoActual['limite']->format('d/m/Y');
+    $fechaInicioPeriodo = $fechaInicioPeriodo ?? $periodoActual['inicio']->format('d/m/Y');
+
     /** ===================== FAKE GLOBALS (solo si no vienen del back) ===================== */
     // Dinero actual / objetivo de la semana
     if (!isset($moneyWeeklyTarget)) {
@@ -23,11 +30,6 @@
     if (!isset($moneyWeeklyNow)) {
         // que sea coherente (menor o igual al objetivo)
         $moneyWeeklyNow = mt_rand((int)($moneyWeeklyTarget * 0.25), (int)($moneyWeeklyTarget * 0.9));
-    }
-
-    // Fecha límite (fin de semana)
-    if (!isset($fechaLimite)) {
-        $fechaLimite = Carbon::now()->endOfWeek(Carbon::FRIDAY)->format('d/m/y');
     }
 
     // Progreso (0–100)
@@ -104,6 +106,9 @@
             <p class="text-gray-500 text-sm">Fecha Límite</p>
             <p class="font-semibold text-yellow-600">
                 {{ $fechaLimite }}
+            </p>
+            <p class="text-[11px] text-gray-500 mt-1">
+                Periodo: {{ $fechaInicioPeriodo }} - {{ $fechaLimite }}
             </p>
             <div class="w-full bg-gray-200 rounded-full h-3 mt-4">
                 <div class="bg-green-500 h-3 rounded-full" style="width: {{ $moneyProgress }}%;"></div>
