@@ -1,5 +1,5 @@
 <x-layouts.mobile.mobile-layout>
-    <div class="p-4">
+    <div class="p-4 overflow-x-auto bg-white rounded-lg shadow-md">
         <div class="flex items-center mb-4">
             <a href="{{ route('mobile.index') }}" class="text-blue-600 p-2 rounded-full hover:bg-gray-200">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
