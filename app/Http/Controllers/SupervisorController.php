@@ -356,6 +356,7 @@ class SupervisorController extends Controller
 
             return [
                 'id'              => $promotor->id,
+                'supervisor_id'   => $promotor->supervisor_id,
                 'nombre'          => trim(($promotor->nombre ?? '') . ' ' . ($promotor->apellido_p ?? '') . ' ' . ($promotor->apellido_m ?? '')),
                 'debe'            => $debe,
                 'falla'           => $falla,

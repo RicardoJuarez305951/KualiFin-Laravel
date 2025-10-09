@@ -9,7 +9,10 @@ use App\Models\Ejercicio;
 use App\Models\Promotor;
 use App\Models\Supervisor;
 use App\Services\BusquedaClientesService;
+use App\Services\Reportes\ReporteDesembolsoDataService;
 use App\Support\RoleHierarchy;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -1154,9 +1157,120 @@ public function venta_supervisor()
         return view('mobile.ejecutivo.venta.venta_supervisor');
     }
     
-    public function desembolso()
-    {
-        return view('mobile.ejecutivo.venta.desembolso');
+    public function desembolso(
+        Request $request,
+        ReporteDesembolsoDataService $dataService,
+    ) {
+        $user = $request->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+
+        $ejecutivo = $this->resolveEjecutivoContext(
+            $primaryRole,
+            $user?->id,
+            (int) $request->query('ejecutivo_id'),
+        );
+
+        if ($primaryRole === 'ejecutivo') {
+            abort_if(!$ejecutivo, 403, 'Perfil de ejecutivo no configurado.');
+        }
+
+        $supervisor = $this->resolveSupervisorContext($request, [
+            'promotores' => fn ($query) => $query
+                ->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m')
+                ->orderBy('nombre')
+                ->orderBy('apellido_p')
+                ->orderBy('apellido_m'),
+        ]);
+
+        $supervisorContextQuery = $request->attributes->get('supervisor_context_query', []);
+        $promotorSessionKey = 'mobile.reportes.desembolso.promotor';
+        $promotorSeleccionado = null;
+        $promotoresCollection = collect($supervisor?->promotores ?? []);
+
+        $nombreCompleto = static function ($model): string {
+            return collect([
+                data_get($model, 'nombre'),
+                data_get($model, 'apellido_p'),
+                data_get($model, 'apellido_m'),
+            ])->filter()->implode(' ');
+        };
+
+        $promotorIdQuery = $request->query('promotor');
+        if ($promotorIdQuery !== null) {
+            $promotorId = (int) $promotorIdQuery;
+
+            if ($promotorId > 0) {
+                $promotorSeleccionado = $this->loadPromotorForDesembolso($promotorId);
+                abort_if(!$promotorSeleccionado, 404, 'Promotor no encontrado.');
+
+                $this->ensurePromotorBelongsToContext($supervisor, $promotorSeleccionado, $primaryRole ?? '');
+
+                $request->session()->put($promotorSessionKey, $promotorSeleccionado->id);
+            } else {
+                $request->session()->forget($promotorSessionKey);
+            }
+        }
+
+        if (!$promotorSeleccionado) {
+            $storedPromotorId = (int) $request->session()->get($promotorSessionKey);
+
+            if ($storedPromotorId > 0) {
+                $candidate = $this->loadPromotorForDesembolso($storedPromotorId);
+
+                if ($this->promotorDisponibleEnContexto($candidate, $supervisor, $primaryRole)) {
+                    $promotorSeleccionado = $candidate;
+                } else {
+                    $request->session()->forget($promotorSessionKey);
+                }
+            }
+        }
+
+        if (!$promotorSeleccionado && $promotoresCollection->isNotEmpty()) {
+            $defaultPromotor = $promotoresCollection->first();
+
+            if ($defaultPromotor) {
+                $promotorSeleccionado = $this->loadPromotorForDesembolso($defaultPromotor->id);
+
+                if ($promotorSeleccionado) {
+                    $request->session()->put($promotorSessionKey, $promotorSeleccionado->id);
+                }
+            }
+        }
+
+        if ($promotorSeleccionado && !$this->promotorDisponibleEnContexto($promotorSeleccionado, $supervisor, $primaryRole)) {
+            $request->session()->forget($promotorSessionKey);
+            $promotorSeleccionado = null;
+        }
+
+        [$fechaInicio, $fechaFin] = $this->resolveDesembolsoRange();
+
+        $payload = null;
+        if ($promotorSeleccionado) {
+            $payload = $dataService->build($promotorSeleccionado, $fechaInicio, $fechaFin);
+        }
+
+        $promotoresDisponibles = $promotoresCollection
+            ->map(function (Promotor $promotor) use ($nombreCompleto) {
+                return [
+                    'id' => $promotor->id,
+                    'nombre' => $nombreCompleto($promotor),
+                ];
+            })
+            ->values();
+
+        return view('mobile.ejecutivo.venta.desembolso', [
+            'payload' => $payload,
+            'ejecutivo' => $ejecutivo,
+            'supervisorSeleccionado' => $supervisor,
+            'promotorSeleccionado' => $promotorSeleccionado,
+            'promotoresDisponibles' => $promotoresDisponibles,
+            'supervisorContextQuery' => $supervisorContextQuery,
+            'primaryRole' => $primaryRole,
+            'periodo' => [
+                'inicio' => $fechaInicio,
+                'fin' => $fechaFin,
+            ],
+        ]);
     }
     
     public function busqueda(Request $request, BusquedaClientesService $busquedaService)
@@ -1239,6 +1353,37 @@ public function venta_supervisor()
         return view('mobile.ejecutivo.informes.reportes');
     }
 
+    protected function loadPromotorForDesembolso(int $promotorId): ?Promotor
+    {
+        return Promotor::query()
+            ->with(['supervisor.ejecutivo'])
+            ->find($promotorId);
+    }
+
+    protected function promotorDisponibleEnContexto(
+        ?Promotor $promotor,
+        ?Supervisor $supervisor,
+        ?string $primaryRole
+    ): bool {
+        if (!$promotor) {
+            return false;
+        }
+
+        if ($supervisor) {
+            return $promotor->supervisor_id === $supervisor->id;
+        }
+
+        return in_array($primaryRole, ['administrativo', 'superadmin'], true);
+    }
+
+    protected function resolveDesembolsoRange(): array
+    {
+        $today = CarbonImmutable::now()->endOfDay();
+        $start = $today->previous(CarbonInterface::SATURDAY)->startOfDay();
+
+        return [$start, $today];
+    }
+
     /*
      * -----------------------------------------------------------------
      * Faltan metodos para Cartera Activa, Falla Actual, Cartera Vencida, Cartera Inactiva
@@ -1246,4 +1391,3 @@ public function venta_supervisor()
      */
     
 }
-
