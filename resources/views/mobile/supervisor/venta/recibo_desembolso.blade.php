@@ -1,128 +1,29 @@
 {{-- resources/views/mobile/supervisor/venta/recibo_desembolso.blade.php --}}
 @php
-    /** @var \App\Models\Promotor|null $promotor */
-    $promotorNombre = trim((string) ($promotorNombre ?? ''));
-    $supervisorNombre = trim((string) ($supervisorNombre ?? ''));
-    $ejecutivoNombre = trim((string) ($ejecutivoNombre ?? ''));
-    $reciboDeNombre = trim((string) ($reciboDeNombre ?? ''));
-    $fechaHoy = isset($fechaHoy) && $fechaHoy !== '' ? $fechaHoy : now()->format('d/m/Y');
-
-    if ($promotorNombre === '' && isset($promotor)) {
-        $promotorNombre = trim(collect([
-            $promotor->nombre ?? null,
-            $promotor->apellido_p ?? null,
-            $promotor->apellido_m ?? null,
-        ])->filter()->implode(' '));
-    }
-
-    $promotorSupervisor = isset($promotor) ? $promotor->supervisor : null;
-
-    if ($supervisorNombre === '' && $promotorSupervisor) {
-        $supervisorNombre = trim(collect([
-            $promotorSupervisor->nombre ?? null,
-            $promotorSupervisor->apellido_p ?? null,
-            $promotorSupervisor->apellido_m ?? null,
-        ])->filter()->implode(' '));
-    }
-
-    $promotorEjecutivo = $promotorSupervisor ? $promotorSupervisor->ejecutivo : null;
-
-    if ($ejecutivoNombre === '' && $promotorEjecutivo) {
-        $ejecutivoNombre = trim(collect([
-            $promotorEjecutivo->nombre ?? null,
-            $promotorEjecutivo->apellido_p ?? null,
-            $promotorEjecutivo->apellido_m ?? null,
-        ])->filter()->implode(' '));
-    }
-
-    if ($reciboDeNombre === '') {
-        $reciboDeNombre = $ejecutivoNombre !== '' ? $ejecutivoNombre : $supervisorNombre;
-    }
-
-    if (!function_exists('reciboFormatCurrency')) {
-        function reciboFormatCurrency($value)
-        {
-            $number = is_numeric($value) ? (float) $value : 0;
-            return '$' . number_format($number, 2, '.', ',');
-        }
-    }
-
-    if (!function_exists('reciboFormatCurrencyNullable')) {
-        function reciboFormatCurrencyNullable($value)
-        {
-            return is_numeric($value) ? reciboFormatCurrency($value) : 'N/A';
-        }
-    }
-
-    if (!function_exists('reciboPercentOrNA')) {
-        function reciboPercentOrNA($value)
-        {
-            return is_numeric($value)
-                ? number_format((float) $value, 2, '.', ',') . '%'
-                : 'N/A';
-        }
-    }
-
-    if (!function_exists('reciboTextOrNA')) {
-        function reciboTextOrNA($value)
-        {
-            $text = trim((string) ($value ?? ''));
-            return $text !== '' ? $text : 'N/A';
-        }
-    }
-
-    $clientesCollection = collect($clientes ?? []);
-
-    $clienteRows = $clientesCollection
-        ->map(function ($cliente) {
-            $ultimoCredito = $cliente['ultimo_credito'] ?? null;
-            $creditoAnterior = $cliente['credito_anterior'] ?? null;
-
-            $prestamoSolicitado = isset($ultimoCredito['monto_total'])
-                ? (float) $ultimoCredito['monto_total']
-                : null;
-            $comisionCinco = $prestamoSolicitado !== null
-                ? round($prestamoSolicitado * 0.05, 2)
-                : null;
-            $totalPrestamo = $prestamoSolicitado !== null
-                ? $prestamoSolicitado - $comisionCinco
-                : null;
-
-            $prestamoAnterior = isset($creditoAnterior['monto_total'])
-                ? (float) $creditoAnterior['monto_total']
-                : null;
-
-            $recreditoNuevo = null; // Se definira posteriormente.
-            $totalRecredito = null;
-            $saldoPostRecredito = ($totalPrestamo !== null && $totalRecredito !== null)
-                ? $totalPrestamo - $totalRecredito
-                : null;
-
-            return [
-                'nombre' => trim((string) ($cliente['nombre'] ?? '')),
-                'credito_id' => $ultimoCredito['id'] ?? null,
-                'prestamo_anterior' => $prestamoAnterior,
-                'prestamo_solicitado' => $prestamoSolicitado,
-                'comision_cinco' => $comisionCinco,
-                'total_prestamo' => $totalPrestamo,
-                'recredito_nuevo' => $recreditoNuevo,
-                'total_recredito' => $totalRecredito,
-                'saldo_post_recredito' => $saldoPostRecredito,
-            ];
-        })
-        ->values();
-
-    $totalPrestamoSolicitado = $clienteRows->sum(function ($row) {
-        return $row['prestamo_solicitado'] ?? 0;
-    });
-
+    $clienteRows = $clienteRows ?? [];
+    $totalPrestamoSolicitado = $totalPrestamoSolicitado ?? collect($clienteRows)->sum(fn ($row) => $row['prestamo_solicitado'] ?? 0);
     $comisionPromotor = isset($comisionPromotor) ? (float) $comisionPromotor : 0.0;
     $comisionSupervisor = isset($comisionSupervisor) ? (float) $comisionSupervisor : 0.0;
     $carteraActual = isset($carteraActual) ? (float) $carteraActual : 0.0;
     $inversion = $comisionPromotor + $comisionSupervisor + $totalPrestamoSolicitado - $carteraActual;
+    $supervisorQuery = $supervisorContextQuery ?? [];
+    $reciboPdfRoute = '#';
+
+    if (isset($promotor) && $promotor?->id && \Illuminate\Support\Facades\Route::has('mobile.supervisor.venta.recibo_desembolso.pdf')) {
+        $reciboPdfRoute = route('mobile.supervisor.venta.recibo_desembolso.pdf', array_merge($supervisorQuery, [
+            'promotor' => $promotor->id,
+        ]));
+    }
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Formato Recibo Desembolso">
+    <style>
+        @media print {
+            .recibo-print-hidden {
+                display: none !important;
+            }
+        }
+    </style>
     <div class="max-w-5xl mx-auto space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
@@ -146,14 +47,27 @@
                     </span>
                 </p>
             </div>
-            <div class="text-sm text-gray-500 flex items-center gap-2">
-                <span>Fecha:</span>
-                <input
-                    type="text"
-                    name="fecha"
-                    value="{{ $fechaHoy }}"
-                    class="w-32 rounded-lg border border-gray-300 px-3 py-1 text-sm font-semibold text-gray-700 focus:border-blue-500 focus:ring focus:ring-blue-200"
-                >
+            <div class="flex flex-col sm:items-end gap-2">
+                <div class="text-sm text-gray-500 flex items-center gap-2">
+                    <span>Fecha:</span>
+                    <input
+                        type="text"
+                        name="fecha"
+                        value="{{ $fechaHoy }}"
+                        readonly
+                        class="w-32 rounded-lg border border-gray-300 px-3 py-1 text-sm font-semibold text-gray-700 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                    >
+                </div>
+                @if($reciboPdfRoute !== '#')
+                    <a
+                        href="{{ $reciboPdfRoute }}"
+                        target="_blank"
+                        rel="noopener"
+                        class="recibo-print-hidden inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700 focus:outline-none focus:ring focus:ring-blue-200"
+                    >
+                        Exportar PDF
+                    </a>
+                @endif
             </div>
         </div>
 
@@ -183,25 +97,25 @@
                                     {{ $row['nombre'] !== '' ? $row['nombre'] : 'Sin nombre' }}
                                 </td>
                                 <td class="px-3 py-2 text-right">
-                                    {{ reciboFormatCurrencyNullable($row['prestamo_anterior']) }}
+                                    {{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['prestamo_anterior']) }}
                                 </td>
                                 <td class="px-3 py-2 text-right font-medium">
-                                    {{ reciboFormatCurrencyNullable($row['prestamo_solicitado']) }}
+                                    {{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['prestamo_solicitado']) }}
                                 </td>
                                 <td class="px-3 py-2 text-right">
-                                    {{ reciboFormatCurrencyNullable($row['comision_cinco']) }}
+                                    {{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['comision_cinco']) }}
                                 </td>
                                 <td class="px-3 py-2 text-right">
-                                    {{ reciboFormatCurrencyNullable($row['total_prestamo']) }}
+                                    {{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['total_prestamo']) }}
                                 </td>
                                 <td class="px-3 py-2 text-right">
-                                    {{ reciboFormatCurrencyNullable($row['recredito_nuevo']) }}
+                                    {{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['recredito_nuevo']) }}
                                 </td>
                                 <td class="px-3 py-2 text-right">
-                                    {{ reciboFormatCurrencyNullable($row['total_recredito']) }}
+                                    {{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['total_recredito']) }}
                                 </td>
                                 <td class="px-3 py-2 text-right">
-                                    {{ reciboFormatCurrencyNullable($row['saldo_post_recredito']) }}
+                                    {{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['saldo_post_recredito']) }}
                                 </td>
                             </tr>
                         @empty
@@ -211,6 +125,32 @@
                                 </td>
                             </tr>
                         @endforelse
+                        @if(!empty($clienteRows))
+                            <tr class="bg-gray-50 text-gray-700 font-semibold">
+                                <td class="px-3 py-2 text-right uppercase">Total</td>
+                                <td class="px-3 py-2 text-right">
+                                    {{ \App\Support\ReciboDesembolsoFormatter::currency($totalesTabla['prestamo_anterior'] ?? 0) }}
+                                </td>
+                                <td class="px-3 py-2 text-right">
+                                    {{ \App\Support\ReciboDesembolsoFormatter::currency($totalesTabla['prestamo_solicitado'] ?? 0) }}
+                                </td>
+                                <td class="px-3 py-2 text-right">
+                                    {{ \App\Support\ReciboDesembolsoFormatter::currency($totalesTabla['comision_cinco'] ?? 0) }}
+                                </td>
+                                <td class="px-3 py-2 text-right">
+                                    {{ \App\Support\ReciboDesembolsoFormatter::currency($totalesTabla['total_prestamo'] ?? 0) }}
+                                </td>
+                                <td class="px-3 py-2 text-right">
+                                    {{ \App\Support\ReciboDesembolsoFormatter::currency($totalesTabla['recredito_nuevo'] ?? 0) }}
+                                </td>
+                                <td class="px-3 py-2 text-right">
+                                    {{ \App\Support\ReciboDesembolsoFormatter::currency($totalesTabla['total_recredito'] ?? 0) }}
+                                </td>
+                                <td class="px-3 py-2 text-right">
+                                    {{ \App\Support\ReciboDesembolsoFormatter::currency($totalesTabla['saldo_post_recredito'] ?? 0) }}
+                                </td>
+                            </tr>
+                        @endif
                     </tbody>
                 </table>
             </div>
@@ -225,6 +165,7 @@
                         type="text"
                         name="promotora_reconocimiento"
                         value="{{ $promotorNombre }}"
+                        readonly
                         class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
                         placeholder="Nombre completo"
                     >
@@ -238,6 +179,7 @@
                         type="text"
                         name="ejecutivo_validacion"
                         value="{{ $ejecutivoNombre }}"
+                        readonly
                         class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
                         placeholder="Nombre completo"
                     >
@@ -261,6 +203,7 @@
                                     step="0.01"
                                     name="comision_promotor"
                                     value="{{ number_format($comisionPromotor, 2, '.', '') }}"
+                                    readonly
                                     class="w-full max-w-[160px] rounded-lg border border-gray-300 px-2 py-1 text-right focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     placeholder="0.00"
                                 >
@@ -274,6 +217,7 @@
                                     step="0.01"
                                     name="comision_supervisor"
                                     value="{{ number_format($comisionSupervisor, 2, '.', '') }}"
+                                    readonly
                                     class="w-full max-w-[160px] rounded-lg border border-gray-300 px-2 py-1 text-right focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     placeholder="0.00"
                                 >
@@ -287,6 +231,7 @@
                                     step="0.01"
                                     name="cartera_actual"
                                     value="{{ number_format($carteraActual, 2, '.', '') }}"
+                                    readonly
                                     class="w-full max-w-[160px] rounded-lg border border-gray-300 px-2 py-1 text-right focus:border-blue-500 focus:ring focus:ring-blue-200"
                                     placeholder="0.00"
                                 >
@@ -295,7 +240,7 @@
                         <tr>
                             <th class="px-3 py-2 text-left font-semibold text-gray-700">Inversion</th>
                             <td class="px-3 py-2 text-right text-lg font-semibold {{ $inversion >= 0 ? 'text-emerald-600' : 'text-red-600' }}">
-                                {{ reciboFormatCurrency($inversion) }}
+                                {{ \App\Support\ReciboDesembolsoFormatter::currency($inversion) }}
                             </td>
                         </tr>
                     </tbody>
@@ -327,11 +272,12 @@
                                 class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
                                 placeholder="Nombre del {{ strtolower($tipo) }}"
                                 value="{{ $nombre }}"
+                                readonly
                             >
                         </div>
                         <div class="flex justify-between">
                             <span class="font-medium">Monto recibido:</span>
-                            <span class="font-semibold">{{ reciboFormatCurrency($totalPrestamoSolicitado) }}</span>
+                            <span class="font-semibold">{{ \App\Support\ReciboDesembolsoFormatter::currency($totalPrestamoSolicitado) }}</span>
                         </div>
                     </div>
                     <div class="h-20 rounded-xl border border-dashed border-gray-300 flex items-end justify-center pb-2 text-xs text-gray-400">

@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Concerns\HandlesSupervisorContext;
 use App\Services\BusquedaClientesService;
 use App\Support\RoleHierarchy;
+use App\Services\Recibos\ReciboDesembolsoDataService;
 
 class SupervisorController extends Controller
 {
@@ -383,97 +384,10 @@ class SupervisorController extends Controller
 
         $this->ensurePromotorBelongsToContext($supervisor, $promotor, $primaryRole);
 
-        $promotor->load([
-            'clientes.creditos' => function ($query) {
-                $query->orderByDesc('fecha_inicio')->orderByDesc('id');
-            },
-            'supervisor.ejecutivo',
-        ]);
+        $dataService = app(ReciboDesembolsoDataService::class);
+        $payload = $dataService->build($promotor);
 
-        $clientes = collect();
-        $carteraActual = 0.0;
-
-        foreach ($promotor->clientes as $cliente) {
-            $creditos = $cliente->creditos
-                ->sortByDesc(function (Credito $credito) {
-                    if ($credito->fecha_inicio) {
-                        return Carbon::parse($credito->fecha_inicio)->timestamp;
-                    }
-
-                    return PHP_INT_MIN + (int) $credito->id;
-                })
-                ->values();
-
-            $creditoActual = $creditos->get(0);
-            $creditoAnterior = $creditos->get(1);
-
-            if ($cliente->tiene_credito_activo && $creditoActual) {
-                $carteraActual += (float) ($creditoActual->monto_total ?? 0);
-            }
-
-            $ultimoCredito = $creditos->first();
-            $fechaInicio = $ultimoCredito?->fecha_inicio;
-            $fechaFinal = $ultimoCredito?->fecha_final;
-
-            $clientes->push([
-                'id' => $cliente->id,
-                'nombre' => trim(collect([
-                    $cliente->nombre,
-                    $cliente->apellido_p,
-                    $cliente->apellido_m,
-                ])->filter()->implode(' ')),
-                'ultimo_credito' => $ultimoCredito ? [
-                    'id' => $ultimoCredito->id,
-                    'monto_total' => (float) ($ultimoCredito->monto_total ?? 0),
-                    'estado' => (string) ($ultimoCredito->estado ?? ''),
-                    'interes' => $ultimoCredito->interes !== null ? (float) $ultimoCredito->interes : null,
-                    'periodicidad' => (string) ($ultimoCredito->periodicidad ?? ''),
-                    'fecha_inicio' => $fechaInicio instanceof Carbon
-                        ? $fechaInicio->format('d/m/Y')
-                        : ($fechaInicio ? Carbon::parse($fechaInicio)->format('d/m/Y') : null),
-                    'fecha_final' => $fechaFinal instanceof Carbon
-                        ? $fechaFinal->format('d/m/Y')
-                        : ($fechaFinal ? Carbon::parse($fechaFinal)->format('d/m/Y') : null),
-                ] : null,
-                'credito_anterior' => $creditoAnterior ? [
-                    'id' => $creditoAnterior->id,
-                    'monto_total' => (float) ($creditoAnterior->monto_total ?? 0),
-                ] : null,
-            ]);
-        }
-
-        $clientes = $clientes->sortBy('nombre')->values()->all();
-
-        $promotorNombre = $this->buildFullName($promotor, '');
-        $supervisorRelacion = $promotor->supervisor;
-        $supervisorNombre = $this->buildFullName($supervisorRelacion, '');
-        $ejecutivo = $supervisorRelacion?->ejecutivo;
-        $ejecutivoNombre = $this->buildFullName($ejecutivo, '');
-
-        $ultimaComisionPromotor = $promotor->comisiones()->orderByDesc('fecha_pago')->first();
-        $ultimaComisionSupervisor = $supervisorRelacion?->comisiones()->orderByDesc('fecha_pago')->first();
-
-        $comisionPromotor = $ultimaComisionPromotor ? (float) ($ultimaComisionPromotor->monto_pago ?? 0) : 0.0;
-        $comisionSupervisor = $ultimaComisionSupervisor ? (float) ($ultimaComisionSupervisor->monto_pago ?? 0) : 0.0;
-
-        $carteraActual = round($carteraActual, 2);
-        $fechaHoy = now()->format('d/m/Y');
-        $reciboDeNombre = $ejecutivoNombre !== '' ? $ejecutivoNombre : $supervisorNombre;
-
-        
-
-        return view('mobile.supervisor.venta.recibo_desembolso', [
-            'promotor' => $promotor,
-            'promotorNombre' => $promotorNombre,
-            'clientes' => $clientes,
-            'fechaHoy' => $fechaHoy,
-            'supervisorNombre' => $supervisorNombre,
-            'ejecutivoNombre' => $ejecutivoNombre,
-            'comisionPromotor' => $comisionPromotor,
-            'comisionSupervisor' => $comisionSupervisor,
-            'carteraActual' => $carteraActual,
-            'reciboDeNombre' => $reciboDeNombre,
-        ]);
+        return view('mobile.supervisor.venta.recibo_desembolso', $payload);
     }
 
     public function solicitar_venta()
@@ -1463,17 +1377,6 @@ class SupervisorController extends Controller
         $promotores = $promotores instanceof \Illuminate\Support\Collection ? $promotores : collect($promotores);
 
         return [$supervisor, $promotores->values()];
-    }
-
-    private function ensurePromotorBelongsToContext(?Supervisor $supervisor, Promotor $promotor, string $primaryRole): void
-    {
-        if ($supervisor && $promotor->supervisor_id !== $supervisor->id) {
-            abort(403, 'Promotor fuera de tu alcance.');
-        }
-
-        if (!$supervisor && !in_array($primaryRole, ['administrativo', 'superadmin'], true)) {
-            abort(403, 'Supervisor fuera de tu alcance.');
-        }
     }
 
     private function resolveSupervisorsForUser($user): array
