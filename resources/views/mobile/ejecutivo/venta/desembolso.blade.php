@@ -22,7 +22,6 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-100">
                         <tr>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Crédito</th>
                             <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Cliente y Promotora</th>
                             <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Monto</th>
                             <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Acción</th>
@@ -31,7 +30,6 @@
                     <tbody class="bg-white divide-y divide-gray-200">
                         @foreach ($creditosParaDesembolso as $credito)
                             <tr>
-                                <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{{ $credito->id }}</td>
                                 <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800">
                                     <div class="font-semibold">{{ $credito->cliente->nombre_completo }}</div>
                                     <div class="text-xs text-gray-500">Tel: {{ optional($credito->datoContacto)->tel_cel ?? 'N/A' }}</div>
