@@ -246,13 +246,13 @@
                     <div class="relative">
                       <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">$</span>
                       <input id="fallo-{{ $index }}-monto"
-                             name="fallos[{{ $index }}][monto]"
-                             type="number"
-                             step="0.01"
-                             min="0"
-                             inputmode="decimal"
-                             value="{{ old('fallos.' . $index . '.monto', isset($item['monto']) ? number_format((float) $item['monto'], 2, '.', '') : '0.00') }}"
-                             class="w-full rounded-lg border border-gray-300 bg-white py-1.5 pr-3 pl-6 text-sm text-right font-medium text-gray-800 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+                        name="fallos[{{ $index }}][monto]"
+                        type="text"
+                        inputmode="decimal"
+                        oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');"
+                        value="{{ old('fallos.' . $index . '.monto', isset($item['monto']) ? number_format((float) $item['monto'], 2, '.', '') : '0.00') }}"
+                        class="w-full rounded-lg border border-gray-300 bg-white py-1.5 pr-3 pl-6 text-sm text-right font-medium text-gray-800 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+
                     </div>
                     <p class="mt-1 text-[11px] text-gray-500">Pendiente: {{ $formatCurrency($item['monto'] ?? 0) }}</p>
                     @error('fallos.' . $index . '.monto')
