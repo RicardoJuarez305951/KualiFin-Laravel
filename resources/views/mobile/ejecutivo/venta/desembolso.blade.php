@@ -78,7 +78,16 @@
 @endphp
 
 <x-layouts.mobile.mobile-layout :title="'Reporte de Desembolso'">
-  <div class="p-4 w-full max-w-md mx-auto space-y-5">
+  <div
+    x-data="desembolsoPage({
+        registerUrl: '{{ route('mobile.ejecutivo.desembolso.registrar_pago') }}',
+        promotorId: {{ $promotorSeleccionado?->id ?? 'null' }},
+        supervisorQuery: @js($supervisorContextQuery ?? []),
+        pdfUrl: @js($pdfUrl),
+        ejecutivoId: {{ request()->has('ejecutivo_id') ? (int) request('ejecutivo_id') : 'null' }},
+    })"
+    class="p-4 w-full max-w-md mx-auto space-y-5"
+  >
     @if(session('status'))
       <div class="px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-sm text-green-800">
         {{ session('status') }}
@@ -353,23 +362,77 @@
           <span class="text-xs font-semibold text-gray-700">{{ $formatCurrency($totales['desembolso'] ?? 0) }}</span>
         </div>
 
+        {{-- Comentario: mostramos un aviso en lenguaje natural cuando no existen créditos desembolsados. --}}
         @if(empty($desembolsos))
           <p class="text-sm text-gray-600">No hay créditos desembolsados registrados.</p>
         @else
           <div class="text-xs font-semibold text-gray-500 grid grid-cols-12 gap-2 uppercase">
-            <span class="col-span-4">Fecha</span>
-            <span class="col-span-6">Cliente</span>
+            <span class="col-span-3">Fecha</span>
+            <span class="col-span-4">Cliente</span>
+            <span class="col-span-3 text-center">Pago</span>
             <span class="col-span-2 text-right">Monto</span>
           </div>
-          <div class="divide-y divide-gray-200 text-sm">
+
+          {{-- Comentario: cada fila permite registrar pagos, aceptar o rechazar al cliente. --}}
+          <div class="divide-y divide-gray-200 text-sm space-y-0">
             @foreach($desembolsos as $item)
-              <div class="grid grid-cols-12 gap-2 py-2">
-                <span class="col-span-4 text-gray-700">{{ $item['fecha_texto'] ?? '---' }}</span>
-                <span class="col-span-6 text-gray-700">{{ $item['cliente'] ?? 'Sin nombre' }}</span>
-                <span class="col-span-2 text-right font-medium text-gray-800">{{ $formatCurrency($item['monto'] ?? 0) }}</span>
+              <div
+                class="grid grid-cols-12 gap-2 py-3 px-2 rounded-xl"
+                :class="rowClasses({{ $item['id'] ?? 'null' }})"
+              >
+                <span class="col-span-3 text-gray-700">{{ $item['fecha_texto'] ?? '---' }}</span>
+                <div class="col-span-4 text-gray-700">
+                  <p class="font-medium">{{ $item['cliente'] ?? 'Sin nombre' }}</p>
+                  <p class="text-xs text-gray-500">Crédito #{{ $item['id'] ?? 'N/A' }}</p>
+                </div>
+                <div class="col-span-3 flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    class="w-8 h-8 rounded-full border-2 border-emerald-500 text-emerald-600 font-semibold flex items-center justify-center"
+                    title="Registrar pago"
+                    @click="openPaymentModal({ id: {{ $item['id'] ?? 'null' }}, nombre: '{{ addslashes($item['cliente'] ?? 'Sin nombre') }}' })"
+                  >
+                    $
+                  </button>
+                  <div class="flex items-center gap-1">
+                    <button
+                      type="button"
+                      class="w-8 h-8 rounded-full border-2 border-green-500 text-green-600 flex items-center justify-center"
+                      title="Aceptar cliente"
+                      @click="setDecision({{ $item['id'] ?? 'null' }}, 'accepted')"
+                    >
+                      ✅
+                    </button>
+                    <button
+                      type="button"
+                      class="w-8 h-8 rounded-full border-2 border-red-500 text-red-600 flex items-center justify-center"
+                      title="Rechazar cliente"
+                      @click="setDecision({{ $item['id'] ?? 'null' }}, 'rejected')"
+                    >
+                      ❌
+                    </button>
+                  </div>
+                </div>
+                <div class="col-span-2 text-right font-medium text-gray-800">
+                  {{ $formatCurrency($item['monto'] ?? 0) }}
+                </div>
               </div>
             @endforeach
           </div>
+
+          {{-- Comentario: mostramos un resumen del estado temporal de los clientes aceptados y rechazados. --}}
+          <div class="mt-3 text-xs text-gray-600 space-y-1">
+            <p><strong>Clientes aceptados:</strong> <span x-text="acceptedIds.length"></span></p>
+            <p><strong>Clientes rechazados:</strong> <span x-text="rejectedIds.length"></span></p>
+          </div>
+
+          <template x-if="feedbackMessage">
+            <div
+              class="mt-3 px-3 py-2 rounded-lg text-xs"
+              :class="feedbackClass"
+              x-text="feedbackMessage"
+            ></div>
+          </template>
         @endif
       </section>
 
@@ -586,15 +649,153 @@
       </a>
 
       @if($pdfUrl)
-        <a href="{{ $pdfUrl }}"
-           class="text-center px-4 py-3 rounded-2xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition">
+        <button
+           type="button"
+           class="text-center px-4 py-3 rounded-2xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition"
+           @click="exportPdf"
+        >
           Exportar PDF
-        </a>
+        </button>
       @else
         <span class="text-center px-4 py-3 rounded-2xl border border-dashed border-gray-300 text-sm text-gray-400">
           Exportar PDF
         </span>
       @endif
     </section>
+    @include('mobile.modals.calculadora')
   </div>
+
+  {{-- Comentario: este script define la lógica interactiva para pagos y selección temporal de clientes. --}}
+  <script>
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('desembolsoPage', (config) => ({
+        registerUrl: config.registerUrl,
+        promotorId: config.promotorId,
+        supervisorQuery: config.supervisorQuery ?? {},
+        pdfUrl: config.pdfUrl ?? null,
+        ejecutivoId: config.ejecutivoId ?? null,
+        decisions: {},
+        feedbackMessage: null,
+        feedbackType: 'success',
+        processingPayment: false,
+        get acceptedIds() {
+          return Object.keys(this.decisions).filter((id) => this.decisions[id] === 'accepted');
+        },
+        get rejectedIds() {
+          return Object.keys(this.decisions).filter((id) => this.decisions[id] === 'rejected');
+        },
+        get feedbackClass() {
+          return this.feedbackType === 'error'
+            ? 'bg-red-100 border border-red-200 text-red-700'
+            : 'bg-green-100 border border-green-200 text-green-700';
+        },
+        rowClasses(id) {
+          const decision = this.decisions[id];
+          if (decision === 'accepted') {
+            return 'bg-green-50 border border-green-200';
+          }
+          if (decision === 'rejected') {
+            return 'bg-red-50 border border-red-200';
+          }
+          return '';
+        },
+        setDecision(id, value) {
+          if (id === null || id === undefined) {
+            return;
+          }
+          this.decisions[id] = value;
+        },
+        openPaymentModal(cliente) {
+          if (!this.promotorId) {
+            this.feedbackType = 'error';
+            this.feedbackMessage = 'Selecciona una promotora antes de registrar pagos.';
+            return;
+          }
+
+          const calcStore = Alpine.store('calc');
+          if (!calcStore) {
+            this.feedbackType = 'error';
+            this.feedbackMessage = 'No se encontró la calculadora de pagos.';
+            return;
+          }
+
+          this.feedbackMessage = null;
+
+          calcStore.open({
+            client: cliente?.nombre ?? 'Cliente sin nombre',
+            context: { mode: 'singleDesembolsoPayment' },
+            clientData: { id: cliente?.id ?? null },
+            onAccept: (payload) => this.submitPayment(cliente, payload),
+          });
+        },
+        submitPayment(cliente, payload) {
+          if (!cliente?.id || !this.registerUrl) {
+            this.feedbackType = 'error';
+            this.feedbackMessage = 'No se pudo identificar el crédito para registrar el pago.';
+            return;
+          }
+
+          const tipo = payload?.mode === 'deferred' ? 'diferido' : 'completo';
+          const monto = tipo === 'diferido' ? payload?.amount ?? null : null;
+
+          this.processingPayment = true;
+          this.feedbackMessage = null;
+
+          window.axios.post(this.registerUrl, {
+            promotor_id: this.promotorId,
+            credito_id: cliente.id,
+            tipo,
+            monto,
+            ejecutivo_id: this.ejecutivoId,
+          }, {
+            params: this.supervisorQuery,
+          })
+            .then((response) => {
+              const data = response?.data ?? {};
+              this.feedbackType = 'success';
+              this.feedbackMessage = data?.message ?? 'Pago registrado correctamente.';
+            })
+            .catch((error) => {
+              this.feedbackType = 'error';
+              const response = error?.response;
+              const data = response?.data ?? {};
+
+              if (data?.errors && typeof data.errors === 'object') {
+                const firstError = Object.values(data.errors)
+                  .flat()
+                  .find((value) => typeof value === 'string' && value.trim().length);
+
+                if (firstError) {
+                  this.feedbackMessage = firstError;
+                  return;
+                }
+              }
+
+              if (data?.message) {
+                this.feedbackMessage = data.message;
+              } else {
+                this.feedbackMessage = 'No se pudo registrar el pago, intenta nuevamente.';
+              }
+            })
+            .finally(() => {
+              this.processingPayment = false;
+            });
+        },
+        exportPdf() {
+          if (!this.pdfUrl) {
+            return;
+          }
+
+          const target = new URL(this.pdfUrl, window.location.origin);
+          if (this.acceptedIds.length) {
+            target.searchParams.set('aceptados', this.acceptedIds.join(','));
+          } else {
+            target.searchParams.delete('aceptados');
+          }
+
+          window.location.href = target.toString();
+        },
+      }));
+    });
+  </script>
 </x-layouts.mobile.mobile-layout>

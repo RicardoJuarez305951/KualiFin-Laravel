@@ -39,14 +39,40 @@ class ReporteDesembolsoDataService
         Promotor $promotor,
         ?CarbonImmutable $start = null,
         ?CarbonImmutable $end = null,
+        ?array $acceptedCreditIds = null,
     ): array {
         [$startDate, $endDate] = $this->resolveRange($start, $end);
 
         $promotor->loadMissing(['supervisor.ejecutivo']);
         $basePayload = $this->reciboDataService->build($promotor);
 
+        $acceptedIds = collect($acceptedCreditIds ?? [])
+            ->map(function ($value) {
+                if (is_numeric($value)) {
+                    $numeric = (int) $value;
+                    return $numeric > 0 ? $numeric : null;
+                }
+
+                if (is_string($value)) {
+                    $numeric = (int) trim($value);
+                    return $numeric > 0 ? $numeric : null;
+                }
+
+                return null;
+            })
+            ->filter()
+            ->unique()
+            ->values();
+
         $prestamos = $this->fetchCreditos($promotor, $startDate, $endDate, self::PRESTAMO_ESTADOS, true);
         $desembolsos = $this->fetchCreditos($promotor, $startDate, $endDate, self::DESEMBOLSO_ESTADOS, false);
+
+        if ($acceptedIds->isNotEmpty()) {
+            $desembolsos = $desembolsos
+                ->filter(fn (Credito $credito) => $acceptedIds->contains((int) $credito->id))
+                ->values();
+        }
+
         $fallos = $this->fetchFallos($promotor, $startDate, $endDate);
         $pagosSemana = $this->fetchPagosSemana($promotor, $startDate, $endDate);
 
