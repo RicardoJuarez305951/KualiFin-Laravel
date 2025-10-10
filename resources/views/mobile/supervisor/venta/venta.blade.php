@@ -86,9 +86,18 @@
                         <p class="text-sm">Venta Registrada: <span class="font-bold">{{ formatCurrency($p['ventaRegistrada']) }}</span></p>
                     </div>
                     <div class="flex flex-col items-end gap-2">
-                        <a href="{{ route('mobile.promotor.venta', array_merge($supervisorContextQuery ?? [], ['promotor' => $p['id']])) }}" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
+                        @php
+                            $promotorContext = array_merge($supervisorContextQuery ?? [], ['promotor' => $p['id']]);
+                            if (!empty($p['supervisor_id'])) {
+                                $promotorContext['supervisor'] = $p['supervisor_id'];
+                            } else {
+                                unset($promotorContext['supervisor']);
+                            }
+                        @endphp
+                        <a href="{{ route('mobile.promotor.venta', $promotorContext) }}" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
                         @role('ejecutivo|administrativo')
-                        <a href="{{ route('mobile.ejecutivo.desembolso', array_merge($supervisorContextQuery ?? [], [])) }}" class="px-3 py-1 text-sm font-semibold text-white bg-indigo-600 rounded">V</a>
+                        <a href="{{ route('mobile.supervisor.venta.recibo_desembolso', $promotorContext) }}" class="px-3 py-1 text-sm font-semibold text-gray-900 bg-yellow-400 rounded shadow-sm">V</a>
+                        <a href="{{ route('mobile.ejecutivo.desembolso', $promotorContext) }}" class="px-3 py-1 text-sm font-semibold text-white bg-indigo-600 rounded">V</a>
                         @endrole
                     </div>
                 </div>
@@ -125,4 +134,3 @@
     </a>
   </div>
 </x-layouts.mobile.mobile-layout>
-

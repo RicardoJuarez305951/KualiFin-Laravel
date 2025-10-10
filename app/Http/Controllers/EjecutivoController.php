@@ -6,15 +6,25 @@ use App\Models\Cliente;
 use App\Models\Credito;
 use App\Models\Ejecutivo;
 use App\Models\Ejercicio;
+use App\Models\PagoCompleto;
+use App\Models\PagoDiferido;
+use App\Models\PagoProyectado;
+use App\Models\PagoReal;
 use App\Models\Promotor;
 use App\Models\Supervisor;
 use App\Services\BusquedaClientesService;
+use App\Services\Reportes\ReporteDesembolsoDataService;
 use App\Support\RoleHierarchy;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class EjecutivoController extends Controller
 {
@@ -1154,9 +1164,275 @@ public function venta_supervisor()
         return view('mobile.ejecutivo.venta.venta_supervisor');
     }
     
-    public function desembolso()
+    public function desembolso(
+        Request $request,
+        ReporteDesembolsoDataService $dataService,
+    ) {
+        $user = $request->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+
+        $ejecutivo = $this->resolveEjecutivoContext(
+            $primaryRole,
+            $user?->id,
+            (int) $request->query('ejecutivo_id'),
+        );
+
+        if ($primaryRole === 'ejecutivo') {
+            abort_if(!$ejecutivo, 403, 'Perfil de ejecutivo no configurado.');
+        }
+
+        $supervisor = $this->resolveSupervisorContext($request, [
+            'promotores' => fn ($query) => $query
+                ->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m')
+                ->orderBy('nombre')
+                ->orderBy('apellido_p')
+                ->orderBy('apellido_m'),
+        ]);
+
+        $supervisorContextQuery = $request->attributes->get('supervisor_context_query', []);
+        $promotorSessionKey = 'mobile.reportes.desembolso.promotor';
+        $promotorSeleccionado = null;
+        $promotoresCollection = collect($supervisor?->promotores ?? []);
+
+        $nombreCompleto = static function ($model): string {
+            return collect([
+                data_get($model, 'nombre'),
+                data_get($model, 'apellido_p'),
+                data_get($model, 'apellido_m'),
+            ])->filter()->implode(' ');
+        };
+
+        $promotorIdQuery = $request->query('promotor');
+        if ($promotorIdQuery !== null) {
+            $promotorId = (int) $promotorIdQuery;
+
+            if ($promotorId > 0) {
+                $promotorSeleccionado = $this->loadPromotorForDesembolso($promotorId);
+                abort_if(!$promotorSeleccionado, 404, 'Promotor no encontrado.');
+
+                $this->ensurePromotorBelongsToContext($supervisor, $promotorSeleccionado, $primaryRole ?? '');
+
+                $request->session()->put($promotorSessionKey, $promotorSeleccionado->id);
+            } else {
+                $request->session()->forget($promotorSessionKey);
+            }
+        }
+
+        if (!$promotorSeleccionado) {
+            $storedPromotorId = (int) $request->session()->get($promotorSessionKey);
+
+            if ($storedPromotorId > 0) {
+                $candidate = $this->loadPromotorForDesembolso($storedPromotorId);
+
+                if ($this->promotorDisponibleEnContexto($candidate, $supervisor, $primaryRole)) {
+                    $promotorSeleccionado = $candidate;
+                } else {
+                    $request->session()->forget($promotorSessionKey);
+                }
+            }
+        }
+
+        if (!$promotorSeleccionado && $promotoresCollection->isNotEmpty()) {
+            $defaultPromotor = $promotoresCollection->first();
+
+            if ($defaultPromotor) {
+                $promotorSeleccionado = $this->loadPromotorForDesembolso($defaultPromotor->id);
+
+                if ($promotorSeleccionado) {
+                    $request->session()->put($promotorSessionKey, $promotorSeleccionado->id);
+                }
+            }
+        }
+
+        if ($promotorSeleccionado && !$this->promotorDisponibleEnContexto($promotorSeleccionado, $supervisor, $primaryRole)) {
+            $request->session()->forget($promotorSessionKey);
+            $promotorSeleccionado = null;
+        }
+
+        [$fechaInicio, $fechaFin] = $this->resolveDesembolsoRange();
+
+        $payload = null;
+        if ($promotorSeleccionado) {
+            $payload = $dataService->build($promotorSeleccionado, $fechaInicio, $fechaFin);
+        }
+
+        $promotoresDisponibles = $promotoresCollection
+            ->map(function (Promotor $promotor) use ($nombreCompleto) {
+                return [
+                    'id' => $promotor->id,
+                    'nombre' => $nombreCompleto($promotor),
+                ];
+            })
+            ->values();
+
+        return view('mobile.ejecutivo.venta.desembolso', [
+            'payload' => $payload,
+            'ejecutivo' => $ejecutivo,
+            'supervisorSeleccionado' => $supervisor,
+            'promotorSeleccionado' => $promotorSeleccionado,
+            'promotoresDisponibles' => $promotoresDisponibles,
+            'supervisorContextQuery' => $supervisorContextQuery,
+            'primaryRole' => $primaryRole,
+            'periodo' => [
+                'inicio' => $fechaInicio,
+                'fin' => $fechaFin,
+            ],
+        ]);
+    }
+
+    public function registrarFallosRecuperados(Request $request)
     {
-        return view('mobile.ejecutivo.venta.desembolso');
+        $user = $request->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+
+        $ejecutivo = $this->resolveEjecutivoContext(
+            $primaryRole,
+            $user?->id,
+            (int) $request->input('ejecutivo_id', $request->query('ejecutivo_id')),
+        );
+
+        if ($primaryRole === 'ejecutivo') {
+            abort_if(!$ejecutivo, 403, 'Perfil de ejecutivo no configurado.');
+        }
+
+        $supervisor = $this->resolveSupervisorContext($request, [
+            'promotores' => fn ($query) => $query->select('id', 'supervisor_id'),
+        ]);
+
+        $promotorId = (int) $request->input('promotor_id');
+
+        if ($promotorId <= 0) {
+            throw ValidationException::withMessages([
+                'fallo_id' => 'Selecciona una promotora válida antes de continuar.',
+            ]);
+        }
+
+        $promotor = $this->loadPromotorForDesembolso($promotorId);
+
+        if (!$promotor) {
+            throw ValidationException::withMessages([
+                'fallo_id' => 'La promotora seleccionada no está disponible.',
+            ]);
+        }
+
+        $this->ensurePromotorBelongsToContext($supervisor, $promotor, $primaryRole ?? '');
+
+        $accion = $request->input('accion', 'registrar_pago');
+
+        $rules = [
+            'promotor_id' => ['required', 'integer'],
+            'fallo_id' => ['required', 'integer'],
+            'accion' => ['required', 'in:registrar_pago,confirmar_fallo'],
+        ];
+
+        if ($accion === 'registrar_pago') {
+            $rules['monto'] = ['required', 'numeric', 'min:0.01'];
+        }
+
+        $validator = Validator::make($request->all(), $rules, [
+            'monto.min' => 'El monto recuperado debe ser mayor a cero.',
+        ]);
+
+        $validated = $validator->validate();
+
+        $falloId = (int) $validated['fallo_id'];
+
+        $pagoProyectado = PagoProyectado::query()
+            ->where('id', $falloId)
+            ->whereHas('credito.cliente', function ($query) use ($promotor) {
+                $query->where('promotor_id', $promotor->id);
+            })
+            ->with([
+                'pagosReales.pagoCompleto',
+                'pagosReales.pagoDiferido',
+                'pagosReales.pagoAnticipo',
+            ])
+            ->first();
+
+        if (!$pagoProyectado) {
+            throw ValidationException::withMessages([
+                'fallo_id' => 'El fallo seleccionado no pertenece a la promotora.',
+            ]);
+        }
+
+        if ($validated['accion'] === 'confirmar_fallo') {
+            return redirect()
+                ->route('mobile.ejecutivo.desembolso', $this->buildDesembolsoRedirectParams($request, $promotor))
+                ->with('status', 'Fallo confirmado sin registrar pagos.');
+        }
+
+        $monto = round((float) $validated['monto'], 2);
+        $pendiente = $this->calcularDeudaPendiente($pagoProyectado);
+
+        if ($monto - $pendiente > 0.01) {
+            throw ValidationException::withMessages([
+                'monto' => 'El monto recuperado excede el fallo pendiente.',
+            ]);
+        }
+
+        $fechaPago = Carbon::now()->toDateString();
+
+        DB::transaction(function () use ($falloId, $promotor, $monto, $fechaPago) {
+            $pagoProyectado = PagoProyectado::query()
+                ->where('id', $falloId)
+                ->whereHas('credito.cliente', function ($query) use ($promotor) {
+                    $query->where('promotor_id', $promotor->id);
+                })
+                ->with([
+                    'pagosReales.pagoCompleto',
+                    'pagosReales.pagoDiferido',
+                    'pagosReales.pagoAnticipo',
+                ])
+                ->lockForUpdate()
+                ->first();
+
+            if (!$pagoProyectado) {
+                throw ValidationException::withMessages([
+                    'fallo_id' => 'El fallo seleccionado ya no está disponible.',
+                ]);
+            }
+
+            $pendiente = $this->calcularDeudaPendiente($pagoProyectado);
+
+            if ($pendiente <= 0) {
+                throw ValidationException::withMessages([
+                    'monto' => 'El fallo ya no tiene monto pendiente por recuperar.',
+                ]);
+            }
+
+            $montoARegistrar = min($monto, $pendiente);
+
+            if ($montoARegistrar <= 0) {
+                throw ValidationException::withMessages([
+                    'monto' => 'El monto a registrar debe ser mayor a cero.',
+                ]);
+            }
+
+            $pagoReal = PagoReal::create([
+                'pago_proyectado_id' => $pagoProyectado->id,
+                'tipo' => 'recuperado_en_desembolso',
+                'fecha_pago' => $fechaPago,
+                'comentario' => 'Pago registrado durante el desembolso.',
+            ]);
+
+            PagoCompleto::create([
+                'pago_real_id' => $pagoReal->id,
+                'monto_completo' => $montoARegistrar,
+            ]);
+        });
+
+        $message = 'Pago de fallo registrado correctamente.';
+
+        // Comentario: si la petición proviene del flujo asíncrono enviamos una respuesta JSON para el modal.
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => $message,
+            ], 201);
+        }
+
+        return redirect()
+            ->route('mobile.ejecutivo.desembolso', $this->buildDesembolsoRedirectParams($request, $promotor))
+            ->with('status', $message);
     }
     
     public function busqueda(Request $request, BusquedaClientesService $busquedaService)
@@ -1239,6 +1515,273 @@ public function venta_supervisor()
         return view('mobile.ejecutivo.informes.reportes');
     }
 
+    protected function loadPromotorForDesembolso(int $promotorId): ?Promotor
+    {
+        return Promotor::query()
+            ->with(['supervisor.ejecutivo'])
+            ->find($promotorId);
+    }
+
+    protected function buildDesembolsoRedirectParams(Request $request, Promotor $promotor): array
+    {
+        $params = [
+            'promotor' => $promotor->id,
+        ];
+
+        $ejecutivoId = $request->input('ejecutivo_id', $request->query('ejecutivo_id'));
+
+        if ($ejecutivoId) {
+            $params['ejecutivo_id'] = $ejecutivoId;
+        }
+
+        $supervisorId = $request->input('supervisor', $request->query('supervisor'));
+
+        if ($supervisorId) {
+            $params['supervisor'] = $supervisorId;
+        }
+
+        return $params;
+    }
+
+    protected function promotorDisponibleEnContexto(
+        ?Promotor $promotor,
+        ?Supervisor $supervisor,
+        ?string $primaryRole
+    ): bool {
+        if (!$promotor) {
+            return false;
+        }
+
+        if ($supervisor) {
+            return $promotor->supervisor_id === $supervisor->id;
+        }
+
+        return in_array($primaryRole, ['administrativo', 'superadmin'], true);
+    }
+
+    protected function resolveDesembolsoRange(): array
+    {
+        $today = CarbonImmutable::now()->endOfDay();
+        $start = $today->previous(CarbonInterface::SATURDAY)->startOfDay();
+
+        return [$start, $today];
+    }
+
+    protected function calcularDeudaPendiente(PagoProyectado $pagoProyectado): float
+    {
+        $total = (float) ($pagoProyectado->deuda_total ?? $pagoProyectado->monto_proyectado ?? 0);
+        $pagado = 0.0;
+
+        $pagoProyectado->loadMissing([
+            'pagosReales.pagoCompleto',
+            'pagosReales.pagoDiferido',
+            'pagosReales.pagoAnticipo',
+        ]);
+
+        foreach ($pagoProyectado->pagosReales as $pagoReal) {
+            if ($pagoReal->pagoCompleto) {
+                $pagado += (float) ($pagoReal->pagoCompleto->monto_completo ?? 0);
+            }
+
+            if ($pagoReal->pagoDiferido) {
+                $pagado += (float) ($pagoReal->pagoDiferido->monto_diferido ?? 0);
+            }
+
+            if ($pagoReal->pagoAnticipo) {
+                $pagado += (float) ($pagoReal->pagoAnticipo->monto_anticipo ?? 0);
+            }
+        }
+
+        return max(round($total - $pagado, 2), 0);
+    }
+
+    public function registrarPagoDesembolso(Request $request)
+    {
+        $user = $request->user();
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
+
+        $ejecutivo = $this->resolveEjecutivoContext(
+            $primaryRole,
+            $user?->id,
+            (int) $request->input('ejecutivo_id', $request->query('ejecutivo_id')),
+        );
+
+        if ($primaryRole === 'ejecutivo') {
+            abort_if(!$ejecutivo, 403, 'Perfil de ejecutivo no configurado.');
+        }
+
+        $supervisor = $this->resolveSupervisorContext($request, [
+            'promotores' => fn ($query) => $query->select('id', 'supervisor_id'),
+        ]);
+
+        $promotorId = (int) $request->input('promotor_id');
+
+        if ($promotorId <= 0) {
+            throw ValidationException::withMessages([
+                'promotor_id' => 'Selecciona una promotora válida antes de registrar pagos.',
+            ]);
+        }
+
+        $promotor = $this->loadPromotorForDesembolso($promotorId);
+
+        if (!$promotor) {
+            throw ValidationException::withMessages([
+                'promotor_id' => 'La promotora seleccionada no está disponible.',
+            ]);
+        }
+
+        $this->ensurePromotorBelongsToContext($supervisor, $promotor, $primaryRole ?? '');
+
+        $validator = Validator::make($request->all(), [
+            'promotor_id' => ['required', 'integer'],
+            'credito_id' => ['required', 'integer'],
+            'tipo' => ['required', 'string', 'in:completo,diferido'],
+            'monto' => ['nullable', 'numeric', 'min:0.01'],
+        ], [
+            'monto.min' => 'El monto diferido debe ser mayor a cero.',
+        ]);
+
+        $validator->after(function ($validator) {
+            $data = $validator->getData();
+            if (($data['tipo'] ?? '') === 'diferido') {
+                $monto = $data['monto'] ?? null;
+                if ($monto === null || $monto === '' || (float) $monto <= 0) {
+                    $validator->errors()->add('monto', 'Debes capturar el monto diferido a registrar.');
+                }
+            }
+        });
+
+        $validated = $validator->validate();
+
+        $creditoId = (int) $validated['credito_id'];
+
+        $credito = Credito::query()
+            ->where('id', $creditoId)
+            ->whereHas('cliente', function ($query) use ($promotor) {
+                $query->where('promotor_id', $promotor->id);
+            })
+            ->with([
+                'pagosProyectados' => function ($query) {
+                    $query->orderBy('fecha_limite')->orderBy('semana');
+                },
+                'pagosProyectados.pagosReales.pagoCompleto',
+                'pagosProyectados.pagosReales.pagoDiferido',
+                'pagosProyectados.pagosReales.pagoAnticipo',
+            ])
+            ->first();
+
+        if (!$credito) {
+            throw ValidationException::withMessages([
+                'credito_id' => 'El crédito seleccionado no pertenece a la promotora.',
+            ]);
+        }
+
+        $pagoPendiente = collect($credito->pagosProyectados)
+            ->first(function (PagoProyectado $pago) {
+                return $this->calcularDeudaPendiente($pago) > 0;
+            });
+
+        if (!$pagoPendiente) {
+            throw ValidationException::withMessages([
+                'credito_id' => 'El crédito seleccionado no tiene pagos pendientes.',
+            ]);
+        }
+
+        $tipo = $validated['tipo'];
+        $montoSolicitado = $tipo === 'diferido'
+            ? round((float) ($validated['monto'] ?? 0), 2)
+            : null;
+
+        $fechaPago = Carbon::now()->toDateString();
+
+        $resultado = DB::transaction(function () use ($pagoPendiente, $credito, $tipo, $montoSolicitado, $fechaPago) {
+            $pagoProyectado = PagoProyectado::query()
+                ->where('id', $pagoPendiente->id)
+                ->where('credito_id', $credito->id)
+                ->with([
+                    'pagosReales.pagoCompleto',
+                    'pagosReales.pagoDiferido',
+                    'pagosReales.pagoAnticipo',
+                ])
+                ->lockForUpdate()
+                ->first();
+
+            if (!$pagoProyectado) {
+                throw ValidationException::withMessages([
+                    'credito_id' => 'El pago seleccionado ya no está disponible.',
+                ]);
+            }
+
+            $pendiente = $this->calcularDeudaPendiente($pagoProyectado);
+
+            if ($pendiente <= 0) {
+                throw ValidationException::withMessages([
+                    'credito_id' => 'El pago proyectado ya no tiene saldo pendiente.',
+                ]);
+            }
+
+            $montoARegistrar = $tipo === 'completo'
+                ? $pendiente
+                : min($pendiente, max($montoSolicitado ?? 0, 0));
+
+            if ($montoARegistrar <= 0) {
+                throw ValidationException::withMessages([
+                    'monto' => 'El monto a registrar debe ser mayor a cero.',
+                ]);
+            }
+
+            $pagoReal = PagoReal::create([
+                'pago_proyectado_id' => $pagoProyectado->id,
+                'tipo' => $tipo,
+                'fecha_pago' => $fechaPago,
+                'comentario' => 'Pago registrado desde desembolsos móviles.',
+            ]);
+
+            if ($tipo === 'completo') {
+                PagoCompleto::create([
+                    'pago_real_id' => $pagoReal->id,
+                    'monto_completo' => $montoARegistrar,
+                ]);
+            } else {
+                PagoDiferido::create([
+                    'pago_real_id' => $pagoReal->id,
+                    'monto_diferido' => $montoARegistrar,
+                ]);
+            }
+
+            return [
+                'pago_real_id' => $pagoReal->id,
+                'monto_registrado' => $montoARegistrar,
+                'pendiente_restante' => max($pendiente - $montoARegistrar, 0),
+            ];
+        });
+
+        $mensajeBase = $tipo === 'completo'
+            ? 'Se registró un pago completo por '
+            : 'Se registró un pago diferido por ';
+
+        $montoTexto = '$' . number_format($resultado['monto_registrado'], 2, '.', ',');
+        $message = $mensajeBase . $montoTexto . '.';
+
+        $payloadRespuesta = [
+            'message' => $message,
+            'pago' => [
+                'id' => $resultado['pago_real_id'],
+                'tipo' => $tipo,
+                'monto' => $resultado['monto_registrado'],
+                'pendiente_restante' => $resultado['pendiente_restante'],
+            ],
+        ];
+
+        if ($request->wantsJson()) {
+            return response()->json($payloadRespuesta, 201);
+        }
+
+        return redirect()
+            ->route('mobile.ejecutivo.desembolso', $this->buildDesembolsoRedirectParams($request, $promotor))
+            ->with('status', $message);
+    }
+
     /*
      * -----------------------------------------------------------------
      * Faltan metodos para Cartera Activa, Falla Actual, Cartera Vencida, Cartera Inactiva
@@ -1246,4 +1789,3 @@ public function venta_supervisor()
      */
     
 }
-

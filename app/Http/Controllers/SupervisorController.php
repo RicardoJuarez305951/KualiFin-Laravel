@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Concerns\HandlesSupervisorContext;
 use App\Services\BusquedaClientesService;
 use App\Support\RoleHierarchy;
+use App\Services\Recibos\ReciboDesembolsoDataService;
 
 class SupervisorController extends Controller
 {
@@ -355,6 +356,7 @@ class SupervisorController extends Controller
 
             return [
                 'id'              => $promotor->id,
+                'supervisor_id'   => $promotor->supervisor_id,
                 'nombre'          => trim(($promotor->nombre ?? '') . ' ' . ($promotor->apellido_p ?? '') . ' ' . ($promotor->apellido_m ?? '')),
                 'debe'            => $debe,
                 'falla'           => $falla,
@@ -374,6 +376,19 @@ class SupervisorController extends Controller
             'moneyProgress',
             'promotoresSupervisados'
         ));
+    }
+
+    public function reciboDesembolso(Request $request, Promotor $promotor)
+    {
+        $supervisor = $this->resolveSupervisorContext($request);
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($request->user());
+
+        $this->ensurePromotorBelongsToContext($supervisor, $promotor, $primaryRole);
+
+        $dataService = app(ReciboDesembolsoDataService::class);
+        $payload = $dataService->build($promotor);
+
+        return view('mobile.supervisor.venta.recibo_desembolso', $payload);
     }
 
     public function solicitar_venta()
@@ -1363,17 +1378,6 @@ class SupervisorController extends Controller
         $promotores = $promotores instanceof \Illuminate\Support\Collection ? $promotores : collect($promotores);
 
         return [$supervisor, $promotores->values()];
-    }
-
-    private function ensurePromotorBelongsToContext(?Supervisor $supervisor, Promotor $promotor, string $primaryRole): void
-    {
-        if ($supervisor && $promotor->supervisor_id !== $supervisor->id) {
-            abort(403, 'Promotor fuera de tu alcance.');
-        }
-
-        if (!$supervisor && !in_array($primaryRole, ['administrativo', 'superadmin'], true)) {
-            abort(403, 'Supervisor fuera de tu alcance.');
-        }
     }
 
     private function resolveSupervisorsForUser($user): array

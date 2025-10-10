@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Concerns;
 
 use App\Models\Ejecutivo;
+use App\Models\Promotor;
 use App\Models\Supervisor;
 use App\Support\RoleHierarchy;
 use Illuminate\Http\Request;
@@ -143,5 +144,16 @@ trait HandlesSupervisorContext
                 ])->filter()->implode(' '),
             ];
         });
+    }
+
+    protected function ensurePromotorBelongsToContext(?Supervisor $supervisor, Promotor $promotor, string $primaryRole): void
+    {
+        if ($supervisor && $promotor->supervisor_id !== $supervisor->id) {
+            abort(403, 'Promotor fuera de tu alcance.');
+        }
+
+        if (!$supervisor && !in_array($primaryRole, ['administrativo', 'superadmin'], true)) {
+            abort(403, 'Supervisor fuera de tu alcance.');
+        }
     }
 }

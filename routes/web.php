@@ -11,6 +11,8 @@ use App\Http\Controllers\EjecutivoController;
 use App\Http\Controllers\SupervisorController;
 use App\Http\Controllers\NuevoClienteController;
 use App\Http\Controllers\PagoRealController;
+use App\Http\Controllers\Pdf\ReciboDesembolsoPdfController;
+use App\Http\Controllers\Pdf\ReporteDesembolsoPdfController;
 use Illuminate\Support\Facades\Auth;
 use App\Support\RoleHierarchy;
 use App\Http\Controllers\ExcelController;
@@ -51,7 +53,7 @@ Route::middleware(['auth','verified'])->group(function () {
          ->name('mobile.')
          ->group(function () {
              Route::get('/', function () {
-                 $user = Auth::user();
+                 $user = Auth::user();      
                  $primaryRole = RoleHierarchy::resolvePrimaryRole($user);
                  $section = RoleHierarchy::defaultSection($primaryRole);
 
@@ -94,6 +96,11 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('horarios',  'horarios')  ->name('horarios');
                       Route::get('venta-supervisor',  'venta_supervisor')  ->name('venta_supervisor');
                       Route::get('desembolso',  'desembolso')  ->name('desembolso');
+                      Route::post('desembolso/fallos/recuperados', 'registrarFallosRecuperados')
+                          ->name('desembolso.registrar_fallos_recuperados');
+                      Route::post('desembolso/registrar-pago', 'registrarPagoDesembolso')
+                          ->name('desembolso.registrar_pago');
+                      Route::get('desembolso/{promotor}/pdf', [ReporteDesembolsoPdfController::class, '__invoke'])->name('desembolso.pdf');
                       Route::get('busqueda',  'busqueda')  ->name('busqueda');
                       Route::get('informes',  'informes')  ->name('informes');
                       Route::get('reportes',  'reportes')  ->name('reportes');
@@ -123,6 +130,8 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::post('clientes-supervisados/formulario', [NuevoClienteController::class, 'store'])->name('nuevo_cliente.store');
                       Route::post('clientes-supervisados/{cliente}/registrar-credito', [NuevoClienteController::class, 'RegistrarCredito'])->name('clientes_prospectados.registrar_credito');
                       Route::get('clientes-supervisados',    'clientes_supervisados')    ->name('clientes_supervisados');
+                      Route::get('venta/desembolso/{promotor}', 'reciboDesembolso')->name('venta.recibo_desembolso');
+                      Route::get('venta/desembolso/{promotor}/pdf', [ReciboDesembolsoPdfController::class, '__invoke'])->name('venta.recibo_desembolso.pdf');
                       Route::get('busqueda',          'busqueda')          ->name('busqueda');
                       Route::get('apertura',          'apertura')          ->name('apertura');
                       Route::get('venta/horarios', 'horarios')                   ->name('horarios');
