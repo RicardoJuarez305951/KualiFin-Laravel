@@ -14,173 +14,94 @@
     $carteraActual = $carteraActual ?? 0;
     $inversion = $inversion ?? 0;
     $receiptIssuer = 'MARCO ANTONIO G&Uuml;EMES ABUD';
-    $receipts = [
-        ['number' => 1],
-        ['number' => 2],
-    ];
+    $receipts = [['number'=>1],['number'=>2]];
 @endphp
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="utf-8">
-    <title>Recibo de desembolso</title>
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            font-family: "DejaVu Sans", Arial, sans-serif;
-            font-size: 9px;
-            line-height: 1.25;
-            color: #000;
-            margin: 12px;
-        }
-        .notice {
-            border: 0.6px solid #000;
-            padding: 4px;
-            font-weight: bold;
-            text-transform: uppercase;
-            text-align: center;
-            margin-bottom: 8px;
-            font-size: 8.5px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .info-table td {
-            border: 0.6px solid #000;
-            padding: 4px 6px;
-            width: 25%;
-            vertical-align: top;
-        }
-        .label {
-            font-size: 8px;
-            text-transform: uppercase;
-            margin-bottom: 2px;
-        }
-        .value {
-            font-size: 10px;
-            font-weight: bold;
-        }
-        .clients-table th,
-        .clients-table td {
-            border: 0.6px solid #000;
-            padding: 4px;
-            line-height: 1.2;
-        }
-        .clients-table th {
-            text-transform: uppercase;
-            font-weight: bold;
-            text-align: center;
-            font-size: 8px;
-        }
-        .text-right { text-align: right; }
-        .text-center { text-align: center; }
-        .uppercase { text-transform: uppercase; }
-        .small { font-size: 8px; }
-        .section {
-            margin-top: 10px;
-        }
-        .signatures td {
-            border: 0.6px solid #000;
-            padding: 4px 6px;
-            width: 50%;
-            vertical-align: top;
-        }
-        .signature-box {
-            margin-top: 14px;
-            height: 45px;
-            border: 0.6px solid #000;
-            text-align: center;
-            vertical-align: bottom;
-            padding-bottom: 6px;
-            font-size: 8px;
-        }
-        .summary-table th,
-        .summary-table td {
-            border: 0.6px solid #000;
-            padding: 4px 6px;
-        }
-        .summary-table th {
-            text-transform: uppercase;
-            text-align: left;
-            width: 68%;
-        }
-        .summary-total {
-            font-size: 11px;
-            font-weight: bold;
-        }
-        .receipt-table {
-            border: 0.6px solid #000;
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .receipt-table td {
-            padding: 3px 5px;
-            border-bottom: 0.6px solid #000;
-        }
-        .receipt-table tr:last-child td {
-            border-bottom: none;
-        }
-        .receipt-meta td:first-child {
-            font-weight: bold;
-        }
-        .receipt-meta td:last-child {
-            text-align: right;
-        }
-        .receipt-wrapper td {
-            width: 50%;
-            vertical-align: top;
-            padding: 4px;
-        }
-        .receipt-section {
-            margin-top: 4px;
-        }
-        .receipt-title {
-            font-weight: bold;
-            text-align: center;
-            text-transform: uppercase;
-            margin-bottom: 6px;
-        }
-        .receipt-amount {
-            border: 0.6px solid #000;
-            padding: 2px 6px;
-            font-weight: bold;
-            display: inline-block;
-        }
-        .receipt-signature-cell {
-            height: 40px;
-            border-top: 0.6px solid #000;
-            text-align: center;
-            vertical-align: bottom;
-            padding-top: 4px;
-            padding-bottom: 6px;
-            font-size: 8px;
-        }
-    </style>
+<meta charset="utf-8">
+<title>Recibo de desembolso</title>
+<style>
+    /* Márgenes mínimos para PDF */
+    @page{ margin:6mm; }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; }
+    body{
+        font-family:"DejaVu Sans", Arial, sans-serif;
+        font-size:8.3px; line-height:1.1;
+        color:#000; margin:2mm;
+        -webkit-text-size-adjust:100%;
+        word-wrap:break-word; overflow-wrap:break-word;
+    }
+    b{ font-weight:700; }
+    .u{ text-transform:uppercase; }
+    table{ width:100%; border-collapse:collapse; }
+
+    /* Aviso compacto */
+    .notice{
+        border:0.35px solid #000; padding:2px 3px; text-align:center;
+        font-weight:700; font-size:7.8px; margin:0 0 4px 0;
+        text-transform:uppercase;
+    }
+
+    /* Tabla info superior */
+    .info-table td{
+        border:0.35px solid #000; padding:2px 3px; width:25%; vertical-align:top;
+    }
+    .label{ font-size:7.4px; text-transform:uppercase; margin:0 0 1px 0; }
+    .value{ font-size:9px; font-weight:700; }
+
+    /* Tabla clientes (muchas columnas) súper compacta */
+    .clients-table th,.clients-table td{
+        border:0.35px solid #000; padding:1.5px 2px; line-height:1.05;
+        white-space:nowrap;
+    }
+    .clients-table th{
+        font-size:7.2px; font-weight:700; text-align:center; text-transform:uppercase;
+    }
+    .text-right{ text-align:right; }
+    .text-center{ text-align:center; }
+    .small{ font-size:7.2px; }
+    .section{ margin-top:4px; }
+
+    /* Firmas comprimidas */
+    .signatures td{
+        border:0.35px solid #000; padding:2px 3px; width:50%; vertical-align:top;
+    }
+    .signature-box{
+        margin-top:6px; height:30px; border:0.35px solid #000;
+        text-align:center; vertical-align:bottom; padding-bottom:4px; font-size:7.2px;
+    }
+
+    /* Resumen */
+    .summary-table th,.summary-table td{ border:0.35px solid #000; padding:2px 3px; }
+    .summary-table th{ text-transform:uppercase; text-align:left; width:65%; font-size:8px; }
+    .summary-total{ font-size:9.5px; font-weight:700; }
+
+    /* Recibos (2 por fila ya incluidos) */
+    .receipt-wrapper td{ width:50%; vertical-align:top; padding:2px; }
+    .receipt-table{ border:0.35px solid #000; width:100%; border-collapse:collapse; }
+    .receipt-table td{ padding:2px 3px; border-bottom:0.35px solid #000; }
+    .receipt-table tr:last-child td{ border-bottom:none; }
+    .receipt-meta td:first-child{ font-weight:700; }
+    .receipt-meta td:last-child{ text-align:right; }
+    .receipt-title{ font-weight:700; text-align:center; text-transform:uppercase; margin:0 0 3px 0; }
+    .receipt-amount{ border:0.35px solid #000; padding:1px 3px; font-weight:700; display:inline-block; }
+    .receipt-signature-cell{
+        height:26px; border-top:0.35px solid #000; text-align:center;
+        vertical-align:bottom; padding:3px 0 4px; font-size:7.2px;
+    }
+</style>
 </head>
 <body>
-    <div class="notice">
-        Para cr&eacute;ditos nuevos mayores a $3,000 presentar comprobante adicional.
-    </div>
+    <div class="notice">Para cr&eacute;ditos nuevos mayores a $3,000 presentar comprobante adicional.</div>
 
     <table class="info-table">
         <tr>
-            <td>
-                <div class="label">Cliente / Promotor</div>
-                <div class="value">{{ $promotorNombre !== '' ? $promotorNombre : '---' }}</div>
-            </td>
-            <td>
-                <div class="label">Supervisor</div>
-                <div class="value">{{ $supervisorNombre !== '' ? $supervisorNombre : '---' }}</div>
-            </td>
-            <td>
-                <div class="label">Ejecutivo</div>
-                <div class="value">{{ $ejecutivoNombre !== '' ? $ejecutivoNombre : '---' }}</div>
-            </td>
-            <td>
-                <div class="label">Fecha</div>
-                <div class="value text-right">{{ $fechaHoy }}</div>
-            </td>
+            <td><div class="label">Cliente / Promotor</div><div class="value">{{ $promotorNombre !== '' ? $promotorNombre : '---' }}</div></td>
+            <td><div class="label">Supervisor</div><div class="value">{{ $supervisorNombre !== '' ? $supervisorNombre : '---' }}</div></td>
+            <td><div class="label">Ejecutivo</div><div class="value">{{ $ejecutivoNombre !== '' ? $ejecutivoNombre : '---' }}</div></td>
+            <td><div class="label">Fecha</div><div class="value text-right">{{ $fechaHoy }}</div></td>
         </tr>
     </table>
 
@@ -189,19 +110,19 @@
             <thead>
                 <tr>
                     <th>Cliente</th>
-                    <th>Pr&eacute;stamo anterior</th>
-                    <th>Pr&eacute;stamo solicitado</th>
-                    <th>-5% comisi&oacute;n</th>
-                    <th>Total pr&eacute;stamo</th>
-                    <th>Recr&eacute;dito nuevo</th>
+                    <th>Pr&eacute;st. ant.</th>
+                    <th>Pr&eacute;st. solic.</th>
+                    <th>-5% com.</th>
+                    <th>Total pr&eacute;st.</th>
+                    <th>Recr&eacute;dito</th>
                     <th>Total recr&eacute;dito</th>
-                    <th>Total pr&eacute;stamo - recr&eacute;dito</th>
+                    <th>Saldo post</th>
                 </tr>
             </thead>
             <tbody>
-                @forelse ($rows as $index => $row)
+                @forelse ($rows as $i => $row)
                     <tr>
-                        <td>{{ ($index + 1) }}. {{ $row['nombre'] ?? 'Sin nombre' }}</td>
+                        <td>{{ $i+1 }}. {{ $row['nombre'] ?? 'Sin nombre' }}</td>
                         <td class="text-right">{{ Formatter::currencyNullable($row['prestamo_anterior'] ?? null) }}</td>
                         <td class="text-right">{{ Formatter::currencyNullable($row['prestamo_solicitado'] ?? null) }}</td>
                         <td class="text-right">{{ Formatter::currencyNullable($row['comision_cinco'] ?? null) }}</td>
@@ -211,12 +132,10 @@
                         <td class="text-right">{{ Formatter::currencyNullable($row['saldo_post_recredito'] ?? null) }}</td>
                     </tr>
                 @empty
-                    <tr>
-                        <td colspan="8" class="text-center small">Sin clientes registrados.</td>
-                    </tr>
+                    <tr><td colspan="8" class="text-center small">Sin clientes registrados.</td></tr>
                 @endforelse
                 <tr>
-                    <td class="text-right uppercase"><strong>Total</strong></td>
+                    <td class="text-right u"><b>Total</b></td>
                     <td class="text-right">{{ Formatter::currency($totals['prestamo_anterior'] ?? 0) }}</td>
                     <td class="text-right">{{ Formatter::currency($totals['prestamo_solicitado'] ?? 0) }}</td>
                     <td class="text-right">{{ Formatter::currency($totals['comision_cinco'] ?? 0) }}</td>
@@ -233,12 +152,12 @@
         <table class="signatures">
             <tr>
                 <td>
-                    <div class="label">Nombre de promotora de reconocimiento de clientes</div>
+                    <div class="label">Promotora</div>
                     <div class="value">{{ $promotorNombre !== '' ? $promotorNombre : '---' }}</div>
                     <div class="signature-box">Firma</div>
                 </td>
                 <td>
-                    <div class="label">Nombre de ejecutivo - Validador</div>
+                    <div class="label">Ejecutivo - Validador</div>
                     <div class="value">{{ $ejecutivoNombre !== '' ? $ejecutivoNombre : '---' }}</div>
                     <div class="signature-box">Firma</div>
                 </td>
@@ -249,31 +168,16 @@
     <div class="section">
         <table class="summary-table">
             <tbody>
-                <tr>
-                    <th>Comisi&oacute;n de promotor</th>
-                    <td class="text-right">{{ Formatter::currency($comisionPromotor) }}</td>
-                </tr>
-                <tr>
-                    <th>Comisi&oacute;n de supervisor</th>
-                    <td class="text-right">{{ Formatter::currency($comisionSupervisor) }}</td>
-                </tr>
-                <tr>
-                    <th>Total pr&eacute;stamos solicitados</th>
-                    <td class="text-right">{{ Formatter::currency($totalPrestamoSolicitado) }}</td>
-                </tr>
-                <tr>
-                    <th>Cartera actual del promotor</th>
-                    <td class="text-right">{{ Formatter::currency($carteraActual) }}</td>
-                </tr>
-                <tr>
-                    <th>Inversi&oacute;n</th>
-                    <td class="text-right summary-total">{{ Formatter::currency($inversion) }}</td>
-                </tr>
+                <tr><th>Comisi&oacute;n promotor</th><td class="text-right">{{ Formatter::currency($comisionPromotor) }}</td></tr>
+                <tr><th>Comisi&oacute;n supervisor</th><td class="text-right">{{ Formatter::currency($comisionSupervisor) }}</td></tr>
+                <tr><th>Total pr&eacute;stamos solicitados</th><td class="text-right">{{ Formatter::currency($totalPrestamoSolicitado) }}</td></tr>
+                <tr><th>Cartera actual promotor</th><td class="text-right">{{ Formatter::currency($carteraActual) }}</td></tr>
+                <tr><th>Inversi&oacute;n</th><td class="text-right summary-total">{{ Formatter::currency($inversion) }}</td></tr>
             </tbody>
         </table>
-        <p class="small">
-            La inversi&oacute;n se calcula como comisiones + total de &uacute;ltimos cr&eacute;ditos - cartera actual.
-        </p>
+        <div class="small" style="margin-top:2px;">
+            <b>Nota:</b> Inversi&oacute;n = comisiones + &uacute;ltimos cr&eacute;ditos − cartera actual.
+        </div>
     </div>
 
     <div class="section">
@@ -288,22 +192,13 @@
                                     <td>No. {{ $receipt['number'] }}</td>
                                     <td>Fecha: {{ $fechaHoy }}</td>
                                 </tr>
-                                <tr>
-                                    <td colspan="2">Recib&iacute; de: {{ $receiptIssuer  }}</td>
-                                    
-                                </tr>
-                                <tr>
-                                    <td colspan="2">Promotor: {!! $reciboDeNombre !== '' ? $reciboDeNombre : '---' !!}</td>
-                                </tr>
-                                <tr>
-                                    <td colspan="2">La cantidad de: <span class="receipt-amount">{{ Formatter::currency($totalPrestamoSolicitado) }}</span></td>
-                                </tr>
-                                <tr>
-                                    <td colspan="2" class="receipt-signature-cell">Firma</td>
-                                </tr>
+                                <tr><td colspan="2"><b>Recib&iacute; de:</b> {{ $receiptIssuer }}</td></tr>
+                                <tr><td colspan="2"><b>Promotor:</b> {!! $reciboDeNombre !== '' ? $reciboDeNombre : '---' !!}</td></tr>
+                                <tr><td colspan="2">La cantidad de: <span class="receipt-amount">{{ Formatter::currency($totalPrestamoSolicitado) }}</span></td></tr>
+                                <tr><td colspan="2" class="receipt-signature-cell">Firma</td></tr>
                                 <tr>
                                     <td colspan="2">
-                                        <p class="small uppercase text-center receipt-section">
+                                        <p class="small u text-center" style="margin:2px 0 0;">
                                             Por concepto de: Operaci&oacute;n financiera para pr&eacute;stamos individual de las personas mencionadas en este desembolso.
                                         </p>
                                     </td>
