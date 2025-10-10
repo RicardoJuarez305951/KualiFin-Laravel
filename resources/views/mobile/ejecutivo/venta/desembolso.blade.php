@@ -87,7 +87,7 @@
 
     @if($errors->any())
       <div class="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-800 space-y-1">
-        <p class="font-semibold">No se pudieron registrar los fallos recuperados.</p>
+        <p class="font-semibold">No se pudo completar la acción solicitada.</p>
         <ul class="list-disc list-inside space-y-1">
           @foreach($errors->all() as $error)
             <li>{{ $error }}</li>
@@ -207,76 +207,115 @@
         @if(empty($falloItems))
           <p class="text-sm text-gray-600">No hay fallas registradas en el periodo seleccionado.</p>
         @else
-          <p class="text-xs text-gray-500">Ajusta los montos recuperados y registra los pagos para actualizar el reporte.</p>
+          <p class="text-xs text-gray-500">Gestiona cada fallo registrando pagos recuperados o confirmando el adeudo pendiente.</p>
 
-          <form method="POST"
-                action="{{ route('mobile.ejecutivo.desembolso.registrar_fallos_recuperados') }}"
-                class="space-y-3">
-            @csrf
+          <div class="space-y-3">
+            @foreach($falloItems as $item)
+              @php
+                $falloId = $item['id'] ?? null;
+                $faltante = isset($item['monto']) ? (float) $item['monto'] : 0.0;
+                $esFalloEnEdicion = $falloId && (string) old('fallo_id') === (string) $falloId;
+                $montoAnterior = $esFalloEnEdicion && old('accion') === 'registrar_pago'
+                  ? old('monto')
+                  : number_format($faltante, 2, '.', '');
+              @endphp
 
-            @foreach($supervisorContextQuery as $key => $value)
-              <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-            @endforeach
+              @continue(empty($falloId))
 
-            @if(request()->has('ejecutivo_id'))
-              <input type="hidden" name="ejecutivo_id" value="{{ request('ejecutivo_id') }}">
-            @endif
+              <article class="rounded-xl border border-gray-200 p-3 bg-white space-y-3">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="space-y-0.5">
+                    <p class="text-sm font-semibold text-gray-800">{{ $item['cliente'] ?? 'Sin nombre' }}</p>
+                    <p class="text-xs text-gray-500">{{ $item['fecha_texto'] ?? '---' }}</p>
+                  </div>
 
-            @if($promotorSeleccionado)
-              <input type="hidden" name="promotor_id" value="{{ $promotorSeleccionado->id }}">
-            @endif
-
-            <div class="text-xs font-semibold text-gray-500 grid grid-cols-12 gap-2 uppercase">
-              <span class="col-span-4">Fecha</span>
-              <span class="col-span-5">Cliente</span>
-              <span class="col-span-3 text-right">Monto recuperado</span>
-            </div>
-
-            <div class="divide-y divide-gray-200 text-sm">
-              @foreach($falloItems as $index => $item)
-                <div class="grid grid-cols-12 gap-2 py-2">
-                  <input type="hidden" name="fallos[{{ $index }}][id]"
-                         value="{{ old('fallos.' . $index . '.id', $item['id'] ?? '') }}">
-
-                  <span class="col-span-4 text-gray-700">{{ $item['fecha_texto'] ?? '---' }}</span>
-                  <span class="col-span-5 text-gray-700">{{ $item['cliente'] ?? 'Sin nombre' }}</span>
-
-                  <div class="col-span-3 text-right">
-                    <label class="sr-only" for="fallo-{{ $index }}-monto">Monto recuperado</label>
-                    <div class="relative">
-                      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">$</span>
-                      <input id="fallo-{{ $index }}-monto"
-                        name="fallos[{{ $index }}][monto]"
-                        type="text"
-                        inputmode="decimal"
-                        oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');"
-                        value="{{ old('fallos.' . $index . '.monto', isset($item['monto']) ? number_format((float) $item['monto'], 2, '.', '') : '0.00') }}"
-                        class="w-full rounded-lg border border-gray-300 bg-white py-1.5 pr-3 pl-6 text-sm text-right font-medium text-gray-800 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
-
-                    </div>
-                    <p class="mt-1 text-[11px] text-gray-500">Pendiente: {{ $formatCurrency($item['monto'] ?? 0) }}</p>
-                    @error('fallos.' . $index . '.monto')
-                      <p class="mt-1 text-xs text-red-600 text-right">{{ $message }}</p>
-                    @enderror
-                    @error('fallos.' . $index . '.id')
-                      <p class="mt-1 text-xs text-red-600 text-right">{{ $message }}</p>
-                    @enderror
+                  <div class="text-right">
+                    <p class="text-[11px] uppercase text-gray-500">Faltante</p>
+                    <p class="text-sm font-semibold text-gray-800">{{ $formatCurrency($faltante) }}</p>
                   </div>
                 </div>
-              @endforeach
-            </div>
 
-            @error('fallos')
-              <p class="text-xs text-red-600">{{ $message }}</p>
-            @enderror
+                <div class="space-y-2">
+                  <form method="POST"
+                        action="{{ route('mobile.ejecutivo.desembolso.registrar_fallos_recuperados') }}"
+                        class="flex items-center gap-2">
+                    @csrf
 
-            <div class="pt-2 flex justify-end">
-              <button type="submit"
-                      class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition">
-                Registrar fallos recuperados
-              </button>
-            </div>
-          </form>
+                    @foreach($supervisorContextQuery as $key => $value)
+                      <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                    @endforeach
+
+                    @if(request()->has('ejecutivo_id'))
+                      <input type="hidden" name="ejecutivo_id" value="{{ request('ejecutivo_id') }}">
+                    @endif
+
+                    @if($promotorSeleccionado)
+                      <input type="hidden" name="promotor_id" value="{{ $promotorSeleccionado->id }}">
+                    @endif
+
+                    <input type="hidden" name="accion" value="registrar_pago">
+                    <input type="hidden" name="fallo_id" value="{{ $falloId }}">
+
+                    <label for="fallo-{{ $falloId }}-monto" class="sr-only">Monto recuperado</label>
+                    <div class="relative flex-1">
+                      <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">$</span>
+                      <input id="fallo-{{ $falloId }}-monto"
+                             name="monto"
+                             type="text"
+                             inputmode="decimal"
+                             oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');"
+                             value="{{ $montoAnterior }}"
+                             class="w-full rounded-lg border border-gray-300 bg-white py-1.5 pr-3 pl-6 text-sm text-right font-medium text-gray-800 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+                    </div>
+
+                    <button type="submit"
+                            class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white font-semibold text-lg hover:bg-emerald-700 transition"
+                            title="Registrar pago">
+                      <span aria-hidden="true">$</span>
+                      <span class="sr-only">Registrar pago</span>
+                    </button>
+                  </form>
+
+                  <form method="POST"
+                        action="{{ route('mobile.ejecutivo.desembolso.registrar_fallos_recuperados') }}"
+                        class="flex justify-end">
+                    @csrf
+
+                    @foreach($supervisorContextQuery as $key => $value)
+                      <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                    @endforeach
+
+                    @if(request()->has('ejecutivo_id'))
+                      <input type="hidden" name="ejecutivo_id" value="{{ request('ejecutivo_id') }}">
+                    @endif
+
+                    @if($promotorSeleccionado)
+                      <input type="hidden" name="promotor_id" value="{{ $promotorSeleccionado->id }}">
+                    @endif
+
+                    <input type="hidden" name="accion" value="confirmar_fallo">
+                    <input type="hidden" name="fallo_id" value="{{ $falloId }}">
+
+                    <button type="submit"
+                            class="px-3 py-2 rounded-lg border border-gray-300 text-xs font-semibold text-gray-700 hover:border-gray-400 hover:text-gray-900 transition">
+                      Confirmar
+                    </button>
+                  </form>
+
+                  @if($esFalloEnEdicion)
+                    @error('monto')
+                      <p class="text-xs text-red-600 text-right">{{ $message }}</p>
+                    @enderror
+                    @error('fallo_id')
+                      <p class="text-xs text-red-600 text-right">{{ $message }}</p>
+                    @enderror
+                  @endif
+
+                  <p class="text-[11px] text-gray-500 text-right">Faltante actual: {{ $formatCurrency($faltante) }}</p>
+                </div>
+              </article>
+            @endforeach
+          </div>
         @endif
       </section>
 
