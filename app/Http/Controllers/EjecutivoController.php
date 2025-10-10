@@ -1421,9 +1421,18 @@ public function venta_supervisor()
             ]);
         });
 
+        $message = 'Pago de fallo registrado correctamente.';
+
+        // Comentario: si la petición proviene del flujo asíncrono enviamos una respuesta JSON para el modal.
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => $message,
+            ], 201);
+        }
+
         return redirect()
             ->route('mobile.ejecutivo.desembolso', $this->buildDesembolsoRedirectParams($request, $promotor))
-            ->with('status', 'Pago de fallo registrado correctamente.');
+            ->with('status', $message);
     }
     
     public function busqueda(Request $request, BusquedaClientesService $busquedaService)

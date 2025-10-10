@@ -81,6 +81,7 @@
   <div
     x-data="desembolsoPage({
         registerUrl: '{{ route('mobile.ejecutivo.desembolso.registrar_pago') }}',
+        falloRegisterUrl: '{{ route('mobile.ejecutivo.desembolso.registrar_fallos_recuperados') }}',
         promotorId: {{ $promotorSeleccionado?->id ?? 'null' }},
         supervisorQuery: @js($supervisorContextQuery ?? []),
         pdfUrl: @js($pdfUrl),
@@ -223,10 +224,6 @@
               @php
                 $falloId = $item['id'] ?? null;
                 $faltante = isset($item['monto']) ? (float) $item['monto'] : 0.0;
-                $esFalloEnEdicion = $falloId && (string) old('fallo_id') === (string) $falloId;
-                $montoAnterior = $esFalloEnEdicion && old('accion') === 'registrar_pago'
-                  ? old('monto')
-                  : number_format($faltante, 2, '.', '');
               @endphp
 
               @continue(empty($falloId))
@@ -245,45 +242,22 @@
                 </div>
 
                 <div class="space-y-2">
-                  <form method="POST"
-                        action="{{ route('mobile.ejecutivo.desembolso.registrar_fallos_recuperados') }}"
-                        class="flex items-center gap-2">
-                    @csrf
-
-                    @foreach($supervisorContextQuery as $key => $value)
-                      <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-                    @endforeach
-
-                    @if(request()->has('ejecutivo_id'))
-                      <input type="hidden" name="ejecutivo_id" value="{{ request('ejecutivo_id') }}">
-                    @endif
-
-                    @if($promotorSeleccionado)
-                      <input type="hidden" name="promotor_id" value="{{ $promotorSeleccionado->id }}">
-                    @endif
-
-                    <input type="hidden" name="accion" value="registrar_pago">
-                    <input type="hidden" name="fallo_id" value="{{ $falloId }}">
-
-                    <label for="fallo-{{ $falloId }}-monto" class="sr-only">Monto recuperado</label>
-                    <div class="relative flex-1">
-                      <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">$</span>
-                      <input id="fallo-{{ $falloId }}-monto"
-                             name="monto"
-                             type="text"
-                             inputmode="decimal"
-                             oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');"
-                             value="{{ $montoAnterior }}"
-                             class="w-full rounded-lg border border-gray-300 bg-white py-1.5 pr-3 pl-6 text-sm text-right font-medium text-gray-800 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
-                    </div>
-
-                    <button type="submit"
-                            class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white font-semibold text-lg hover:bg-emerald-700 transition"
-                            title="Registrar pago">
+                  {{-- Comentario: este botón abre la calculadora modal reutilizando la lógica de pagos de desembolsos. --}}
+                  <div class="flex items-center justify-end">
+                    <button
+                      type="button"
+                      class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white font-semibold text-lg hover:bg-emerald-700 transition disabled:opacity-60"
+                      title="Registrar pago recuperado"
+                      :disabled="processingPayment"
+                      @click="openPaymentModal(
+                        { id: {{ $falloId }}, nombre: '{{ addslashes($item['cliente'] ?? 'Sin nombre') }}' },
+                        { type: 'fallo', falloId: {{ $falloId }}, pendingAmount: @js($faltante) }
+                      )"
+                    >
                       <span aria-hidden="true">$</span>
-                      <span class="sr-only">Registrar pago</span>
+                      <span class="sr-only">Registrar pago recuperado</span>
                     </button>
-                  </form>
+                  </div>
 
                   <form method="POST"
                         action="{{ route('mobile.ejecutivo.desembolso.registrar_fallos_recuperados') }}"
@@ -311,20 +285,20 @@
                     </button>
                   </form>
 
-                  @if($esFalloEnEdicion)
-                    @error('monto')
-                      <p class="text-xs text-red-600 text-right">{{ $message }}</p>
-                    @enderror
-                    @error('fallo_id')
-                      <p class="text-xs text-red-600 text-right">{{ $message }}</p>
-                    @enderror
-                  @endif
-
                   <p class="text-[11px] text-gray-500 text-right">Faltante actual: {{ $formatCurrency($faltante) }}</p>
                 </div>
               </article>
             @endforeach
           </div>
+
+          {{-- Comentario: mostramos mensajes de retroalimentación tras intentar registrar pagos de fallos. --}}
+          <template x-if="feedbackMessage">
+            <div
+              class="mt-3 px-3 py-2 rounded-lg text-xs"
+              :class="feedbackClass"
+              x-text="feedbackMessage"
+            ></div>
+          </template>
         @endif
       </section>
 
@@ -373,7 +347,7 @@
             <span class="col-span-2 text-right">Monto</span>
           </div>
 
-          {{-- Comentario: cada fila permite registrar pagos, aceptar o rechazar al cliente. --}}
+          {{-- Comentario: en la lista de desembolsos solo dejamos visibles las decisiones de aceptar o rechazar. --}}
           <div class="divide-y divide-gray-200 text-sm space-y-0">
             @foreach($desembolsos as $item)
               <div
@@ -385,15 +359,7 @@
                   <p class="font-medium">{{ $item['cliente'] ?? 'Sin nombre' }}</p>
                   <p class="text-xs text-gray-500">Crédito #{{ $item['id'] ?? 'N/A' }}</p>
                 </div>
-                <div class="col-span-3 flex items-center justify-center gap-2">
-                  <button
-                    type="button"
-                    class="w-8 h-8 rounded-full border-2 border-emerald-500 text-emerald-600 font-semibold flex items-center justify-center"
-                    title="Registrar pago"
-                    @click="openPaymentModal({ id: {{ $item['id'] ?? 'null' }}, nombre: '{{ addslashes($item['cliente'] ?? 'Sin nombre') }}' })"
-                  >
-                    $
-                  </button>
+                <div class="col-span-3 flex items-center justify-center">
                   <div class="flex items-center gap-1">
                     <button
                       type="button"
@@ -670,6 +636,7 @@
     document.addEventListener('alpine:init', () => {
       Alpine.data('desembolsoPage', (config) => ({
         registerUrl: config.registerUrl,
+        falloRegisterUrl: config.falloRegisterUrl ?? null,
         promotorId: config.promotorId,
         supervisorQuery: config.supervisorQuery ?? {},
         pdfUrl: config.pdfUrl ?? null,
@@ -678,6 +645,7 @@
         feedbackMessage: null,
         feedbackType: 'success',
         processingPayment: false,
+        currentPaymentContext: null,
         get acceptedIds() {
           return Object.keys(this.decisions).filter((id) => this.decisions[id] === 'accepted');
         },
@@ -705,7 +673,24 @@
           }
           this.decisions[id] = value;
         },
-        openPaymentModal(cliente) {
+        normalizeAmount(value) {
+          if (typeof value === 'number') {
+            return Number.isFinite(value) ? Math.round(value * 100) / 100 : null;
+          }
+
+          if (typeof value === 'string') {
+            const sanitized = value.replace(/[^0-9,.-]+/g, '').replace(',', '.');
+            if (!sanitized.length) {
+              return null;
+            }
+
+            const numeric = Number(sanitized);
+            return Number.isFinite(numeric) ? Math.round(numeric * 100) / 100 : null;
+          }
+
+          return null;
+        },
+        openPaymentModal(cliente, options = {}) {
           if (!this.promotorId) {
             this.feedbackType = 'error';
             this.feedbackMessage = 'Selecciona una promotora antes de registrar pagos.';
@@ -719,19 +704,41 @@
             return;
           }
 
+          const contextType = options?.type ?? 'desembolso';
+          const pendingAmount = options?.pendingAmount ?? null;
+          const falloId = options?.falloId ?? null;
+
+          this.currentPaymentContext = {
+            type: contextType,
+            cliente,
+            falloId,
+            pendingAmount,
+          };
           this.feedbackMessage = null;
 
           calcStore.open({
             client: cliente?.nombre ?? 'Cliente sin nombre',
-            context: { mode: 'singleDesembolsoPayment' },
+            context: {
+              mode: contextType === 'fallo' ? 'falloPayment' : 'singleDesembolsoPayment',
+              pendingAmount,
+              falloId,
+            },
             clientData: { id: cliente?.id ?? null },
             onAccept: (payload) => this.submitPayment(cliente, payload),
           });
         },
         submitPayment(cliente, payload) {
+          const contextType = this.currentPaymentContext?.type ?? 'desembolso';
+
+          if (contextType === 'fallo') {
+            this.submitFalloPayment(payload);
+            return;
+          }
+
           if (!cliente?.id || !this.registerUrl) {
             this.feedbackType = 'error';
             this.feedbackMessage = 'No se pudo identificar el crédito para registrar el pago.';
+            this.currentPaymentContext = null;
             return;
           }
 
@@ -767,6 +774,7 @@
 
                 if (firstError) {
                   this.feedbackMessage = firstError;
+                  this.currentPaymentContext = null;
                   return;
                 }
               }
@@ -779,6 +787,85 @@
             })
             .finally(() => {
               this.processingPayment = false;
+              this.currentPaymentContext = null;
+            });
+        },
+        submitFalloPayment(payload) {
+          if (!this.falloRegisterUrl) {
+            this.feedbackType = 'error';
+            this.feedbackMessage = 'No se configuró la ruta para registrar pagos de fallos.';
+            this.currentPaymentContext = null;
+            return;
+          }
+
+          const context = this.currentPaymentContext ?? {};
+          const falloId = context.falloId ?? payload?.clientId ?? context?.cliente?.id ?? null;
+
+          if (!falloId) {
+            this.feedbackType = 'error';
+            this.feedbackMessage = 'No se pudo identificar el fallo a recuperar.';
+            this.currentPaymentContext = null;
+            return;
+          }
+
+          const tipo = payload?.mode === 'deferred' ? 'diferido' : 'completo';
+          let monto = null;
+
+          if (tipo === 'diferido') {
+            monto = this.normalizeAmount(payload?.amount ?? null);
+          } else {
+            monto = this.normalizeAmount(context.pendingAmount ?? null);
+          }
+
+          if (monto === null || monto <= 0) {
+            this.feedbackType = 'error';
+            this.feedbackMessage = 'Ingresa un monto válido para registrar el pago recuperado.';
+            this.currentPaymentContext = null;
+            return;
+          }
+
+          this.processingPayment = true;
+          this.feedbackMessage = null;
+
+          window.axios.post(this.falloRegisterUrl, {
+            promotor_id: this.promotorId,
+            accion: 'registrar_pago',
+            fallo_id: falloId,
+            monto,
+            ejecutivo_id: this.ejecutivoId,
+          }, {
+            params: this.supervisorQuery,
+          })
+            .then((response) => {
+              const data = response?.data ?? {};
+              this.feedbackType = 'success';
+              this.feedbackMessage = data?.message ?? 'Pago de fallo registrado correctamente.';
+            })
+            .catch((error) => {
+              this.feedbackType = 'error';
+              const response = error?.response;
+              const data = response?.data ?? {};
+
+              if (data?.errors && typeof data.errors === 'object') {
+                const firstError = Object.values(data.errors)
+                  .flat()
+                  .find((value) => typeof value === 'string' && value.trim().length);
+
+                if (firstError) {
+                  this.feedbackMessage = firstError;
+                  return;
+                }
+              }
+
+              if (data?.message) {
+                this.feedbackMessage = data.message;
+              } else {
+                this.feedbackMessage = 'No se pudo registrar el pago recuperado, intenta nuevamente.';
+              }
+            })
+            .finally(() => {
+              this.processingPayment = false;
+              this.currentPaymentContext = null;
             });
         },
         exportPdf() {
