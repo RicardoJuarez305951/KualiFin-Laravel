@@ -30,7 +30,8 @@ class ReporteDesembolsoPdfController extends Controller
         $this->ensurePromotorBelongsToContext($supervisor, $promotor, $primaryRole);
 
         [$start, $end] = $this->resolveRange($request);
-        $payload = $this->dataService->build($promotor, $start, $end);
+        $acceptedCredits = $this->parseAcceptedCredits($request);
+        $payload = $this->dataService->build($promotor, $start, $end, $acceptedCredits);
         $pdf = $this->pdfService->generate($payload);
 
         $promotorNombre = data_get($payload, 'contexto.promotor.nombre')
@@ -79,5 +80,41 @@ class ReporteDesembolsoPdfController extends Controller
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /**
+     * @return int[]
+     */
+    private function parseAcceptedCredits(Request $request): array
+    {
+        $raw = $request->query('aceptados');
+
+        if ($raw === null || $raw === '') {
+            return [];
+        }
+
+        if (is_array($raw)) {
+            $values = $raw;
+        } else {
+            $values = explode(',', (string) $raw);
+        }
+
+        return collect($values)
+            ->map(function ($value) {
+                if (is_numeric($value)) {
+                    return (int) $value;
+                }
+
+                if (is_string($value)) {
+                    $numeric = (int) trim($value);
+                    return $numeric > 0 ? $numeric : null;
+                }
+
+                return null;
+            })
+            ->filter(fn ($value) => $value && $value > 0)
+            ->unique()
+            ->values()
+            ->all();
     }
 }
