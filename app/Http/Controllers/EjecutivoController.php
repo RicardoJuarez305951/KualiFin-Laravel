@@ -1302,7 +1302,7 @@ public function venta_supervisor()
 
         if ($promotorId <= 0) {
             throw ValidationException::withMessages([
-                'fallos' => 'Selecciona una promotora válida antes de registrar fallos recuperados.',
+                'fallo_id' => 'Selecciona una promotora válida antes de continuar.',
             ]);
         }
 
@@ -1310,40 +1310,70 @@ public function venta_supervisor()
 
         if (!$promotor) {
             throw ValidationException::withMessages([
-                'fallos' => 'La promotora seleccionada no está disponible.',
+                'fallo_id' => 'La promotora seleccionada no está disponible.',
             ]);
         }
 
         $this->ensurePromotorBelongsToContext($supervisor, $promotor, $primaryRole ?? '');
 
-        $validator = Validator::make($request->all(), [
+        $accion = $request->input('accion', 'registrar_pago');
+
+        $rules = [
             'promotor_id' => ['required', 'integer'],
-            'fallos' => ['required', 'array'],
-            'fallos.*.id' => ['required', 'integer', 'distinct'],
-            'fallos.*.monto' => ['nullable', 'numeric', 'min:0'],
-        ], [
-            'fallos.*.monto.min' => 'El monto recuperado no puede ser negativo.',
+            'fallo_id' => ['required', 'integer'],
+            'accion' => ['required', 'in:registrar_pago,confirmar_fallo'],
+        ];
+
+        if ($accion === 'registrar_pago') {
+            $rules['monto'] = ['required', 'numeric', 'min:0.01'];
+        }
+
+        $validator = Validator::make($request->all(), $rules, [
+            'monto.min' => 'El monto recuperado debe ser mayor a cero.',
         ]);
 
-        $validator->after(function ($validator) use ($promotor) {
-            $fallos = collect($validator->getData()['fallos'] ?? []);
+        $validated = $validator->validate();
 
-            if ($fallos->isEmpty()) {
-                $validator->errors()->add('fallos', 'Debes capturar al menos un monto de fallo.');
+        $falloId = (int) $validated['fallo_id'];
 
-                return;
-            }
+        $pagoProyectado = PagoProyectado::query()
+            ->where('id', $falloId)
+            ->whereHas('credito.cliente', function ($query) use ($promotor) {
+                $query->where('promotor_id', $promotor->id);
+            })
+            ->with([
+                'pagosReales.pagoCompleto',
+                'pagosReales.pagoDiferido',
+                'pagosReales.pagoAnticipo',
+            ])
+            ->first();
 
-            $ids = $fallos->pluck('id')->filter()->unique()->values();
+        if (!$pagoProyectado) {
+            throw ValidationException::withMessages([
+                'fallo_id' => 'El fallo seleccionado no pertenece a la promotora.',
+            ]);
+        }
 
-            if ($ids->isEmpty()) {
-                $validator->errors()->add('fallos', 'Selecciona fallos válidos.');
+        if ($validated['accion'] === 'confirmar_fallo') {
+            return redirect()
+                ->route('mobile.ejecutivo.desembolso', $this->buildDesembolsoRedirectParams($request, $promotor))
+                ->with('status', 'Fallo confirmado sin registrar pagos.');
+        }
 
-                return;
-            }
+        $monto = round((float) $validated['monto'], 2);
+        $pendiente = $this->calcularDeudaPendiente($pagoProyectado);
 
-            $pagos = PagoProyectado::query()
-                ->whereIn('id', $ids)
+        if ($monto - $pendiente > 0.01) {
+            throw ValidationException::withMessages([
+                'monto' => 'El monto recuperado excede el fallo pendiente.',
+            ]);
+        }
+
+        $fechaPago = Carbon::now()->toDateString();
+
+        DB::transaction(function () use ($falloId, $promotor, $monto, $fechaPago) {
+            $pagoProyectado = PagoProyectado::query()
+                ->where('id', $falloId)
                 ->whereHas('credito.cliente', function ($query) use ($promotor) {
                     $query->where('promotor_id', $promotor->id);
                 })
@@ -1352,100 +1382,47 @@ public function venta_supervisor()
                     'pagosReales.pagoDiferido',
                     'pagosReales.pagoAnticipo',
                 ])
-                ->get()
-                ->keyBy('id');
+                ->lockForUpdate()
+                ->first();
 
-            foreach ($fallos as $index => $falloData) {
-                $id = (int) ($falloData['id'] ?? 0);
-
-                if (!$id) {
-                    continue;
-                }
-
-                $pago = $pagos->get($id);
-
-                if (!$pago) {
-                    $validator->errors()->add("fallos.$index.id", 'El fallo seleccionado no pertenece a la promotora.');
-
-                    continue;
-                }
-
-                $monto = (float) ($falloData['monto'] ?? 0);
-
-                if ($monto <= 0) {
-                    continue;
-                }
-
-                $pendiente = $this->calcularDeudaPendiente($pago);
-
-                if ($monto - $pendiente > 0.01) {
-                    $validator->errors()->add("fallos.$index.monto", 'El monto recuperado excede el fallo pendiente.');
-                }
-            }
-        });
-
-        $validated = $validator->validate();
-
-        $fallos = collect($validated['fallos'])
-            ->map(function (array $fallo) {
-                return [
-                    'id' => (int) $fallo['id'],
-                    'monto' => round((float) ($fallo['monto'] ?? 0), 2),
-                ];
-            })
-            ->filter(fn (array $fallo) => $fallo['monto'] > 0);
-
-        if ($fallos->isEmpty()) {
-            return redirect()
-                ->route('mobile.ejecutivo.desembolso', $this->buildDesembolsoRedirectParams($request, $promotor))
-                ->with('status', 'No se registraron montos de fallos recuperados.');
-        }
-
-        $fechaPago = Carbon::now()->toDateString();
-
-        DB::transaction(function () use ($fallos, $promotor, $fechaPago) {
-            foreach ($fallos as $fallo) {
-                $pagoProyectado = PagoProyectado::query()
-                    ->where('id', $fallo['id'])
-                    ->whereHas('credito.cliente', function ($query) use ($promotor) {
-                        $query->where('promotor_id', $promotor->id);
-                    })
-                    ->with([
-                        'pagosReales.pagoCompleto',
-                        'pagosReales.pagoDiferido',
-                        'pagosReales.pagoAnticipo',
-                    ])
-                    ->lockForUpdate()
-                    ->first();
-
-                if (!$pagoProyectado) {
-                    continue;
-                }
-
-                $pendiente = $this->calcularDeudaPendiente($pagoProyectado);
-                $monto = min($fallo['monto'], $pendiente);
-
-                if ($monto <= 0) {
-                    continue;
-                }
-
-                $pagoReal = PagoReal::create([
-                    'pago_proyectado_id' => $pagoProyectado->id,
-                    'tipo' => 'recuperado_en_desembolso',
-                    'fecha_pago' => $fechaPago,
-                    'comentario' => 'Pago registrado durante el desembolso.',
-                ]);
-
-                PagoCompleto::create([
-                    'pago_real_id' => $pagoReal->id,
-                    'monto_completo' => $monto,
+            if (!$pagoProyectado) {
+                throw ValidationException::withMessages([
+                    'fallo_id' => 'El fallo seleccionado ya no está disponible.',
                 ]);
             }
+
+            $pendiente = $this->calcularDeudaPendiente($pagoProyectado);
+
+            if ($pendiente <= 0) {
+                throw ValidationException::withMessages([
+                    'monto' => 'El fallo ya no tiene monto pendiente por recuperar.',
+                ]);
+            }
+
+            $montoARegistrar = min($monto, $pendiente);
+
+            if ($montoARegistrar <= 0) {
+                throw ValidationException::withMessages([
+                    'monto' => 'El monto a registrar debe ser mayor a cero.',
+                ]);
+            }
+
+            $pagoReal = PagoReal::create([
+                'pago_proyectado_id' => $pagoProyectado->id,
+                'tipo' => 'recuperado_en_desembolso',
+                'fecha_pago' => $fechaPago,
+                'comentario' => 'Pago registrado durante el desembolso.',
+            ]);
+
+            PagoCompleto::create([
+                'pago_real_id' => $pagoReal->id,
+                'monto_completo' => $montoARegistrar,
+            ]);
         });
 
         return redirect()
             ->route('mobile.ejecutivo.desembolso', $this->buildDesembolsoRedirectParams($request, $promotor))
-            ->with('status', 'Fallos recuperados registrados correctamente.');
+            ->with('status', 'Pago de fallo registrado correctamente.');
     }
     
     public function busqueda(Request $request, BusquedaClientesService $busquedaService)
