@@ -13,7 +13,8 @@
     $comisionSupervisor = $comisionSupervisor ?? 0;
     $carteraActual = $carteraActual ?? 0;
     $inversion = $inversion ?? 0;
-    $receiptIssuer = 'MARCO ANTONIO G&Uuml;EMES ABUD';
+    $motivoCancelacion = $motivoCancelacion ?? '';
+    $receiptIssuer = 'MARCO ANTONIO GÜEMES ABUD';
     $receipts = [['number'=>1],['number'=>2]];
 @endphp
 <!DOCTYPE html>
@@ -60,6 +61,7 @@
         font-size:7.2px; font-weight:700; text-align:center; text-transform:uppercase;
     }
     .text-right{ text-align:right; }
+    .text-left{ text-align:left; }
     .text-center{ text-align:center; }
     .small{ font-size:7.2px; }
     .section{ margin-top:4px; }
@@ -91,6 +93,7 @@
         height:26px; border-top:0.35px solid #000; text-align:center;
         vertical-align:bottom; padding:3px 0 4px; font-size:7.2px;
     }
+    .cut-line{ border-top:0.35px dashed #000; margin:6px 0; }
 </style>
 </head>
 <body>
@@ -154,12 +157,12 @@
                 <td>
                     <div class="label">Promotora</div>
                     <div class="value">{{ $promotorNombre !== '' ? $promotorNombre : '---' }}</div>
-                    <div class="signature-box">Firma</div>
+                    <div class="signature-box">Firma promotora</div>
                 </td>
                 <td>
-                    <div class="label">Ejecutivo - Validador</div>
-                    <div class="value">{{ $ejecutivoNombre !== '' ? $ejecutivoNombre : '---' }}</div>
-                    <div class="signature-box">Firma</div>
+                    <div class="label">Supervisor</div>
+                    <div class="value">{{ $supervisorNombre !== '' ? $supervisorNombre : '---' }}</div>
+                    <div class="signature-box">Firma supervisor</div>
                 </td>
             </tr>
         </table>
@@ -172,6 +175,7 @@
                 <tr><th>Comisi&oacute;n supervisor</th><td class="text-right">{{ Formatter::currency($comisionSupervisor) }}</td></tr>
                 <tr><th>Total pr&eacute;stamos solicitados</th><td class="text-right">{{ Formatter::currency($totalPrestamoSolicitado) }}</td></tr>
                 <tr><th>Cartera actual promotor</th><td class="text-right">{{ Formatter::currency($carteraActual) }}</td></tr>
+                <tr><th>Motivo de cancelaci&oacute;n</th><td class="text-left">{{ $motivoCancelacion !== '' ? $motivoCancelacion : '---' }}</td></tr>
                 <tr><th>Inversi&oacute;n</th><td class="text-right summary-total">{{ Formatter::currency($inversion) }}</td></tr>
             </tbody>
         </table>
@@ -179,6 +183,8 @@
             <b>Nota:</b> Inversi&oacute;n = comisiones + &uacute;ltimos cr&eacute;ditos − cartera actual.
         </div>
     </div>
+
+    <div class="cut-line" aria-hidden="true"></div>
 
     <div class="section">
         <table class="receipt-wrapper">
@@ -195,7 +201,10 @@
                                 <tr><td colspan="2"><b>Recib&iacute; de:</b> {{ $receiptIssuer }}</td></tr>
                                 <tr><td colspan="2"><b>Promotor:</b> {!! $reciboDeNombre !== '' ? $reciboDeNombre : '---' !!}</td></tr>
                                 <tr><td colspan="2">La cantidad de: <span class="receipt-amount">{{ Formatter::currency($totalPrestamoSolicitado) }}</span></td></tr>
-                                <tr><td colspan="2" class="receipt-signature-cell">Firma</td></tr>
+                                <tr>
+                                    <td class="receipt-signature-cell">Firma promotor</td>
+                                    <td class="receipt-signature-cell">Firma supervisor</td>
+                                </tr>
                                 <tr>
                                     <td colspan="2">
                                         <p class="small u text-center" style="margin:2px 0 0;">

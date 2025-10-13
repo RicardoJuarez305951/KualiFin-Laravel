@@ -6,6 +6,7 @@
     $comisionSupervisor = isset($comisionSupervisor) ? (float) $comisionSupervisor : 0.0;
     $carteraActual = isset($carteraActual) ? (float) $carteraActual : 0.0;
     $inversion = $comisionPromotor + $comisionSupervisor + $totalPrestamoSolicitado - $carteraActual;
+    $motivoCancelacion = $motivoCancelacion ?? '';
     $supervisorQuery = $supervisorContextQuery ?? [];
     $reciboPdfRoute = '#';
 
@@ -38,6 +39,12 @@
                     <p class="text-[10px] text-gray-600">Ejecutivo:
                         <span class="font-semibold text-gray-800">{{ $ejecutivoNombre !== '' ? $ejecutivoNombre : 'Sin ejecutivo' }}</span>
                     </p>
+                    <div class="space-y-0.5">
+                        <label class="text-[10px] font-semibold text-gray-700" for="motivo-cancelacion">Motivo de cancelación</label>
+                        <textarea id="motivo-cancelacion" rows="2" readonly
+                                  class="w-full rounded-md border border-gray-300 px-2 py-1 text-[10px] text-left text-gray-800 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                                  placeholder="Sin motivo registrado">{{ $motivoCancelacion !== '' ? $motivoCancelacion : '' }}</textarea>
+                    </div>
                 </div>
 
                 <div class="flex flex-col sm:items-end gap-2">
@@ -132,6 +139,29 @@
             </div>
         </div> --}}
 
+        {{-- Firmas --}}
+        <div class="bg-white rounded-xl shadow p-3 space-y-2 w-full max-w-5xl">
+            <h2 class="text-sm font-bold text-gray-700 tracking-tight">Firmas</h2>
+
+            <div class="grid sm:grid-cols-2 gap-3">
+                <div class="space-y-1.5">
+                    <label class="block text-[10px] font-semibold text-gray-700" for="firma-promotor">Nombre de promotora</label>
+                    <input type="text" id="firma-promotor" value="{{ $promotorNombre !== '' ? $promotorNombre : 'Sin promotor' }}" readonly
+                           class="w-full rounded-md border border-gray-300 px-2 py-1 text-[10px] focus:border-blue-500 focus:ring focus:ring-blue-200"
+                           placeholder="Nombre completo">
+                    <div class="h-16 rounded-lg border border-dashed border-gray-300 flex items-end justify-center pb-2 text-[10px] text-gray-500 font-semibold uppercase tracking-wide">Firma promotor</div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-[10px] font-semibold text-gray-700" for="firma-supervisor">Nombre de supervisor</label>
+                    <input type="text" id="firma-supervisor" value="{{ $supervisorNombre !== '' ? $supervisorNombre : 'Sin supervisor' }}" readonly
+                           class="w-full rounded-md border border-gray-300 px-2 py-1 text-[10px] focus:border-blue-500 focus:ring focus:ring-blue-200"
+                           placeholder="Nombre completo">
+                    <div class="h-16 rounded-lg border border-dashed border-gray-300 flex items-end justify-center pb-2 text-[10px] text-gray-500 font-semibold uppercase tracking-wide">Firma supervisor</div>
+                </div>
+            </div>
+        </div>
+
         {{-- Resumen financiero --}}
         <div class="bg-white rounded-xl shadow p-3 space-y-2 w-full max-w-5xl">
             <h2 class="text-sm font-bold text-gray-700 tracking-tight">Resumen financiero</h2>
@@ -161,6 +191,14 @@
                                 <input type="number" step="0.01" name="cartera_actual"
                                        value="{{ number_format($carteraActual, 2, '.', '') }}" readonly
                                        class="w-full max-w-[160px] rounded-md border border-gray-300 px-2 py-1 text-[10px] text-right focus:border-blue-500 focus:ring focus:ring-blue-200">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="px-2 py-1 text-left font-semibold text-gray-700 align-top">Motivo de cancelación</th>
+                            <td class="px-2 py-1 text-right">
+                                <textarea rows="2" readonly
+                                          class="w-full rounded-md border border-gray-300 px-2 py-1 text-[10px] text-left text-gray-800 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                                          placeholder="Sin motivo registrado">{{ $motivoCancelacion !== '' ? $motivoCancelacion : '' }}</textarea>
                             </td>
                         </tr>
                         <tr>
