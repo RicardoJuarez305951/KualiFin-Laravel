@@ -50,8 +50,7 @@
                     title="Registrar pago"
                     @click.stop="$store.multiPay.active
                         ? $store.multiPay.openCalculator(cliente)
-                        : $store.calc.open(@js(($c['apellido_p'] ?? $c->apellido_p ?? '') . ' ' . ($c['apellido_m'] ?? $c->apellido_m ?? '') . ' ' . ($c['nombre'] ?? $c->nombre ?? '')))
-                    "
+                        : $store.multiPay.openSingleCalculator(cliente)"
                 >
                     $
                 </button>
@@ -70,4 +69,3 @@
         <li class="py-2 text-center text-lg text-gray-500">Sin clientes activos</li>
     @endforelse
 </ul>
-

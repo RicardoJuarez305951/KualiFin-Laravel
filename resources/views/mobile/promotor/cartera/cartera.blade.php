@@ -296,6 +296,45 @@
          @include('mobile.modals.calculadora')
          @include('mobile.modals.detalle')
 
+        <div
+            x-show="$store.multiPay.showSuccess"
+            x-cloak
+            class="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4"
+        >
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4 text-center">
+                <div class="w-16 h-16 rounded-full bg-green-100 text-green-600 mx-auto flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <h2 class="text-lg font-semibold text-gray-900" x-text="$store.multiPay.successMessage"></h2>
+                <ul
+                    x-show="$store.multiPay.successDetails.length"
+                    class="text-left text-sm text-gray-600 space-y-2"
+                >
+                    <template x-for="pago in $store.multiPay.successDetails" :key="pago.pago_proyectado_id ?? pago.id ?? pago.tipo">
+                        <li class="border border-gray-200 rounded-xl px-3 py-2">
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="font-semibold text-gray-800" x-text="$store.multiPay.typeLabel(pago.tipo)"></span>
+                                <span
+                                    x-show="$store.multiPay.paymentAmount(pago)"
+                                    class="text-sm text-gray-500"
+                                    x-text="$store.multiPay.paymentAmount(pago)"
+                                ></span>
+                            </div>
+                        </li>
+                    </template>
+                </ul>
+                <button
+                    type="button"
+                    class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition"
+                    @click="$store.multiPay.acknowledgeSuccess()"
+                >
+                    Aceptar
+                </button>
+            </div>
+        </div>
+
         {{-- Modal: Detalle Cartera Vencida (estructura 4 grids) --}}
         <div
             x-show="showVencidaDetail"
