@@ -104,6 +104,7 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('busqueda',  'busqueda')  ->name('busqueda');
                       Route::get('informes',  'informes')  ->name('informes');
                       Route::get('reportes',  'reportes')  ->name('reportes');
+                      Route::get('promotor/{promotor}/failure-rate', 'getPromotorFailureRate')->name('promotor.failure_rate');
                     });
 
              Route::prefix('supervisor')

@@ -1280,6 +1280,55 @@ public function venta_supervisor()
         ]);
     }
 
+    public function getPromotorFailureRate(Request $request, Promotor $promotor)
+    {
+        $failureRate = $this->calculatePromotorFailure($promotor);
+        return response()->json(['failure_rate' => $failureRate]);
+    }
+
+    private function calculatePromotorFailure(Promotor $promotor)
+    {
+        $clientes = Cliente::where('promotor_id', $promotor->id)
+            ->with([
+                'credito.pagosProyectados.pagosReales',
+            ])
+            ->get();
+
+        $dineroFalla = 0.0;
+        $baseCreditos = 0.0;
+
+        foreach ($clientes as $cliente) {
+            $credito = $cliente->credito;
+
+            if (!$credito) {
+                continue;
+            }
+
+            $pagos = $credito->pagosProyectados instanceof \Illuminate\Support\Collection
+                ? $credito->pagosProyectados
+                : collect($credito->pagosProyectados);
+
+            $pagado = (float) $pagos->flatMap(function ($pago) {
+                return $pago->pagosReales instanceof \Illuminate\Support\Collection
+                    ? $pago->pagosReales
+                    : collect($pago->pagosReales);
+            })->sum(fn ($pagoReal) => (float) ($pagoReal->monto ?? 0));
+
+            $proyectado = (float) $pagos->sum('monto_proyectado');
+
+            $baseCreditos += (float) ($credito->monto_total ?? 0);
+            $deficit = max(0.0, $proyectado - $pagado);
+
+            if ($deficit > 0) {
+                $dineroFalla += $deficit;
+            }
+        }
+
+        return $baseCreditos > 0
+            ? round(($dineroFalla / max(1e-6, $baseCreditos)) * 100)
+            : 0;
+    }
+
     public function registrarFallosRecuperados(Request $request)
     {
         $user = $request->user();

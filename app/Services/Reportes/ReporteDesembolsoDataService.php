@@ -4,6 +4,7 @@ namespace App\Services\Reportes;
 
 use App\Http\Controllers\FiltrosController;
 use App\Models\Credito;
+use App\Models\Ejercicio;
 use App\Models\Inversion;
 use App\Models\PagoProyectado;
 use App\Models\PagoReal;
@@ -24,7 +25,7 @@ class ReporteDesembolsoDataService
     private const COBRANZA_DIAS = [
         0 => 'Lunes',
         1 => 'Martes',
-        2 => 'Miercoles',
+2 => 'Miercoles',
         3 => 'Jueves',
         4 => 'Viernes',
         5 => 'Sabado',
@@ -75,6 +76,7 @@ class ReporteDesembolsoDataService
 
         $fallos = $this->fetchFallos($promotor, $startDate, $endDate);
         $pagosSemana = $this->fetchPagosSemana($promotor, $startDate, $endDate);
+        $semanasDebeProyectado = $this->fetchDebeProyectadoSemanal($promotor);
 
         $carteraReal = $this->calcularCarteraReal($promotor);
         $totalPrestamos = $this->sumMonto($prestamos);
@@ -159,6 +161,7 @@ class ReporteDesembolsoDataService
                 'dias' => $pagosSemana['cobranza_dias'],
                 'total' => $cobranzaTotal,
             ],
+            'debe_proyectado_semanal' => $semanasDebeProyectado,
             'totales' => [
                 'cartera_real' => $carteraReal,
                 'fallo' => $totalFallo,
@@ -181,6 +184,63 @@ class ReporteDesembolsoDataService
             ],
             'base' => $basePayload,
         ];
+    }
+
+    private function fetchDebeProyectadoSemanal(Promotor $promotor): array
+    {
+        $supervisor = $promotor->supervisor;
+        if (!$supervisor) {
+            return [];
+        }
+
+        $ejercicio = Ejercicio::where('supervisor_id', $supervisor->id)
+            ->latest('fecha_inicio')
+            ->first();
+
+        if (!$ejercicio) {
+            return [];
+        }
+
+        $fechaInicio = $this->toCarbonImmutable($ejercicio->fecha_inicio);
+        $fechaFin = $this->toCarbonImmutable($ejercicio->fecha_final);
+
+        if (!$fechaInicio || !$fechaFin || $fechaFin->lte($fechaInicio)) {
+            return [];
+        }
+
+        $nSemanas = $fechaInicio->diffInWeeks($fechaFin);
+
+        if ($nSemanas <= 0) {
+            return [];
+        }
+
+        $creditosActivos = Credito::query()
+            ->whereIn('estado', FiltrosController::CREDIT_ACTIVE_STATES)
+            ->whereHas('cliente', function (Builder $query) use ($promotor) {
+                $query->where('promotor_id', $promotor->id);
+            })
+            ->with('pagosProyectados:credito_id,monto_proyectado')
+            ->get(['id']);
+
+        $debeProyectadoTotal = $creditosActivos->sum(function (Credito $credito) {
+            return $credito->pagosProyectados->sum('monto_proyectado');
+        });
+
+        if ($debeProyectadoTotal <= 0) {
+            return [];
+        }
+
+        $pagoSemanal = $debeProyectadoTotal / $nSemanas;
+
+        $semanas = [];
+        for ($i = 1; $i <= $nSemanas; $i++) {
+            $semanas[] = [
+                'semana' => $i,
+                'monto' => round($pagoSemanal, 2),
+            ];
+        }
+
+        return $semanas;
     }
 
     private function resolveRange(?CarbonImmutable $start, ?CarbonImmutable $end): array

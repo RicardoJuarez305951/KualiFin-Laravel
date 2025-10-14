@@ -33,6 +33,7 @@
 
     $cobranzaDias = \Illuminate\Support\Arr::get($cobranza, 'dias', []);
     $cobranzaTotal = \Illuminate\Support\Arr::get($cobranza, 'total', \Illuminate\Support\Arr::get($totales, 'cobranza', 0));
+    $debeProyectadoSemanal = $payload['debe_proyectado_semanal'] ?? [];
 
     $promotoresDisponibles = collect($promotoresDisponibles ?? []);
     $supervisorContextQuery = $supervisorContextQuery ?? [];
@@ -86,6 +87,7 @@
         supervisorQuery: @js($supervisorContextQuery ?? []),
         pdfUrl: @js($pdfUrl),
         ejecutivoId: {{ request()->has('ejecutivo_id') ? (int) request('ejecutivo_id') : 'null' }},
+        failureRateUrl: '{{ route('mobile.ejecutivo.promotor.failure_rate', ['promotor' => ':promotorId']) }}',
     })"
     class="p-4 w-full max-w-md mx-auto space-y-5"
   >
@@ -130,6 +132,7 @@
           @if($promotoresDisponibles->isNotEmpty())
             <select id="promotor"
                     name="promotor"
+                    @change="checkPromotorFailureRate($event.target.value)"
                     class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
               @foreach($promotoresDisponibles as $promotor)
                 <option value="{{ $promotor['id'] }}"
@@ -142,6 +145,10 @@
             <p class="text-sm text-gray-500">No hay promotoras disponibles para el supervisor seleccionado.</p>
           @endif
         </div>
+
+        <template x-if="promotorFailureMessage">
+            <div class="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-800" x-text="promotorFailureMessage"></div>
+        </template>
 
         <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-600">
           <p class="uppercase font-semibold text-[10px] text-gray-500 mb-1">Periodo de reporte</p>
@@ -248,7 +255,7 @@
                       type="button"
                       class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white font-semibold text-lg hover:bg-emerald-700 transition disabled:opacity-60"
                       title="Registrar pago recuperado"
-                      :disabled="processingPayment"
+                      :disabled="promotorFailureRate > 10"
                       @click="openPaymentModal(
                         { id: {{ $falloId }}, nombre: '{{ addslashes($item['cliente'] ?? 'Sin nombre') }}' },
                         { type: 'fallo', falloId: {{ $falloId }}, pendingAmount: @js($faltante) }
@@ -365,6 +372,7 @@
                       type="button"
                       class="w-8 h-8 rounded-full border-2 border-green-500 text-green-600 flex items-center justify-center"
                       title="Aceptar cliente"
+                      :disabled="promotorFailureRate > 10"
                       @click="setDecision({{ $item['id'] ?? 'null' }}, 'accepted')"
                     >
                       ✅
@@ -373,6 +381,7 @@
                       type="button"
                       class="w-8 h-8 rounded-full border-2 border-red-500 text-red-600 flex items-center justify-center"
                       title="Rechazar cliente"
+                      :disabled="promotorFailureRate > 10"
                       @click="setDecision({{ $item['id'] ?? 'null' }}, 'rejected')"
                     >
                       ❌
@@ -464,6 +473,24 @@
           </div>
         @endif
       </section>
+
+      @if(!empty($debeProyectadoSemanal))
+        <section class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-800">Debe Proyectado por Semana</h3>
+          </div>
+          <div class="divide-y divide-gray-200 text-sm">
+            @foreach($debeProyectadoSemanal as $semana)
+              <div class="flex items-center justify-between py-2">
+                <div>
+                  <p class="text-xs uppercase text-gray-500">Semana {{ $semana['semana'] }}</p>
+                </div>
+                <p class="text-sm font-semibold text-gray-800">{{ $formatCurrency($semana['monto']) }}</p>
+              </div>
+            @endforeach
+          </div>
+        </section>
+      @endif
 
       <section class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-3">
@@ -617,8 +644,9 @@
       @if($pdfUrl)
         <button
            type="button"
-           class="text-center px-4 py-3 rounded-2xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition"
+           class="text-center px-4 py-3 rounded-2xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
            @click="exportPdf"
+           :disabled="promotorFailureRate > 10"
         >
           Exportar PDF
         </button>
@@ -641,11 +669,46 @@
         supervisorQuery: config.supervisorQuery ?? {},
         pdfUrl: config.pdfUrl ?? null,
         ejecutivoId: config.ejecutivoId ?? null,
+        failureRateUrl: config.failureRateUrl,
         decisions: {},
         feedbackMessage: null,
         feedbackType: 'success',
         processingPayment: false,
         currentPaymentContext: null,
+        promotorFailureRate: null,
+        promotorFailureMessage: '',
+
+        init() {
+            if (this.promotorId) {
+                this.checkPromotorFailureRate(this.promotorId);
+            }
+        },
+
+        checkPromotorFailureRate(promotorId) {
+            if (!promotorId) {
+                this.promotorFailureRate = null;
+                this.promotorFailureMessage = '';
+                return;
+            }
+
+            const url = this.failureRateUrl.replace(':promotorId', promotorId);
+
+            window.axios.get(url)
+                .then(response => {
+                    this.promotorFailureRate = response.data.failure_rate;
+                    if (this.promotorFailureRate > 10) {
+                        this.promotorFailureMessage = `Promotor alcanzo falla de ${this.promotorFailureRate}%`;
+                    } else {
+                        this.promotorFailureMessage = '';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching promotor failure rate:', error);
+                    this.promotorFailureRate = null;
+                    this.promotorFailureMessage = 'Error al verificar la falla del promotor.';
+                });
+        },
+
         get acceptedIds() {
           return Object.keys(this.decisions).filter((id) => this.decisions[id] === 'accepted');
         },
@@ -668,6 +731,11 @@
           return '';
         },
         setDecision(id, value) {
+          if (this.promotorFailureRate > 10) {
+            this.feedbackType = 'error';
+            this.feedbackMessage = this.promotorFailureMessage;
+            return;
+          }
           if (id === null || id === undefined) {
             return;
           }
@@ -691,6 +759,12 @@
           return null;
         },
         openPaymentModal(cliente, options = {}) {
+          if (this.promotorFailureRate > 10) {
+            this.feedbackType = 'error';
+            this.feedbackMessage = this.promotorFailureMessage;
+            return;
+          }
+
           if (!this.promotorId) {
             this.feedbackType = 'error';
             this.feedbackMessage = 'Selecciona una promotora antes de registrar pagos.';
