@@ -132,6 +132,7 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('clientes-supervisados',    'clientes_supervisados')    ->name('clientes_supervisados');
                       Route::get('venta/desembolso/{promotor}', 'reciboDesembolso')->name('venta.recibo_desembolso');
                       Route::get('venta/desembolso/{promotor}/pdf', [ReciboDesembolsoPdfController::class, '__invoke'])->name('venta.recibo_desembolso.pdf');
+                      Route::post('venta/desembolso/{promotor}/creditos/{credito}/rechazar', 'rechazarCredito')->name('venta.creditos.rechazar');
                       Route::get('busqueda',          'busqueda')          ->name('busqueda');
                       Route::get('apertura',          'apertura')          ->name('apertura');
                       Route::get('venta/horarios', 'horarios')                   ->name('horarios');

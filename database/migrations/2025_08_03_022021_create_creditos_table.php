@@ -17,10 +17,16 @@ class CreateCreditosTable extends Migration
             $table->string('periodicidad', 100);
             $table->date('fecha_inicio');
             $table->date('fecha_final');
+            $table->text('motivo_cancelacion')->nullable();
+            $table->timestamp('cancelado_en')->nullable();
+            $table->unsignedBigInteger('cancelado_por_id')->nullable();
 
             $table->foreign('cliente_id')
                 ->references('id')->on('clientes')
                 ->onDelete('cascade');
+            $table->foreign('cancelado_por_id')
+                ->references('id')->on('users')
+                ->onDelete('set null');
         });
     }
 

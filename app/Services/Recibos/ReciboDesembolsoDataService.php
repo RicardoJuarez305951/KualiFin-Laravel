@@ -6,6 +6,7 @@ use App\Models\Credito;
 use App\Models\Promotor;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Route;
 
 class ReciboDesembolsoDataService
 {
@@ -16,7 +17,10 @@ class ReciboDesembolsoDataService
     {
         $promotor->loadMissing([
             'clientes.creditos' => function ($query) {
-                $query->orderByDesc('fecha_inicio')->orderByDesc('id');
+                $query
+                    ->with('canceladoPor')
+                    ->orderByDesc('fecha_inicio')
+                    ->orderByDesc('id');
             },
             'supervisor.ejecutivo',
         ]);
@@ -54,6 +58,22 @@ class ReciboDesembolsoDataService
             $ultimoCredito = $creditosOrdenados->first();
             $fechaInicio = $ultimoCredito?->fecha_inicio;
             $fechaFinal = $ultimoCredito?->fecha_final;
+            $canceladoEn = $ultimoCredito?->cancelado_en;
+            $canceladoPor = $ultimoCredito?->canceladoPor;
+
+            // Guardamos los metadatos de la cancelacion para mostrarlos en la vista movil.
+            $canceladoPorNombre = null;
+            if ($canceladoPor) {
+                $canceladoPorNombre = trim(collect([
+                    $canceladoPor->name ?? null,
+                    $canceladoPor->apellido_p ?? null,
+                    $canceladoPor->apellido_m ?? null,
+                ])->filter()->implode(' '));
+
+                if ($canceladoPorNombre === '') {
+                    $canceladoPorNombre = $canceladoPor->email ?? null;
+                }
+            }
 
             $clientesData->push([
                 'id' => $cliente->id,
@@ -74,6 +94,11 @@ class ReciboDesembolsoDataService
                     'fecha_final' => $fechaFinal instanceof Carbon
                         ? $fechaFinal->format('d/m/Y')
                         : ($fechaFinal ? Carbon::parse($fechaFinal)->format('d/m/Y') : null),
+                    'motivo_cancelacion' => (string) ($ultimoCredito->motivo_cancelacion ?? ''),
+                    'cancelado_en' => $canceladoEn instanceof Carbon
+                        ? $canceladoEn->format('d/m/Y H:i')
+                        : ($canceladoEn ? Carbon::parse($canceladoEn)->format('d/m/Y H:i') : null),
+                    'cancelado_por' => $canceladoPorNombre,
                 ] : null,
                 'credito_anterior' => $creditoAnterior ? [
                     'id' => $creditoAnterior->id,
@@ -88,6 +113,8 @@ class ReciboDesembolsoDataService
             ->map(function (array $cliente) {
                 $ultimoCredito = $cliente['ultimo_credito'] ?? null;
                 $creditoAnterior = $cliente['credito_anterior'] ?? null;
+                $estadoCredito = $ultimoCredito['estado'] ?? '';
+                $puedeCancelar = $ultimoCredito && $estadoCredito !== 'cancelado';
 
                 $prestamoSolicitado = isset($ultimoCredito['monto_total'])
                     ? (float) $ultimoCredito['monto_total']
@@ -112,6 +139,12 @@ class ReciboDesembolsoDataService
                     'recredito_nuevo' => null,
                     'total_recredito' => null,
                     'saldo_post_recredito' => null,
+                    'credito_id' => $ultimoCredito['id'] ?? null,
+                    'estado' => $estadoCredito,
+                    'motivo_cancelacion' => $ultimoCredito['motivo_cancelacion'] ?? '',
+                    'cancelado_en' => $ultimoCredito['cancelado_en'] ?? null,
+                    'cancelado_por' => $ultimoCredito['cancelado_por'] ?? null,
+                    'puede_cancelar' => $puedeCancelar,
                 ];
             })
             ->values();
@@ -162,6 +195,12 @@ class ReciboDesembolsoDataService
             'totalPrestamoSolicitado' => $totalPrestamoSolicitado,
             'inversion' => $inversion,
             'totalesTabla' => $totalesTabla,
+            // Valor por defecto para mantener compatibilidad con la vista previa anterior.
+            'motivoCancelacion' => '',
+            'cancelRouteName' => Route::has('mobile.supervisor.venta.creditos.rechazar')
+                ? 'mobile.supervisor.venta.creditos.rechazar'
+                : null,
+            'puedeCancelarCreditos' => Route::has('mobile.supervisor.venta.creditos.rechazar'),
         ];
     }
 

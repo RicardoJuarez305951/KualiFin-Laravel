@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Route;
@@ -389,6 +390,136 @@ class SupervisorController extends Controller
         $payload = $dataService->build($promotor);
 
         return view('mobile.supervisor.venta.recibo_desembolso', $payload);
+    }
+
+    /**
+     * Cancela el crédito seleccionado y registra el motivo para que quede trazabilidad.
+     */
+    public function rechazarCredito(Request $request, Promotor $promotor, Credito $credito)
+    {
+        $supervisor = $this->resolveSupervisorContext($request);
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($request->user());
+
+        $this->ensurePromotorBelongsToContext($supervisor, $promotor, $primaryRole);
+
+        $cliente = $credito->cliente;
+
+        if (!$cliente || $cliente->promotor_id !== $promotor->id) {
+            abort(404, 'El crédito no pertenece al promotor indicado.');
+        }
+
+        if (strtolower((string) $credito->estado) === 'cancelado') {
+            $message = 'El crédito ya fue cancelado anteriormente.';
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => $message,
+                ], 409);
+            }
+
+            return back()->with('error', $message);
+        }
+
+        $validated = $request->validate([
+            'motivo_cancelacion' => ['required', 'string', 'min:5', 'max:2000'],
+        ]);
+
+        $motivo = trim($validated['motivo_cancelacion']);
+
+        DB::transaction(function () use ($credito, $cliente, $motivo) {
+            $credito->forceFill([
+                'estado' => 'cancelado',
+                'motivo_cancelacion' => $motivo,
+                'cancelado_en' => now(),
+                'cancelado_por_id' => Auth::id(),
+            ])->save();
+
+            $cliente->loadMissing(['creditos']);
+
+            $estadoActivo = $cliente->creditos
+                ->filter(fn (Credito $c) => $c->id !== $credito->id)
+                ->contains(function (Credito $c) {
+                    return !in_array(strtolower((string) $c->estado), ['cancelado', 'liquidado'], true);
+                });
+
+            // Registramos si el cliente todavía conserva algún crédito con estatus operativo.
+            $ultimoCredito = $cliente->creditos
+                ->sortByDesc(function (Credito $c) {
+                    if ($c->fecha_inicio) {
+                        return Carbon::parse($c->fecha_inicio)->timestamp;
+                    }
+
+                    return PHP_INT_MIN + (int) $c->id;
+                })
+                ->first();
+
+            // Refrescamos el resumen de cartera con la misma lógica usada en la app móvil.
+            $cliente->forceFill([
+                'tiene_credito_activo' => $estadoActivo,
+                'cartera_estado' => $this->mapCreditoEstadoACartera($ultimoCredito)
+                    ?? ($estadoActivo ? 'activo' : 'inactivo'),
+            ])->save();
+        });
+
+        $credito->refresh();
+
+        $canceladoPor = $credito->canceladoPor;
+        $canceladoPorNombre = null;
+
+        if ($canceladoPor) {
+            $canceladoPorNombre = trim(collect([
+                $canceladoPor->name ?? null,
+                $canceladoPor->apellido_p ?? null,
+                $canceladoPor->apellido_m ?? null,
+            ])->filter()->implode(' '));
+
+            if ($canceladoPorNombre === '') {
+                $canceladoPorNombre = $canceladoPor->email ?? null;
+            }
+        }
+
+        $payload = [
+            'ok' => true,
+            'message' => 'El crédito se canceló correctamente.',
+            'credito' => [
+                'id' => $credito->id,
+                'estado' => $credito->estado,
+                'motivo_cancelacion' => (string) ($credito->motivo_cancelacion ?? ''),
+                'cancelado_en' => optional($credito->cancelado_en)->format('d/m/Y H:i'),
+                'cancelado_por' => $canceladoPorNombre,
+                'cliente_id' => $credito->cliente_id,
+            ],
+        ];
+
+        if ($request->wantsJson()) {
+            return response()->json($payload);
+        }
+
+        $supervisorContextQuery = $request->attributes->get('supervisor_context_query', []);
+
+        return redirect()
+            ->route(
+                'mobile.supervisor.venta.recibo_desembolso',
+                array_merge($supervisorContextQuery, ['promotor' => $promotor->id])
+            )
+            ->with('status', $payload['message']);
+    }
+
+    private function mapCreditoEstadoACartera(?Credito $credito): ?string
+    {
+        if (!$credito) {
+            return null;
+        }
+
+        return match ($credito->estado) {
+            'desembolsado' => 'desembolsado',
+            'vencido' => 'moroso',
+            'liquidado' => 'regularizado',
+            'cancelado' => 'inactivo',
+            'prospectado', 'prospectado_recredito', 'solicitado', 'aprobado', 'supervisado' => 'activo',
+            default => null,
+        };
     }
 
     public function solicitar_venta()
