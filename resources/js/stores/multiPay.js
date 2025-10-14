@@ -27,6 +27,11 @@ document.addEventListener('alpine:init', () => {
             let index = this.findIndex(clientId);
 
             if (index !== -1) {
+                const existingRecord = this.clients[index];
+                if (existingRecord && typeof existingRecord.anticipo === 'undefined') {
+                    this.clients.splice(index, 1, { ...existingRecord, anticipo: 0 });
+                }
+
                 return { index, record: this.clients[index] };
             }
 
@@ -384,6 +389,7 @@ document.addEventListener('alpine:init', () => {
                 monto: montos[defaultType] ?? montos.default ?? 0,
                 montos,
                 limites,
+                anticipo: 0,
             };
         },
 
@@ -446,7 +452,10 @@ document.addEventListener('alpine:init', () => {
             }
 
             const clientName = record.nombre ?? this.resolveClientName(cliente);
-            const initialAmount = record.tipo === 'diferido' ? record.monto : '';
+            const initialAmount =
+                record.tipo === 'diferido'
+                    ? (record.monto ?? 0) + (record.anticipo ?? 0)
+                    : '';
 
             calcStore.open({
                 client: clientName,
@@ -466,7 +475,8 @@ document.addEventListener('alpine:init', () => {
 
             calcStore.mode = record.tipo === 'diferido' ? 'deferred' : null;
             if (record.tipo === 'diferido') {
-                calcStore.amount = String(record.monto ?? '');
+                const totalAmount = (record.monto ?? 0) + (record.anticipo ?? 0);
+                calcStore.amount = String(totalAmount ?? '');
             } else {
                 calcStore.amount = '';
             }
@@ -514,6 +524,10 @@ document.addEventListener('alpine:init', () => {
             const normalized = this.normalizeType(type);
             this.clients[index].tipo = normalized;
             this.updateRecordAmountForType(this.clients[index]);
+
+            if (normalized !== 'diferido') {
+                this.clients[index].anticipo = 0;
+            }
         },
 
         setMonto(clienteOrId, value) {
@@ -584,36 +598,34 @@ document.addEventListener('alpine:init', () => {
 
                 const safeAmount = amountValue !== null ? Math.max(amountValue, 0) : 0;
                 const tolerance = 0.005;
+                const effectiveLimit = limit !== null ? Math.max(limit, 0) : null;
 
-                if (limit !== null && safeAmount - limit > tolerance) {
-                    const formatter =
-                        typeof Intl !== 'undefined' && typeof Intl.NumberFormat === 'function'
-                            ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })
-                            : null;
-                    const limitText = formatter ? formatter.format(limit) : `${limit}`;
-                    const message = `El monto diferido no puede exceder el pago proyectado de ${limitText}.`;
+                let diferidoAmount = safeAmount;
+                let anticipoAmount = 0;
 
-                    this.lastError = message;
-
-                    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
-                        window.alert(message);
-                    }
-
-                    return false;
+                if (effectiveLimit !== null && safeAmount - effectiveLimit > tolerance) {
+                    diferidoAmount = effectiveLimit;
+                    anticipoAmount = safeAmount - effectiveLimit;
                 }
 
-                record.monto = safeAmount;
-                record.montos = { ...(record.montos ?? {}), diferido: safeAmount };
+                if (effectiveLimit !== null && diferidoAmount - effectiveLimit > tolerance) {
+                    diferidoAmount = effectiveLimit;
+                }
+
+                record.monto = diferidoAmount;
+                record.montos = { ...(record.montos ?? {}), diferido: diferidoAmount };
                 record.limites = { ...(record.limites ?? {}) };
 
                 if (record.limites.diferido === undefined || record.limites.diferido === null) {
-                    record.limites.diferido = limit !== null ? limit : safeAmount;
+                    record.limites.diferido = effectiveLimit !== null ? effectiveLimit : diferidoAmount;
                 }
 
+                record.anticipo = anticipoAmount > tolerance ? anticipoAmount : 0;
                 this.lastError = null;
             } else {
                 this.updateRecordAmountForType(record);
                 this.lastError = null;
+                record.anticipo = 0;
             }
 
             this.clients.splice(targetIndex, 1, { ...record });
@@ -712,23 +724,36 @@ document.addEventListener('alpine:init', () => {
         },
 
         get detailedPayload() {
+            const tolerance = 0.005;
             const pagos = this.clients
                 .map((client) => {
                     const pagoId = this.normalizeId(client.pago_proyectado_id);
                     if (pagoId === null) {
-                        return null;
+                        return [];
                     }
 
                     const amount = this.normalizeNumber(client.monto);
                     const monto = amount !== null ? Math.max(amount, 0) : 0;
+                    const entries = [
+                        {
+                            pago_proyectado_id: pagoId,
+                            tipo: this.normalizeType(client.tipo),
+                            monto,
+                        },
+                    ];
 
-                    return {
-                        pago_proyectado_id: pagoId,
-                        tipo: this.normalizeType(client.tipo),
-                        monto,
-                    };
+                    const anticipoAmount = this.normalizeNumber(client.anticipo);
+                    if (anticipoAmount !== null && anticipoAmount > tolerance) {
+                        entries.push({
+                            pago_proyectado_id: pagoId,
+                            tipo: 'anticipo',
+                            monto: Math.max(anticipoAmount, 0),
+                        });
+                    }
+
+                    return entries;
                 })
-                .filter(Boolean);
+                .flat();
 
             return { pagos };
         },

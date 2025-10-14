@@ -5,6 +5,7 @@ use App\Models\PagoReal;
 use App\Models\PagoProyectado;
 use App\Models\PagoCompleto;
 use App\Models\PagoDiferido;
+use App\Models\PagoAnticipo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -67,7 +68,7 @@ class PagoRealController extends Controller
         $validator = Validator::make($request->all(), [
             'pagos' => ['required', 'array', 'min:1'],
             'pagos.*.pago_proyectado_id' => ['required', 'integer', 'distinct', 'exists:pagos_proyectados,id'],
-            'pagos.*.tipo' => ['required', 'string', 'in:completo,diferido'],
+            'pagos.*.tipo' => ['required', 'string', 'in:completo,diferido,anticipo'],
             'pagos.*.monto' => ['required', 'numeric', 'min:0'],
         ], [
             'pagos.*.monto.min' => 'El monto no puede ser negativo.',
@@ -129,16 +130,23 @@ class PagoRealController extends Controller
                         'pago_real_id' => $pagoReal->id,
                         'monto_completo' => round(max($monto, 0), 2),
                     ]);
-                } else {
+                } elseif ($pagoData['tipo'] === 'diferido') {
                     $monto = round((float) $pagoData['monto'], 2);
 
                     PagoDiferido::create([
                         'pago_real_id' => $pagoReal->id,
                         'monto_diferido' => $monto,
                     ]);
+                } else {
+                    $monto = round((float) $pagoData['monto'], 2);
+
+                    PagoAnticipo::create([
+                        'pago_real_id' => $pagoReal->id,
+                        'monto_anticipo' => $monto,
+                    ]);
                 }
 
-                return $pagoReal->loadMissing(['pagoCompleto', 'pagoDiferido']);
+                return $pagoReal->loadMissing(['pagoCompleto', 'pagoDiferido', 'pagoAnticipo']);
             });
         });
 

@@ -267,6 +267,12 @@
                                 :class="$store.multiPay.summaryAmountClasses(cliente.tipo)"
                                 x-text="formatCurrency(cliente.monto)"
                             ></p>
+                            <template x-if="cliente.anticipo && cliente.anticipo > 0">
+                                <p class="text-xs font-semibold text-sky-700">
+                                    Adelanto:
+                                    <span x-text="formatCurrency(cliente.anticipo)"></span>
+                                </p>
+                            </template>
                         </div>
                     </li>
                 </template>
