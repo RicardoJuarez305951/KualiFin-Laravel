@@ -595,7 +595,15 @@ class PromotorController extends Controller
                 $query->with([
                     'credito' => function ($creditQuery) {
                         $creditQuery->with([
-                            'pagosProyectados' => fn ($subQuery) => $subQuery->orderBy('semana'),
+                            'pagosProyectados' => function ($subQuery) {
+                                $subQuery
+                                    ->orderBy('semana')
+                                    ->with([
+                                        'pagosReales.pagoCompleto',
+                                        'pagosReales.pagoAnticipo',
+                                        'pagosReales.pagoDiferido',
+                                    ]);
+                            },
                             'avales' => fn ($subQuery) => $subQuery->orderByDesc('id'),
                             'datoContacto',
                         ]);
@@ -737,6 +745,19 @@ class PromotorController extends Controller
 
         $montoProyectado = (float) ($pagoProyectado->monto_proyectado ?? 0);
 
+        $pagosReales = $pagoProyectado->relationLoaded('pagosReales')
+            ? $pagoProyectado->pagosReales
+            : $pagoProyectado->pagosReales()
+                ->with(['pagoCompleto', 'pagoAnticipo', 'pagoDiferido'])
+                ->get();
+
+        $totalPagado = $pagosReales
+            ->map(fn ($pagoReal) => (float) ($pagoReal->monto ?? 0))
+            ->sum();
+
+        $abonado = min($totalPagado, $montoProyectado);
+        $adelantado = max(0.0, $totalPagado - $montoProyectado);
+
         $deudaVencida = collect([
             $pagoProyectado->deuda_total ?? null,
             $pagoProyectado->deuda_vencida ?? null,
@@ -747,13 +768,28 @@ class PromotorController extends Controller
             ->map(fn ($value) => (float) $value)
             ->first();
 
+        $deudaCalculada = max(0.0, $montoProyectado - $abonado);
+        $tolerance = 0.01;
+
         if ($deudaVencida === null) {
-            $deudaVencida = $montoProyectado;
+            $deudaVencida = $deudaCalculada;
+        } else {
+            $deudaVencida = max(0.0, min((float) $deudaVencida, $montoProyectado));
+            if ($deudaVencida + $tolerance < $deudaCalculada) {
+                $deudaVencida = $deudaCalculada;
+            }
+        }
+
+        if ($deudaVencida <= $tolerance) {
+            $deudaVencida = 0.0;
         }
 
         return [
             'id' => $pagoProyectado->id,
             'monto_proyectado' => $montoProyectado,
+            'abonado' => $abonado,
+            'adelantado' => $adelantado,
+            'pagado_total' => $totalPagado,
             'deuda_vencida' => $deudaVencida,
         ];
     }
@@ -963,11 +999,121 @@ class PromotorController extends Controller
             'promotor.user',
             'promotor.supervisor.user',
             'credito.pagosProyectados' => function ($query) {
-                $query->orderBy('semana');
+                $query
+                    ->orderBy('semana')
+                    ->with([
+                        'pagosReales' => function ($pagosQuery) {
+                            $pagosQuery
+                                ->orderBy('fecha_pago')
+                                ->with(['pagoCompleto', 'pagoDiferido', 'pagoAnticipo']);
+                        },
+                    ]);
             },
         ]);
 
-        return view('mobile.promotor.cartera.cliente_historial', compact('cliente'));
+        $credito = $cliente->credito;
+        $pagosProyectados = $credito?->pagosProyectados ?? collect();
+        $now = now();
+
+        $proximoPago = $pagosProyectados->first(function ($pago) use ($now) {
+            $fechaLimite = $pago->fecha_limite instanceof Carbon
+                ? $pago->fecha_limite
+                : ($pago->fecha_limite ? Carbon::parse($pago->fecha_limite) : null);
+
+            return $fechaLimite && $fechaLimite->endOfDay()->greaterThanOrEqualTo($now);
+        });
+
+        $semanaActual = $proximoPago?->semana ?? ($pagosProyectados->last()?->semana ?? null);
+
+        $tablaDebeSemanal = $pagosProyectados
+            ->map(function ($pago) {
+                return [
+                    'semana' => $pago->semana,
+                    'monto' => (float) ($pago->monto_proyectado ?? 0),
+                ];
+            })
+            ->values();
+
+        $historialPagos = $pagosProyectados
+            ->flatMap(function ($pagoProyectado) {
+                return ($pagoProyectado->pagosReales ?? collect())->map(function ($pagoReal) use ($pagoProyectado) {
+                    $tipo = strtolower((string) ($pagoReal->tipo ?? ''));
+                    $fechaPago = $pagoReal->fecha_pago instanceof Carbon
+                        ? $pagoReal->fecha_pago
+                        : ($pagoReal->fecha_pago ? Carbon::parse($pagoReal->fecha_pago) : null);
+
+                    $monto = (float) ($pagoReal->monto ?? 0);
+                    if ($monto <= 0.0) {
+                        return null;
+                    }
+
+                    $etiqueta = match ($tipo) {
+                        'completo' => 'Pago',
+                        'diferido' => 'Adelanto',
+                        'anticipo' => 'Anticipo',
+                        default => ucfirst($tipo ?: 'Pago'),
+                    };
+
+                    $color = match ($tipo) {
+                        'anticipo' => 'bg-yellow-100 text-yellow-800 border border-yellow-200',
+                        'completo', 'diferido' => 'bg-green-100 text-green-800 border border-green-200',
+                        default => 'bg-gray-100 text-gray-700 border border-gray-200',
+                    };
+
+                    return [
+                        'id' => $pagoReal->id,
+                        'semana' => $pagoProyectado->semana,
+                        'tipo' => $tipo,
+                        'etiqueta' => $etiqueta,
+                        'monto' => $monto,
+                        'fecha' => $fechaPago,
+                        'fecha_texto' => $fechaPago?->format('Y-m-d'),
+                        'clase' => $color,
+                    ];
+                })->filter();
+            })
+            ->filter()
+            ->sortBy(fn ($entry) => $entry['fecha'] ?? Carbon::minValue())
+            ->values();
+
+        $dineroRecuperado = $historialPagos->sum('monto');
+
+        $pagosHastaSemanaActual = $pagosProyectados->filter(function ($pago) use ($now, $semanaActual) {
+            if ($semanaActual !== null && $pago->semana !== null) {
+                return (int) $pago->semana <= (int) $semanaActual;
+            }
+
+            $fechaLimite = $pago->fecha_limite instanceof Carbon
+                ? $pago->fecha_limite
+                : ($pago->fecha_limite ? Carbon::parse($pago->fecha_limite) : null);
+
+            return $fechaLimite
+                ? $fechaLimite->endOfDay()->lessThanOrEqualTo($now)
+                : false;
+        });
+
+        $proyectadoHastaSemanaActual = $pagosHastaSemanaActual->sum(function ($pago) {
+            return (float) ($pago->monto_proyectado ?? 0);
+        });
+
+        $debeProyectado = $proyectadoHastaSemanaActual;
+        $saldoContraProyeccion = max(0.0, $proyectadoHastaSemanaActual - $dineroRecuperado);
+
+        $resumenFinanciero = [
+            'prestamo' => (float) ($credito?->monto_total ?? 0),
+            'recuperado' => $dineroRecuperado,
+            'proyectado_hasta_hoy' => $proyectadoHastaSemanaActual,
+            'debe_proyectado' => $debeProyectado,
+            'saldo_proyectado' => $saldoContraProyeccion,
+        ];
+
+        return view('mobile.promotor.cartera.cliente_historial', [
+            'cliente' => $cliente,
+            'historialPagos' => $historialPagos,
+            'resumenFinanciero' => $resumenFinanciero,
+            'semanaActual' => $semanaActual,
+            'tablaDebeSemanal' => $tablaDebeSemanal,
+        ]);
     }
 
     private function mapCreditoEstadoACartera(?Credito $credito): ?string

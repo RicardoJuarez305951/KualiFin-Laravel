@@ -26,10 +26,50 @@
                         $pagoPendienteDeuda = is_array($pagoPendiente)
                             ? ($pagoPendiente['deuda_vencida'] ?? $pagoPendiente['deuda_total'] ?? null)
                             : ($pagoPendiente->deuda_vencida ?? $pagoPendiente->deuda_total ?? null);
+                        $pagoPendienteDeuda = is_numeric($pagoPendienteDeuda) ? (float) $pagoPendienteDeuda : null;
+                        $pagoPendienteMonto = is_numeric($pagoPendienteMonto) ? (float) $pagoPendienteMonto : 0.0;
+                        $pagoPendienteAbonado = is_array($pagoPendiente)
+                            ? ($pagoPendiente['abonado'] ?? null)
+                            : ($pagoPendiente->abonado ?? null);
+                        $pagoPendienteAdelantado = is_array($pagoPendiente)
+                            ? ($pagoPendiente['adelantado'] ?? null)
+                            : ($pagoPendiente->adelantado ?? null);
+                        $pagoPendienteTotalPagado = is_array($pagoPendiente)
+                            ? ($pagoPendiente['pagado_total'] ?? null)
+                            : ($pagoPendiente->pagado_total ?? null);
+
+                        $pagoPendienteAbonado = is_numeric($pagoPendienteAbonado) ? (float) $pagoPendienteAbonado : null;
+                        $pagoPendienteAdelantado = is_numeric($pagoPendienteAdelantado) ? (float) $pagoPendienteAdelantado : null;
+                        $pagoPendienteTotalPagado = is_numeric($pagoPendienteTotalPagado) ? (float) $pagoPendienteTotalPagado : null;
+
+                        if ($pagoPendienteAbonado === null && $pagoPendienteDeuda !== null) {
+                            $pagoPendienteAbonado = max(0.0, $pagoPendienteMonto - $pagoPendienteDeuda);
+                        }
+                        if ($pagoPendienteAbonado === null) {
+                            $pagoPendienteAbonado = 0.0;
+                        }
+
+                        if ($pagoPendienteAdelantado === null && $pagoPendienteTotalPagado !== null) {
+                            $pagoPendienteAdelantado = max(0.0, $pagoPendienteTotalPagado - $pagoPendienteMonto);
+                        }
+                        if ($pagoPendienteAdelantado === null) {
+                            $pagoPendienteAdelantado = 0.0;
+                        }
+
+                        if ($pagoPendienteTotalPagado === null) {
+                            $pagoPendienteTotalPagado = $pagoPendienteAbonado + $pagoPendienteAdelantado;
+                        }
+
+                        $pagoPendienteColor = ($pagoPendienteMonto > 0 && $pagoPendienteTotalPagado + 0.01 >= $pagoPendienteMonto)
+                            ? 'text-blue-600'
+                            : 'text-yellow-600';
                     @endphp
                     @if($pagoPendienteId)
-                        <p class="text-xs text-gray-500">
-                            Pago #{{ $pagoPendienteId }} · Proyectado: ${{ number_format((float) ($pagoPendienteMonto ?? 0), 2) }} · Deuda: ${{ number_format((float) ($pagoPendienteDeuda ?? 0), 2) }}
+                        <p class="text-xs font-semibold {{ $pagoPendienteColor }}">
+                            {{ number_format($pagoPendienteMonto, 2) }}/{{ number_format($pagoPendienteAbonado, 2) }}
+                            @if($pagoPendienteAdelantado > 0)
+                                <span class="text-[11px] font-normal">(+{{ number_format($pagoPendienteAdelantado, 2) }})</span>
+                            @endif
                         </p>
                     @endif
                 </div>
