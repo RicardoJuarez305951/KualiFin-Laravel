@@ -7,12 +7,12 @@ enum ClienteEstado: string
     case ACTIVO = 'activo';
     case INACTIVO = 'inactivo';
     case MOROSO = 'moroso';
+    // case DEUDOR = 'deudor';
     case REGULARIZADO = 'regularizado';
     case DESEMBOLSADO = 'desembolsado';
     case SUPERVISADO = 'supervisado';
     case VIGENTE = 'vigente';
     case DEMANDA = 'demanda';
-    case DEUDOR = 'deudor';
     case VENCIDO = 'vencido';
     case FALLA = 'falla';
     case VENTA_REGISTRADA = 'venta_registrada';
