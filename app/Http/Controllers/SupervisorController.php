@@ -1,6 +1,8 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Enums\ClienteEstado;
+use App\Enums\CreditoEstado;
 use App\Models\Cliente;
 use App\Models\Credito;
 use App\Models\Ejecutivo;
@@ -298,8 +300,17 @@ class SupervisorController extends Controller
 
         $promotorIds = $promotores->pluck('id')->filter()->values();
 
-        $prospectStatuses = ['activo', 'desembolsado', 'regularizado', 'inactivo'];
-        $supervisionStatuses = ['moroso', 'desembolsado', 'regularizado'];
+        $prospectStatuses = [
+            ClienteEstado::ACTIVO->value,
+            ClienteEstado::DESEMBOLSADO->value,
+            ClienteEstado::REGULARIZADO->value,
+            ClienteEstado::INACTIVO->value,
+        ];
+        $supervisionStatuses = [
+            ClienteEstado::MOROSO->value,
+            ClienteEstado::DESEMBOLSADO->value,
+            ClienteEstado::REGULARIZADO->value,
+        ];
 
         $clientesProspectados = $promotorIds->isEmpty()
             ? 0
@@ -408,7 +419,8 @@ class SupervisorController extends Controller
             abort(404, 'El crédito no pertenece al promotor indicado.');
         }
 
-        if (strtolower((string) $credito->estado) === 'cancelado') {
+        $estadoCredito = CreditoEstado::tryFrom(strtolower((string) $credito->estado));
+        if ($estadoCredito === CreditoEstado::CANCELADO) {
             $message = 'El crédito ya fue cancelado anteriormente.';
 
             if ($request->wantsJson()) {
@@ -429,7 +441,7 @@ class SupervisorController extends Controller
 
         DB::transaction(function () use ($credito, $cliente, $motivo) {
             $credito->forceFill([
-                'estado' => 'cancelado',
+                'estado' => CreditoEstado::CANCELADO->value,
                 'motivo_cancelacion' => $motivo,
                 'cancelado_en' => now(),
                 'cancelado_por_id' => Auth::id(),
@@ -440,7 +452,12 @@ class SupervisorController extends Controller
             $estadoActivo = $cliente->creditos
                 ->filter(fn (Credito $c) => $c->id !== $credito->id)
                 ->contains(function (Credito $c) {
-                    return !in_array(strtolower((string) $c->estado), ['cancelado', 'liquidado'], true);
+                    $estado = CreditoEstado::tryFrom(strtolower((string) $c->estado));
+
+                    return !in_array($estado, [
+                        CreditoEstado::CANCELADO,
+                        CreditoEstado::LIQUIDADO,
+                    ], true);
                 });
 
             // Registramos si el cliente todavía conserva algún crédito con estatus operativo.
@@ -458,7 +475,7 @@ class SupervisorController extends Controller
             $cliente->forceFill([
                 'tiene_credito_activo' => $estadoActivo,
                 'cliente_estado' => $this->mapCreditoEstadoACartera($ultimoCredito)
-                    ?? ($estadoActivo ? 'activo' : 'inactivo'),
+                    ?? ($estadoActivo ? ClienteEstado::ACTIVO->value : ClienteEstado::INACTIVO->value),
             ])->save();
         });
 
@@ -512,12 +529,21 @@ class SupervisorController extends Controller
             return null;
         }
 
-        return match ($credito->estado) {
-            'desembolsado' => 'desembolsado',
-            'vencido' => 'moroso',
-            'liquidado' => 'regularizado',
-            'cancelado' => 'inactivo',
-            'prospectado', 'prospectado_recredito', 'solicitado', 'aprobado', 'supervisado' => 'activo',
+        $estado = is_string($credito->estado)
+            ? CreditoEstado::tryFrom(strtolower($credito->estado))
+            : null;
+
+        return match ($estado) {
+            CreditoEstado::DESEMBOLSADO => ClienteEstado::DESEMBOLSADO->value,
+            CreditoEstado::VENCIDO => ClienteEstado::MOROSO->value,
+            CreditoEstado::LIQUIDADO => ClienteEstado::REGULARIZADO->value,
+            CreditoEstado::CANCELADO => ClienteEstado::INACTIVO->value,
+            CreditoEstado::ACTIVO,
+            CreditoEstado::PROSPECTADO,
+            CreditoEstado::PROSPECTADO_REACREDITO,
+            CreditoEstado::SOLICITADO,
+            CreditoEstado::APROBADO,
+            CreditoEstado::SUPERVISADO => ClienteEstado::ACTIVO->value,
             default => null,
         };
     }
@@ -641,8 +667,13 @@ class SupervisorController extends Controller
     {
         [, $promotores] = $this->resolveSupervisorPromotoresConClientes($request);
 
-        $nuevoStatuses = ['activo', 'desembolsado', 'regularizado', 'inactivo'];
-        $recreditoStatuses = ['moroso'];
+        $nuevoStatuses = [
+            ClienteEstado::ACTIVO->value,
+            ClienteEstado::DESEMBOLSADO->value,
+            ClienteEstado::REGULARIZADO->value,
+            ClienteEstado::INACTIVO->value,
+        ];
+        $recreditoStatuses = [ClienteEstado::MOROSO->value];
 
         $promotoresData = $promotores->map(function ($promotor) use ($nuevoStatuses, $recreditoStatuses) {
             $clientes = $promotor->clientes ?? collect();
@@ -668,8 +699,12 @@ class SupervisorController extends Controller
     {
         [, $promotores] = $this->resolveSupervisorPromotoresConClientes($request);
 
-        $supervisionStatuses = ['moroso', 'desembolsado', 'regularizado'];
-        $recreditoStatuses = ['moroso'];
+        $supervisionStatuses = [
+            ClienteEstado::MOROSO->value,
+            ClienteEstado::DESEMBOLSADO->value,
+            ClienteEstado::REGULARIZADO->value,
+        ];
+        $recreditoStatuses = [ClienteEstado::MOROSO->value];
 
         $promotoresData = $promotores->map(function ($promotor) use ($supervisionStatuses, $recreditoStatuses) {
             $clientes = $promotor->clientes ?? collect();
@@ -702,10 +737,10 @@ class SupervisorController extends Controller
         }
 
         DB::transaction(function () use ($cliente, $credito) {
-            $credito->estado = 'Supervisado';
+            $credito->estado = CreditoEstado::SUPERVISADO->value;
             $credito->save();
 
-            $cliente->cliente_estado = 'activo';
+            $cliente->cliente_estado = ClienteEstado::ACTIVO->value;
             $cliente->activo = true;
             $cliente->save();
         });
@@ -732,10 +767,10 @@ class SupervisorController extends Controller
         }
 
         DB::transaction(function () use ($cliente, $credito) {
-            $credito->estado = 'Rechazado';
+            $credito->estado = CreditoEstado::RECHAZADO->value;
             $credito->save();
 
-            $cliente->cliente_estado = 'inactivo';
+            $cliente->cliente_estado = ClienteEstado::INACTIVO->value;
             $cliente->activo = false;
             $cliente->save();
         });
@@ -798,7 +833,10 @@ class SupervisorController extends Controller
                     $weekStart->copy()->startOfDay()->toDateTimeString(),
                     $weekEnd->copy()->endOfDay()->toDateTimeString(),
                 ])
-                ->whereIn('creditos.estado', ['desembolsado', 'activo'])
+                ->whereIn('creditos.estado', [
+                    CreditoEstado::DESEMBOLSADO->value,
+                    CreditoEstado::ACTIVO->value,
+                ])
                 ->groupBy('clientes.promotor_id')
                 ->pluck('total', 'promotor_id')
             : collect();
@@ -841,13 +879,13 @@ class SupervisorController extends Controller
 
         $cartera_activa = $clienteIds->isNotEmpty()
             ? (float) Credito::whereIn('cliente_id', $clienteIds)
-                ->where('estado', 'activo')
+                ->where('estado', CreditoEstado::ACTIVO->value)
                 ->sum('monto_total')
             : 0.0;
 
         $cartera_vencida = $clienteIds->isNotEmpty()
             ? (float) Credito::whereIn('cliente_id', $clienteIds)
-                ->where('estado', 'vencido')
+                ->where('estado', CreditoEstado::VENCIDO->value)
                 ->sum('monto_total')
             : 0.0;
 
@@ -1144,7 +1182,7 @@ class SupervisorController extends Controller
 
         $blocks = collect($promotoresPaginator->items())->map(function (Promotor $p) {
             $clientes = Cliente::where('promotor_id', $p->id)
-                ->whereHas('credito', fn($q) => $q->where('estado', 'activo'))
+                ->whereHas('credito', fn($q) => $q->where('estado', CreditoEstado::ACTIVO->value))
                 ->with(['credito.pagosProyectados.pagosReales.pagoCompleto', 'credito.pagosProyectados.pagosReales.pagoAnticipo', 'credito.pagosProyectados.pagosReales.pagoDiferido'])
                 ->get();
 
