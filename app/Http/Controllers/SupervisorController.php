@@ -308,7 +308,7 @@ class SupervisorController extends Controller
         $clientesPorSupervisar = $promotorIds->isEmpty()
             ? 0
             : Cliente::whereIn('promotor_id', $promotorIds)
-                ->whereIn('cartera_estado', $supervisionStatuses)
+                ->whereIn('cliente_estado', $supervisionStatuses)
                 ->count();
 
         $supervisorIds = $supervisores->pluck('id')->filter()->values();
@@ -346,12 +346,12 @@ class SupervisorController extends Controller
             $clientes = $promotor->clientes ?? collect();
 
             $prospectos = $clientes
-                ->whereIn('cartera_estado', $prospectStatuses)
+                ->whereIn('cliente_estado', $prospectStatuses)
                 ->map($formatNombre)
                 ->values();
 
             $porSupervisar = $clientes
-                ->whereIn('cartera_estado', $supervisionStatuses)
+                ->whereIn('cliente_estado', $supervisionStatuses)
                 ->map($formatNombre)
                 ->values();
 
@@ -457,7 +457,7 @@ class SupervisorController extends Controller
             // Refrescamos el resumen de cartera con la misma lógica usada en la app móvil.
             $cliente->forceFill([
                 'tiene_credito_activo' => $estadoActivo,
-                'cartera_estado' => $this->mapCreditoEstadoACartera($ultimoCredito)
+                'cliente_estado' => $this->mapCreditoEstadoACartera($ultimoCredito)
                     ?? ($estadoActivo ? 'activo' : 'inactivo'),
             ])->save();
         });
@@ -654,8 +654,8 @@ class SupervisorController extends Controller
             return [
                 'id' => $promotor->id,
                 'nombre' => trim($promotor->nombre . ' ' . $promotor->apellido_p . ' ' . ($promotor->apellido_m ?? '')),
-                'clientes' => $clientes->whereIn('cartera_estado', $nuevoStatuses)->map($mapCliente)->values(),
-                'recreditos' => $clientes->whereIn('cartera_estado', $recreditoStatuses)->map($mapCliente)->values(),
+                'clientes' => $clientes->whereIn('cliente_estado', $nuevoStatuses)->map($mapCliente)->values(),
+                'recreditos' => $clientes->whereIn('cliente_estado', $recreditoStatuses)->map($mapCliente)->values(),
             ];
         });
 
@@ -683,8 +683,8 @@ class SupervisorController extends Controller
             return [
                 'id' => $promotor->id,
                 'nombre' => trim($promotor->nombre . ' ' . $promotor->apellido_p . ' ' . ($promotor->apellido_m ?? '')),
-                'clientes' => $clientes->whereIn('cartera_estado', $supervisionStatuses)->map($mapCliente)->values(),
-                'recreditos' => $clientes->whereIn('cartera_estado', $recreditoStatuses)->map($mapCliente)->values(),
+                'clientes' => $clientes->whereIn('cliente_estado', $supervisionStatuses)->map($mapCliente)->values(),
+                'recreditos' => $clientes->whereIn('cliente_estado', $recreditoStatuses)->map($mapCliente)->values(),
             ];
         });
 
@@ -705,7 +705,7 @@ class SupervisorController extends Controller
             $credito->estado = 'Supervisado';
             $credito->save();
 
-            $cliente->cartera_estado = 'activo';
+            $cliente->cliente_estado = 'activo';
             $cliente->activo = true;
             $cliente->save();
         });
@@ -717,7 +717,7 @@ class SupervisorController extends Controller
             'message' => 'Cliente supervisado correctamente.',
             'cliente' => [
                 'id' => $cliente->id,
-                'cartera_estado' => $cliente->cartera_estado,
+                'cliente_estado' => $cliente->cliente_estado,
                 'credito_estado' => $credito->estado,
             ],
         ]);
@@ -735,7 +735,7 @@ class SupervisorController extends Controller
             $credito->estado = 'Rechazado';
             $credito->save();
 
-            $cliente->cartera_estado = 'inactivo';
+            $cliente->cliente_estado = 'inactivo';
             $cliente->activo = false;
             $cliente->save();
         });
@@ -747,7 +747,7 @@ class SupervisorController extends Controller
             'message' => 'Cliente rechazado correctamente.',
             'cliente' => [
                 'id' => $cliente->id,
-                'cartera_estado' => $cliente->cartera_estado,
+                'cliente_estado' => $cliente->cliente_estado,
                 'credito_estado' => $credito->estado,
             ],
         ]);
@@ -1462,7 +1462,7 @@ class SupervisorController extends Controller
                 $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo', 'dia_de_pago', 'hora_de_pago')
                     ->with([
                         'clientes' => function ($clienteQuery) {
-                            $clienteQuery->select('id', 'promotor_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'fecha_nacimiento', 'tiene_credito_activo', 'monto_maximo', 'activo')
+                            $clienteQuery->select('id', 'promotor_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'cliente_estado', 'fecha_nacimiento', 'tiene_credito_activo', 'monto_maximo', 'activo')
                                 ->with([
                                     'documentos',
                                     'credito' => function ($creditoQuery) {
@@ -1561,7 +1561,7 @@ class SupervisorController extends Controller
             'promotores' => function ($query) {
                 $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo', 'dia_de_pago', 'hora_de_pago')
                     ->with(['clientes' => function ($clienteQuery) {
-                        $clienteQuery->select('id', 'promotor_id', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'tiene_credito_activo')
+                        $clienteQuery->select('id', 'promotor_id', 'nombre', 'apellido_p', 'apellido_m', 'cliente_estado', 'tiene_credito_activo')
                             ->orderBy('nombre');
                     }])
                     ->orderBy('nombre');
@@ -1638,7 +1638,7 @@ class SupervisorController extends Controller
             'apellido_p' => $cliente->apellido_p,
             'apellido_m' => $cliente->apellido_m,
             'curp' => $cliente->CURP,
-            'cartera_estado' => $cliente->cartera_estado,
+            'cliente_estado' => $cliente->cliente_estado,
             'fecha_nacimiento' => $cliente->fecha_nacimiento?->format('Y-m-d'),
             'tiene_credito_activo' => (bool) $cliente->tiene_credito_activo,
             'activo' => (bool) $cliente->activo,

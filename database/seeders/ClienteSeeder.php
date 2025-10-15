@@ -19,7 +19,7 @@ class ClienteSeeder extends Seeder
     private const SUPERVISORES_MIN = 5;
     private const EJECUTIVOS_MIN = 5;
 
-    private const CARTERA_ESTADOS = [
+    private const cliente_estadoS = [
         'activo',
         'moroso',
         'desembolsado',
@@ -61,7 +61,7 @@ class ClienteSeeder extends Seeder
 
         for ($i = 0; $i < self::CLIENTES_TO_CREATE; $i++) {
             $promotor = $promotores->random();
-            $carteraEstado = $faker->randomElement(self::CARTERA_ESTADOS);
+            $carteraEstado = $faker->randomElement(self::cliente_estadoS);
             $tieneCreditoActivo = in_array($carteraEstado, ['activo', 'moroso', 'desembolsado'], true);
 
             [$nombre, $apellidoPaterno, $apellidoMaterno] = LatinoNameGenerator::person();
@@ -74,7 +74,7 @@ class ClienteSeeder extends Seeder
                 'apellido_m' => $apellidoMaterno,
                 'fecha_nacimiento' => Carbon::instance($faker->dateTimeBetween('-65 years', '-18 years'))->toDateString(),
                 'tiene_credito_activo' => $tieneCreditoActivo,
-                'cartera_estado' => $carteraEstado,
+                'cliente_estado' => $carteraEstado,
                 'monto_maximo' => $faker->randomElement(self::MONTO_OPCIONES),
                 'creado_en' => Carbon::now(),
                 'actualizado_en' => Carbon::now(),

@@ -81,7 +81,7 @@ class DemoClientSeeder extends Seeder
         return [
             [
                 'slug' => 'prospectado',
-                'cartera_estado' => 'inactivo',
+                'cliente_estado' => 'inactivo',
                 'credito_estado' => 'prospectado',
                 'monto_total' => 4500.00,
                 'periodicidad' => '14Semanas',
@@ -91,7 +91,7 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'prospectado_recredito',
-                'cartera_estado' => 'regularizado',
+                'cliente_estado' => 'regularizado',
                 'credito_estado' => 'prospectado_recredito',
                 'monto_total' => 5200.00,
                 'periodicidad' => '15Semanas',
@@ -101,7 +101,7 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'solicitado',
-                'cartera_estado' => 'inactivo',
+                'cliente_estado' => 'inactivo',
                 'credito_estado' => 'solicitado',
                 'monto_total' => 5800.00,
                 'periodicidad' => 'Mes',
@@ -111,7 +111,7 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'aprobado',
-                'cartera_estado' => 'activo',
+                'cliente_estado' => 'activo',
                 'credito_estado' => 'aprobado',
                 'monto_total' => 6400.00,
                 'periodicidad' => '15Semanas',
@@ -121,7 +121,7 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'supervisado',
-                'cartera_estado' => 'activo',
+                'cliente_estado' => 'activo',
                 'credito_estado' => 'supervisado',
                 'monto_total' => 7000.00,
                 'periodicidad' => '14Semanas',
@@ -131,7 +131,7 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'desembolsado',
-                'cartera_estado' => 'desembolsado',
+                'cliente_estado' => 'desembolsado',
                 'credito_estado' => 'desembolsado',
                 'monto_total' => 7600.00,
                 'periodicidad' => '14Semanas',
@@ -141,7 +141,7 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'liquidado',
-                'cartera_estado' => 'regularizado',
+                'cliente_estado' => 'regularizado',
                 'credito_estado' => 'liquidado',
                 'monto_total' => 6200.00,
                 'periodicidad' => '14Semanas',
@@ -151,7 +151,7 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'vencido',
-                'cartera_estado' => 'moroso',
+                'cliente_estado' => 'moroso',
                 'credito_estado' => 'vencido',
                 'monto_total' => 7800.00,
                 'periodicidad' => '14Semanas',
@@ -161,7 +161,7 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'cancelado',
-                'cartera_estado' => 'inactivo',
+                'cliente_estado' => 'inactivo',
                 'credito_estado' => 'cancelado',
                 'monto_total' => 5000.00,
                 'periodicidad' => '15Semanas',
@@ -171,7 +171,7 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'desembolsado_en_recuperacion',
-                'cartera_estado' => 'activo',
+                'cliente_estado' => 'activo',
                 'credito_estado' => 'desembolsado',
                 'monto_total' => 8100.00,
                 'periodicidad' => '22Semanas',
@@ -195,7 +195,7 @@ class DemoClientSeeder extends Seeder
             'apellido_m' => $apellidoM,
             'fecha_nacimiento' => Carbon::instance($faker->dateTimeBetween('-63 years', '-19 years'))->toDateString(),
             'tiene_credito_activo' => $tieneActivo,
-            'cartera_estado' => $scenario['cartera_estado'],
+            'cliente_estado' => $scenario['cliente_estado'],
             'monto_maximo' => $scenario['monto_total'] + 2000,
             'creado_en' => Carbon::now(),
             'actualizado_en' => Carbon::now(),
@@ -440,7 +440,7 @@ class DemoClientSeeder extends Seeder
                 'comentario' => 'Pago diferido autorizado.',
             ]);
 
-            $factorDiferido = match ($scenario['cartera_estado']) {
+            $factorDiferido = match ($scenario['cliente_estado']) {
                 'moroso' => 0.8,
                 'regularizado' => 0.3,
                 'inactivo' => 0.0,

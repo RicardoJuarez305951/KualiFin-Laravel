@@ -123,7 +123,7 @@ class CreditoFiltroScenarioSeeder extends Seeder
 
         $escenarios = [
             [
-                'cartera_estado' => 'moroso',
+                'cliente_estado' => 'moroso',
                 'tiene_credito_activo' => true,
                 'estado_credito' => 'vencido',
                 'periodicidad' => '14Semanas',
@@ -131,7 +131,7 @@ class CreditoFiltroScenarioSeeder extends Seeder
                 'address_group' => 'A',
             ],
             [
-                'cartera_estado' => 'activo',
+                'cliente_estado' => 'activo',
                 'tiene_credito_activo' => true,
                 'estado_credito' => 'desembolsado',
                 'periodicidad' => '15Semanas',
@@ -139,7 +139,7 @@ class CreditoFiltroScenarioSeeder extends Seeder
                 'address_group' => 'A',
             ],
             [
-                'cartera_estado' => 'inactivo',
+                'cliente_estado' => 'inactivo',
                 'tiene_credito_activo' => false,
                 'estado_credito' => 'cancelado',
                 'periodicidad' => 'Mes',
@@ -147,7 +147,7 @@ class CreditoFiltroScenarioSeeder extends Seeder
                 'address_group' => 'B',
             ],
             [
-                'cartera_estado' => 'regularizado',
+                'cliente_estado' => 'regularizado',
                 'tiene_credito_activo' => false,
                 'estado_credito' => 'liquidado',
                 'periodicidad' => '13Semanas',
@@ -155,7 +155,7 @@ class CreditoFiltroScenarioSeeder extends Seeder
                 'address_group' => 'B',
             ],
             [
-                'cartera_estado' => 'desembolsado',
+                'cliente_estado' => 'desembolsado',
                 'tiene_credito_activo' => true,
                 'estado_credito' => 'desembolsado',
                 'periodicidad' => '14Semanas',
@@ -185,9 +185,9 @@ class CreditoFiltroScenarioSeeder extends Seeder
             'apellido_m' => $apellidoM,
             'fecha_nacimiento' => Carbon::now()->subYears($faker->numberBetween(25, 58))->toDateString(),
             'tiene_credito_activo' => $escenario['tiene_credito_activo'],
-            'cartera_estado' => $escenario['cartera_estado'],
+            'cliente_estado' => $escenario['cliente_estado'],
             'monto_maximo' => $faker->numberBetween(3000, 20000),
-            'activo' => $escenario['cartera_estado'] !== 'inactivo',
+            'activo' => $escenario['cliente_estado'] !== 'inactivo',
         ]);
 
         $fechaInicio = Carbon::now()->subWeeks($escenario['weeks_offset']);

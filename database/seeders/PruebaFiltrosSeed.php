@@ -196,7 +196,7 @@ class PruebaFiltrosSeed extends Seeder
             'fecha_nacimiento' => '1990-05-10',
             'monto_maximo' => 6000,
             'tiene_credito_activo' => false,
-            'cartera_estado' => 'inactivo',
+            'cliente_estado' => 'inactivo',
             'activo' => true,
         ];
 
@@ -299,7 +299,7 @@ class PruebaFiltrosSeed extends Seeder
             'apellido_m' => 'Mendoza',
             'fecha_nacimiento' => '1992-07-07',
             'tiene_credito_activo' => false,
-            'cartera_estado' => 'inactivo',
+            'cliente_estado' => 'inactivo',
             'monto_maximo' => 6000,
             'activo' => true,
         ]);
@@ -417,7 +417,7 @@ class PruebaFiltrosSeed extends Seeder
             'apellido_m' => 'Zamora',
             'fecha_nacimiento' => '1993-08-08',
             'tiene_credito_activo' => false,
-            'cartera_estado' => 'inactivo',
+            'cliente_estado' => 'inactivo',
             'monto_maximo' => 7000,
             'activo' => true,
         ]);
@@ -486,7 +486,7 @@ class PruebaFiltrosSeed extends Seeder
             'apellido_m' => 'Cruz',
             'fecha_nacimiento' => '1994-04-14',
             'tiene_credito_activo' => false,
-            'cartera_estado' => 'inactivo',
+            'cliente_estado' => 'inactivo',
             'monto_maximo' => 7000,
             'activo' => true,
         ]);
@@ -556,7 +556,7 @@ class PruebaFiltrosSeed extends Seeder
             'apellido_m' => 'Perez',
             'fecha_nacimiento' => '1995-06-16',
             'tiene_credito_activo' => false,
-            'cartera_estado' => 'inactivo',
+            'cliente_estado' => 'inactivo',
             'monto_maximo' => 6500,
             'activo' => true,
         ]);
@@ -645,27 +645,27 @@ class PruebaFiltrosSeed extends Seeder
     /**
      * Ajusta cartera y bandera de credito activo a partir del estado del credito.
      *
-     * @return array{cartera_estado: string, tiene_credito_activo: bool}
+     * @return array{cliente_estado: string, tiene_credito_activo: bool}
      */
     private function resolverEstados(?string $estadoCredito, ?string $carteraEstado = null, ?bool $tieneCreditoActivo = null): array
     {
         $map = [
-            'desembolsado' => ['cartera_estado' => 'activo', 'tiene_credito_activo' => true],
-            'supervisado' => ['cartera_estado' => 'activo', 'tiene_credito_activo' => true],
-            'aprobado' => ['cartera_estado' => 'activo', 'tiene_credito_activo' => true],
-            'vencido' => ['cartera_estado' => 'moroso', 'tiene_credito_activo' => true],
-            'cancelado' => ['cartera_estado' => 'moroso', 'tiene_credito_activo' => true],
-            'liquidado' => ['cartera_estado' => 'regularizado', 'tiene_credito_activo' => false],
-            'prospectado' => ['cartera_estado' => 'inactivo', 'tiene_credito_activo' => false],
-            'prospectado_recredito' => ['cartera_estado' => 'inactivo', 'tiene_credito_activo' => false],
-            'solicitado' => ['cartera_estado' => 'inactivo', 'tiene_credito_activo' => false],
+            'desembolsado' => ['cliente_estado' => 'activo', 'tiene_credito_activo' => true],
+            'supervisado' => ['cliente_estado' => 'activo', 'tiene_credito_activo' => true],
+            'aprobado' => ['cliente_estado' => 'activo', 'tiene_credito_activo' => true],
+            'vencido' => ['cliente_estado' => 'moroso', 'tiene_credito_activo' => true],
+            'cancelado' => ['cliente_estado' => 'moroso', 'tiene_credito_activo' => true],
+            'liquidado' => ['cliente_estado' => 'regularizado', 'tiene_credito_activo' => false],
+            'prospectado' => ['cliente_estado' => 'inactivo', 'tiene_credito_activo' => false],
+            'prospectado_recredito' => ['cliente_estado' => 'inactivo', 'tiene_credito_activo' => false],
+            'solicitado' => ['cliente_estado' => 'inactivo', 'tiene_credito_activo' => false],
         ];
 
         $defaults = $estadoCredito
-            ? ($map[$estadoCredito] ?? ['cartera_estado' => 'inactivo', 'tiene_credito_activo' => false])
-            : ['cartera_estado' => 'inactivo', 'tiene_credito_activo' => false];
+            ? ($map[$estadoCredito] ?? ['cliente_estado' => 'inactivo', 'tiene_credito_activo' => false])
+            : ['cliente_estado' => 'inactivo', 'tiene_credito_activo' => false];
 
-        $cartera = $carteraEstado ?? $defaults['cartera_estado'];
+        $cartera = $carteraEstado ?? $defaults['cliente_estado'];
         $tiene = $tieneCreditoActivo ?? $defaults['tiene_credito_activo'];
 
         if (in_array($cartera, ['activo', 'moroso', 'falla', 'desembolsado'], true)) {
@@ -677,7 +677,7 @@ class PruebaFiltrosSeed extends Seeder
         }
 
         return [
-            'cartera_estado' => $cartera,
+            'cliente_estado' => $cartera,
             'tiene_credito_activo' => $tiene,
         ];
     }

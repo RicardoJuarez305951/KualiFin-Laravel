@@ -68,7 +68,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Base',
             [
                 'tiene_credito_activo' => false,
-                'cartera_estado' => 'activo',
+                'cliente_estado' => 'activo',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -83,7 +83,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Rechazo',
             [
                 'tiene_credito_activo' => false,
-                'cartera_estado' => 'activo',
+                'cliente_estado' => 'activo',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -98,7 +98,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Aprobacion',
             [
                 'tiene_credito_activo' => false,
-                'cartera_estado' => 'activo',
+                'cliente_estado' => 'activo',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -118,7 +118,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Uno',
             [
                 'tiene_credito_activo' => true,
-                'cartera_estado' => 'activo',
+                'cliente_estado' => 'activo',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -167,7 +167,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Dos',
             [
                 'tiene_credito_activo' => true,
-                'cartera_estado' => 'activo',
+                'cliente_estado' => 'activo',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -217,7 +217,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Cliente',
             [
                 'tiene_credito_activo' => true,
-                'cartera_estado' => 'desembolsado',
+                'cliente_estado' => 'desembolsado',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -270,7 +270,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Filtro',
             [
                 'tiene_credito_activo' => true,
-                'cartera_estado' => 'moroso',
+                'cliente_estado' => 'moroso',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -306,7 +306,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Filtro',
             [
                 'tiene_credito_activo' => false,
-                'cartera_estado' => 'regularizado',
+                'cliente_estado' => 'regularizado',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -345,7 +345,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Nuevo',
             [
                 'tiene_credito_activo' => true,
-                'cartera_estado' => 'desembolsado',
+                'cliente_estado' => 'desembolsado',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -381,7 +381,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Filtro',
             [
                 'tiene_credito_activo' => true,
-                'cartera_estado' => 'desembolsado',
+                'cliente_estado' => 'desembolsado',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -420,7 +420,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Plaza',
             [
                 'tiene_credito_activo' => false,
-                'cartera_estado' => 'activo',
+                'cliente_estado' => 'activo',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -435,7 +435,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Plaza',
             [
                 'tiene_credito_activo' => false,
-                'cartera_estado' => 'activo',
+                'cliente_estado' => 'activo',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -453,7 +453,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Filtro',
             [
                 'tiene_credito_activo' => false,
-                'cartera_estado' => 'inactivo',
+                'cliente_estado' => 'inactivo',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -490,7 +490,7 @@ class FiltrosManualTestSeeder extends Seeder
                 sprintf('0%d', $i),
                 [
                     'tiene_credito_activo' => true,
-                    'cartera_estado' => 'desembolsado',
+                    'cliente_estado' => 'desembolsado',
                     'creado_en' => $now,
                     'actualizado_en' => $now,
                 ]
@@ -539,7 +539,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Uno',
             [
                 'tiene_credito_activo' => true,
-                'cartera_estado' => 'activo',
+                'cliente_estado' => 'activo',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -563,7 +563,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Dos',
             [
                 'tiene_credito_activo' => true,
-                'cartera_estado' => 'supervisado',
+                'cliente_estado' => 'supervisado',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -597,7 +597,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Uno',
             [
                 'tiene_credito_activo' => true,
-                'cartera_estado' => 'activo',
+                'cliente_estado' => 'activo',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -621,7 +621,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Dos',
             [
                 'tiene_credito_activo' => true,
-                'cartera_estado' => 'activo',
+                'cliente_estado' => 'activo',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -646,7 +646,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Filtro',
             [
                 'tiene_credito_activo' => false,
-                'cartera_estado' => 'activo',
+                'cliente_estado' => 'activo',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -685,7 +685,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Filtro',
             [
                 'tiene_credito_activo' => true,
-                'cartera_estado' => 'desembolsado',
+                'cliente_estado' => 'desembolsado',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -721,7 +721,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Atrasos',
             [
                 'tiene_credito_activo' => true,
-                'cartera_estado' => 'activo',
+                'cliente_estado' => 'activo',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]
@@ -757,7 +757,7 @@ class FiltrosManualTestSeeder extends Seeder
             'Mora',
             [
                 'tiene_credito_activo' => true,
-                'cartera_estado' => 'moroso',
+                'cliente_estado' => 'moroso',
                 'creado_en' => $now,
                 'actualizado_en' => $now,
             ]

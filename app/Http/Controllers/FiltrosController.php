@@ -223,7 +223,7 @@ class FiltrosController extends Controller
             return in_array($credito->estado, self::CREDIT_FAILURE_STATES, true);
         })->count();
 
-        $carteraEnFalla = in_array($cliente->cartera_estado, self::CARTERA_FAILURE_STATES, true);
+        $carteraEnFalla = in_array($cliente->cliente_estado, self::CARTERA_FAILURE_STATES, true);
 
         if ($enFalla > 0 || $carteraEnFalla) {
             return $this->resultado(
@@ -232,14 +232,14 @@ class FiltrosController extends Controller
                 'El cliente tiene historial de créditos en falla y no puede solicitar uno nuevo.',
                 [
                     'creditos_en_falla' => $enFalla,
-                    'cartera_estado' => $cliente->cartera_estado,
+                    'cliente_estado' => $cliente->cliente_estado,
                 ]
             );
         }
 
         return $this->resultado(self::FILTER_CREDITO_EN_FALLA, true, null, [
             'creditos_en_falla' => $enFalla,
-            'cartera_estado' => $cliente->cartera_estado,
+            'cliente_estado' => $cliente->cliente_estado,
         ]);
     }
 
@@ -469,7 +469,7 @@ class FiltrosController extends Controller
 
         $minimoRequerido = $requisitos[$periodicidadSemanas] ?? null;
 
-        $sinAtrasos = $cliente->cartera_estado !== 'moroso'
+        $sinAtrasos = $cliente->cliente_estado !== 'moroso'
             && !in_array($ultimoCredito->estado, self::CREDIT_FAILURE_STATES, true);
 
         if ($minimoRequerido !== null && $semanasTranscurridas < $minimoRequerido) {

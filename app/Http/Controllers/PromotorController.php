@@ -179,7 +179,7 @@ class PromotorController extends Controller
             foreach ($clientes as $cliente) {
                 $cliente->update([
                     'tiene_credito_activo' => false,
-                    'cartera_estado' => 'inactivo',
+                    'cliente_estado' => 'inactivo',
                     'activo' => false,
                 ]);
 
@@ -331,7 +331,7 @@ class PromotorController extends Controller
                 'apellido_p' => $data['apellido_p'],
                 'apellido_m' => $data['apellido_m'] ?? '',
                 'tiene_credito_activo' => false,
-                'cartera_estado' => 'inactivo',
+                'cliente_estado' => 'inactivo',
             ]);
             $clienteEvaluado->setRelation('promotor', $promotor);
             $clienteEvaluado->setRelation('creditos', collect());
@@ -379,7 +379,7 @@ class PromotorController extends Controller
                     'apellido_m' => $data['apellido_m'] ?? '',
                     'fecha_nacimiento' => now()->subYears(18),
                     'tiene_credito_activo' => false,
-                    'cartera_estado' => 'inactivo',
+                    'cliente_estado' => 'inactivo',
                     'monto_maximo' => $data['monto'],
                     'activo' => false,
                 ]);
@@ -636,7 +636,7 @@ class PromotorController extends Controller
 
                 $cliente->update([
                     'tiene_credito_activo' => false,
-                    'cartera_estado' => 'inactivo',
+                    'cliente_estado' => 'inactivo',
                     'activo' => false,
                 ]);
             });
@@ -708,7 +708,7 @@ class PromotorController extends Controller
 
         foreach ($clientes as $cliente) {
             $credito = $cliente->credito;
-            $estadoCartera = $cliente->cartera_estado ?? $this->mapCreditoEstadoACartera($credito) ?? 'inactivo';
+            $estadoCartera = $cliente->cliente_estado ?? $this->mapCreditoEstadoACartera($credito) ?? 'inactivo';
 
             $pagoPendiente = $credito?->pagosProyectados?->firstWhere('estado', 'pendiente');
             $pagoPendienteData = $this->buildPendingPaymentData($pagoPendiente, $cliente);
@@ -718,7 +718,7 @@ class PromotorController extends Controller
                 $cliente->deuda_total = $pagoPendienteData['deuda_vencida'];
             }
 
-            $cliente->cartera_estado = $estadoCartera;
+            $cliente->cliente_estado = $estadoCartera;
             $cliente->tiene_credito_activo = in_array($estadoCartera, ['activo', 'moroso', 'desembolsado'], true);
             unset($cliente->semana_credito, $cliente->monto_semanal);
 
@@ -1216,7 +1216,7 @@ class PromotorController extends Controller
             return true;
         }
 
-        if ($cliente->cartera_estado && in_array($cliente->cartera_estado, self::AVAL_CARTERA_STATUS_BLOCKLIST, true)) {
+        if ($cliente->cliente_estado && in_array($cliente->cliente_estado, self::AVAL_CARTERA_STATUS_BLOCKLIST, true)) {
             return true;
         }
 

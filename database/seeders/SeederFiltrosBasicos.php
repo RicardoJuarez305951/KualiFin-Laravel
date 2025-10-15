@@ -163,7 +163,7 @@ class SeederFiltrosBasicos extends Seeder
             'apellido_p' => 'Recredito',
             'apellido_m' => 'Morosa',
             'CURP' => 'REAM800202MDFRMD10',
-            'cartera_estado' => 'moroso',
+            'cliente_estado' => 'moroso',
             'creditos' => [
                 [
                     'estado' => 'vencido',
@@ -370,7 +370,7 @@ class SeederFiltrosBasicos extends Seeder
             'promotor_id' => $promotor->id,
             'fecha_nacimiento' => '1985-01-01',
             'tiene_credito_activo' => false,
-            'cartera_estado' => 'vigente',
+            'cliente_estado' => 'vigente',
             'monto_maximo' => 8000,
             'creado_en' => Carbon::now()->subMonths(2),
             'actualizado_en' => Carbon::now()->subWeeks(3),

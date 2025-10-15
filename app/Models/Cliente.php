@@ -21,7 +21,7 @@ class Cliente extends Model
         'apellido_m',
         'fecha_nacimiento',
         'tiene_credito_activo',
-        'cartera_estado',
+        'cliente_estado',
         'monto_maximo',
         'creado_en',
         'actualizado_en',
