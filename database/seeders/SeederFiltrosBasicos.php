@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ClienteEstado;
+use App\Enums\CreditoEstado;
 use App\Models\Aval;
 use App\Models\Cliente;
 use App\Models\Credito;
@@ -80,7 +82,7 @@ class SeederFiltrosBasicos extends Seeder
             'tiene_credito_activo' => true,
             'creditos' => [
                 [
-                    'estado' => 'desembolsado',
+                    'estado' => CreditoEstado::DESEMBOLSADO->value,
                     'monto_total' => 15000,
                     'interes' => 16.5,
                     'periodicidad' => 'Semanal 13',
@@ -109,7 +111,7 @@ class SeederFiltrosBasicos extends Seeder
             'tiene_credito_activo' => true,
             'creditos' => [
                 [
-                    'estado' => 'supervisado',
+                    'estado' => CreditoEstado::SUPERVISADO->value,
                     'monto_total' => 14200,
                     'interes' => 15.0,
                     'periodicidad' => 'Semanal 14',
@@ -149,7 +151,7 @@ class SeederFiltrosBasicos extends Seeder
             'CURP' => 'REAT800101HDFRMC09',
             'creditos' => [
                 [
-                    'estado' => 'liquidado',
+                    'estado' => CreditoEstado::LIQUIDADO->value,
                     'periodicidad' => 'Semanal 13',
                     'monto_total' => 9800,
                     'interes' => 11.5,
@@ -163,10 +165,10 @@ class SeederFiltrosBasicos extends Seeder
             'apellido_p' => 'Recredito',
             'apellido_m' => 'Morosa',
             'CURP' => 'REAM800202MDFRMD10',
-            'cliente_estado' => 'moroso',
+            'cliente_estado' => ClienteEstado::MOROSO->value,
             'creditos' => [
                 [
-                    'estado' => 'vencido',
+                    'estado' => CreditoEstado::VENCIDO->value,
                     'periodicidad' => 'Semanal 14',
                     'monto_total' => 10500,
                     'interes' => 12.5,
@@ -182,7 +184,7 @@ class SeederFiltrosBasicos extends Seeder
             'CURP' => 'REAL800303HDFRME11',
             'creditos' => [
                 [
-                    'estado' => 'liquidado',
+                    'estado' => CreditoEstado::LIQUIDADO->value,
                     'periodicidad' => 'Semanal 13',
                     'monto_total' => 11200,
                     'interes' => 12.0,
@@ -370,7 +372,7 @@ class SeederFiltrosBasicos extends Seeder
             'promotor_id' => $promotor->id,
             'fecha_nacimiento' => '1985-01-01',
             'tiene_credito_activo' => false,
-            'cliente_estado' => 'vigente',
+            'cliente_estado' => ClienteEstado::VIGENTE->value,
             'monto_maximo' => 8000,
             'creado_en' => Carbon::now()->subMonths(2),
             'actualizado_en' => Carbon::now()->subWeeks(3),
@@ -398,7 +400,7 @@ class SeederFiltrosBasicos extends Seeder
 
         $credito = Credito::create(array_merge([
             'monto_total' => 7500,
-            'estado' => 'liquidado',
+            'estado' => CreditoEstado::LIQUIDADO->value,
             'interes' => 10.5,
             'periodicidad' => 'Semanal 13',
             'fecha_inicio' => Carbon::now()->subWeeks(10)->toDateString(),
