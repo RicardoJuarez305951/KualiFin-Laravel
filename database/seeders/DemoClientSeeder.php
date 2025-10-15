@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ClienteEstado;
+use App\Enums\CreditoEstado;
 use App\Models\Aval;
 use App\Models\Cliente;
 use App\Models\Contrato;
@@ -81,8 +83,8 @@ class DemoClientSeeder extends Seeder
         return [
             [
                 'slug' => 'prospectado',
-                'cliente_estado' => 'inactivo',
-                'credito_estado' => 'prospectado',
+                'cliente_estado' => ClienteEstado::INACTIVO->value,
+                'credito_estado' => CreditoEstado::PROSPECTADO->value,
                 'monto_total' => 4500.00,
                 'periodicidad' => '14Semanas',
                 'pagos' => [],
@@ -91,8 +93,8 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'prospectado_recredito',
-                'cliente_estado' => 'regularizado',
-                'credito_estado' => 'prospectado_recredito',
+                'cliente_estado' => ClienteEstado::REGULARIZADO->value,
+                'credito_estado' => CreditoEstado::PROSPECTADO_REACREDITO->value,
                 'monto_total' => 5200.00,
                 'periodicidad' => '15Semanas',
                 'pagos' => [],
@@ -101,8 +103,8 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'solicitado',
-                'cliente_estado' => 'inactivo',
-                'credito_estado' => 'solicitado',
+                'cliente_estado' => ClienteEstado::INACTIVO->value,
+                'credito_estado' => CreditoEstado::SOLICITADO->value,
                 'monto_total' => 5800.00,
                 'periodicidad' => 'Mes',
                 'pagos' => ['pendiente', 'pendiente', 'pendiente'],
@@ -111,8 +113,8 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'aprobado',
-                'cliente_estado' => 'activo',
-                'credito_estado' => 'aprobado',
+                'cliente_estado' => ClienteEstado::ACTIVO->value,
+                'credito_estado' => CreditoEstado::APROBADO->value,
                 'monto_total' => 6400.00,
                 'periodicidad' => '15Semanas',
                 'pagos' => ['pendiente', 'pendiente', 'pendiente', 'pendiente'],
@@ -121,8 +123,8 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'supervisado',
-                'cliente_estado' => 'activo',
-                'credito_estado' => 'supervisado',
+                'cliente_estado' => ClienteEstado::ACTIVO->value,
+                'credito_estado' => CreditoEstado::SUPERVISADO->value,
                 'monto_total' => 7000.00,
                 'periodicidad' => '14Semanas',
                 'pagos' => ['pagado', 'pagado', 'pendiente', 'pendiente', 'pendiente'],
@@ -131,8 +133,8 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'desembolsado',
-                'cliente_estado' => 'desembolsado',
-                'credito_estado' => 'desembolsado',
+                'cliente_estado' => ClienteEstado::DESEMBOLSADO->value,
+                'credito_estado' => CreditoEstado::DESEMBOLSADO->value,
                 'monto_total' => 7600.00,
                 'periodicidad' => '14Semanas',
                 'pagos' => ['pagado', 'pendiente', 'pendiente', 'pendiente', 'pendiente'],
@@ -141,8 +143,8 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'liquidado',
-                'cliente_estado' => 'regularizado',
-                'credito_estado' => 'liquidado',
+                'cliente_estado' => ClienteEstado::REGULARIZADO->value,
+                'credito_estado' => CreditoEstado::LIQUIDADO->value,
                 'monto_total' => 6200.00,
                 'periodicidad' => '14Semanas',
                 'pagos' => array_fill(0, 6, 'pagado'),
@@ -151,8 +153,8 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'vencido',
-                'cliente_estado' => 'moroso',
-                'credito_estado' => 'vencido',
+                'cliente_estado' => ClienteEstado::MOROSO->value,
+                'credito_estado' => CreditoEstado::VENCIDO->value,
                 'monto_total' => 7800.00,
                 'periodicidad' => '14Semanas',
                 'pagos' => ['pagado', 'vencido', 'vencido', 'pendiente', 'pendiente'],
@@ -161,8 +163,8 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'cancelado',
-                'cliente_estado' => 'inactivo',
-                'credito_estado' => 'cancelado',
+                'cliente_estado' => ClienteEstado::INACTIVO->value,
+                'credito_estado' => CreditoEstado::CANCELADO->value,
                 'monto_total' => 5000.00,
                 'periodicidad' => '15Semanas',
                 'pagos' => ['pagado', 'vencido'],
@@ -171,8 +173,8 @@ class DemoClientSeeder extends Seeder
             ],
             [
                 'slug' => 'desembolsado_en_recuperacion',
-                'cliente_estado' => 'activo',
-                'credito_estado' => 'desembolsado',
+                'cliente_estado' => ClienteEstado::ACTIVO->value,
+                'credito_estado' => CreditoEstado::DESEMBOLSADO->value,
                 'monto_total' => 8100.00,
                 'periodicidad' => '22Semanas',
                 'pagos' => ['pagado', 'pagado', 'pendiente', 'pendiente', 'pendiente', 'pendiente'],
@@ -415,8 +417,8 @@ class DemoClientSeeder extends Seeder
             ]);
 
             $factorAnticipo = match ($scenario['credito_estado']) {
-                'vencido' => 0.4,
-                'desembolsado' => 0.5,
+                CreditoEstado::VENCIDO->value => 0.4,
+                CreditoEstado::DESEMBOLSADO->value => 0.5,
                 default => 0.7,
             };
 
@@ -441,9 +443,9 @@ class DemoClientSeeder extends Seeder
             ]);
 
             $factorDiferido = match ($scenario['cliente_estado']) {
-                'moroso' => 0.8,
-                'regularizado' => 0.3,
-                'inactivo' => 0.0,
+                ClienteEstado::MOROSO->value => 0.8,
+                ClienteEstado::REGULARIZADO->value => 0.3,
+                ClienteEstado::INACTIVO->value => 0.0,
                 default => 0.5,
             };
 
@@ -456,6 +458,11 @@ class DemoClientSeeder extends Seeder
 
     private function hasActiveCredit(string $estadoCredito): bool
     {
-        return in_array($estadoCredito, ['aprobado', 'supervisado', 'desembolsado', 'vencido'], true);
+        return in_array($estadoCredito, [
+            CreditoEstado::APROBADO->value,
+            CreditoEstado::SUPERVISADO->value,
+            CreditoEstado::DESEMBOLSADO->value,
+            CreditoEstado::VENCIDO->value,
+        ], true);
     }
 }
