@@ -29,6 +29,7 @@
         showResultado: false,
         resultadoMensaje: '',
         resultadoExito: false,
+        resultadoEstado: '',
 
         resetClienteForm() {
           this.showCliente = false;
@@ -54,7 +55,7 @@
           const monto = parseFloat(valor);
           return !(isNaN(monto) || monto < 0 || monto > max);
         },
-        submitNuevoCliente(e) {
+        async submitNuevoCliente(e) {
           const f = e.target;
           const valido =
             f.nombre.value.trim() &&
@@ -63,32 +64,103 @@
             this.validateMonto(f.monto.value);
           if (!valido) {
             this.resultadoExito = false;
+            this.resultadoEstado = '';
             this.resultadoMensaje = 'Datos incorrectos o incompletos. Por favor, verifica el formulario.';
             this.showResultado = true;
             return;
           }
 
-          const formData = new FormData(f);
-          fetch('{{ route('mobile.promotor.store_cliente') }}', {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-            body: formData
-          })
-          .then(res => res.json())
-          .then(data => {
-            this.resultadoExito = data.success;
-            this.resultadoMensaje = data.message;
+          const enviarSolicitud = async (decision = null) => {
+            const formData = new FormData(f);
+            if (decision) {
+              formData.set('decision_riesgo', decision);
+            } else {
+              formData.delete('decision_riesgo');
+            }
+
+            const respuesta = await fetch('{{ route('mobile.promotor.store_cliente') }}', {
+              method: 'POST',
+              headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+              body: formData
+            });
+
+            let datos = {};
+            try {
+              datos = await respuesta.clone().json();
+            } catch (_) {
+              datos = {};
+            }
+
+            return { respuesta, datos };
+          };
+
+          const formatearDeudas = (lista = []) => {
+            if (!Array.isArray(lista) || lista.length === 0) {
+              return [];
+            }
+
+            return lista.map(item => {
+              const nombre = item?.cliente ?? 'Sin nombre';
+              const deuda = item?.deuda ?? 'Monto no disponible';
+
+              return `${nombre} - Deuda: ${deuda}`;
+            });
+          };
+
+          try {
+            let { respuesta, datos } = await enviarSolicitud();
+
+            if (datos?.requires_confirmation) {
+              const mensajes = [];
+
+              if (datos.cliente_tiene_deuda && Array.isArray(datos.deuda_cliente) && datos.deuda_cliente.length) {
+                mensajes.push('Cliente:');
+                formatearDeudas(datos.deuda_cliente).forEach(linea => mensajes.push(`  • ${linea}`));
+              }
+              if (datos.aval_tiene_deuda && Array.isArray(datos.deuda_aval) && datos.deuda_aval.length) {
+                mensajes.push('Aval:');
+                formatearDeudas(datos.deuda_aval).forEach(linea => mensajes.push(`  • ${linea}`));
+              }
+
+              if (mensajes.length === 0) {
+                mensajes.push('No se recibieron detalles de la deuda.');
+              }
+
+              const confirmacion = window.confirm([
+                datos.message ?? 'Se detectaron deudas asociadas a la solicitud.',
+                '',
+                mensajes.join('\n'),
+                '',
+                'Pulsa Aceptar para registrar el crédito con riesgo o Cancelar para guardarlo como rechazado.'
+              ].join('\n'));
+
+              const decision = confirmacion ? 'aceptar' : 'rechazar';
+              ({ respuesta, datos } = await enviarSolicitud(decision));
+            }
+
+            const mensaje = datos?.message ?? 'Respuesta inesperada del servidor.';
+            const operacionExitosa = respuesta.ok && datos?.success;
+            this.resultadoEstado = datos?.estado_credito ?? '';
+            this.resultadoExito = operacionExitosa && this.resultadoEstado !== 'rechazado';
+
+            if (!operacionExitosa) {
+              this.resultadoExito = false;
+            }
+
+            this.resultadoMensaje = mensaje;
             this.showResultado = true;
-            if (data.success) {
+
+            if (datos?.success) {
               f.reset();
               this.resetClienteForm();
             }
-          })
-          .catch(() => {
+          } catch (error) {
+            console.error(error);
             this.resultadoExito = false;
+            this.resultadoEstado = '';
             this.resultadoMensaje = 'Error de conexión. Inténtalo de nuevo.';
             this.showResultado = true;
-          });
+          }
         },
         submitRecredito(e) {
           const f = e.target;

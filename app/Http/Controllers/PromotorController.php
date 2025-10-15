@@ -256,12 +256,70 @@ class PromotorController extends Controller
                 $data['apellido_p'],
                 $data['apellido_m'] ?? ''
             );
-            if ($nombreCompleto !== '') {
-                $registrosDeudores = $excel->searchDebtors($nombreCompleto);
-                if (!empty($registrosDeudores)) {
-                    throw ValidationException::withMessages([
-                        'nombre' => 'El cliente aparece en la lista de deudores y no puede registrarse.',
+            $avalNombreCompleto = $this->formatFullName(
+                $data['aval_nombre'],
+                $data['aval_apellido_p'],
+                $data['aval_apellido_m'] ?? ''
+            );
+
+            $registrosDeudaCliente = $nombreCompleto !== ''
+                ? $excel->searchDebtors($nombreCompleto)
+                : [];
+            $registrosDeudaAval = $avalNombreCompleto !== ''
+                ? $excel->searchDebtors($avalNombreCompleto)
+                : [];
+
+            $clienteTieneDeuda = !empty($registrosDeudaCliente);
+            $avalTieneDeuda = !empty($registrosDeudaAval);
+
+            $estadoCredito = 'prospectado';
+            $mensajeResultado = 'Cliente creado con exito.';
+            $tipoRiesgo = null;
+            $decisionRiesgo = $request->input('decision_riesgo');
+
+            if (!$clienteTieneDeuda && !$avalTieneDeuda) {
+                $decisionRiesgo = null;
+            }
+
+            if ($clienteTieneDeuda && $avalTieneDeuda) {
+                $estadoCredito = 'rechazado';
+                $mensajeResultado = 'Solicitud rechazada automaticamente: Cliente y Aval presentan deuda registrada.';
+                $decisionRiesgo = 'rechazar';
+            } elseif ($clienteTieneDeuda || $avalTieneDeuda) {
+                $tipoRiesgo = $clienteTieneDeuda ? 'ClienteRiesgo' : 'AvalRiesgo';
+                $mensajeBase = $clienteTieneDeuda
+                    ? 'Se detecto deuda registrada para el cliente.'
+                    : 'Se detecto deuda registrada para el aval.';
+
+                if ($decisionRiesgo === null) {
+                    $mensajeConfirmacion = $mensajeBase . ' ¿Deseas continuar y registrar el credito como ' . $tipoRiesgo . '?';
+
+                    return response()->json([
+                        'success' => false,
+                        'requires_confirmation' => true,
+                        'message' => $mensajeConfirmacion,
+                        'risk_type' => $tipoRiesgo,
+                        'estado_credito' => $tipoRiesgo,
+                        'deuda_cliente' => $registrosDeudaCliente,
+                        'deuda_aval' => $registrosDeudaAval,
+                        'cliente_tiene_deuda' => $clienteTieneDeuda,
+                        'aval_tiene_deuda' => $avalTieneDeuda,
                     ]);
+                }
+
+                if (!in_array($decisionRiesgo, ['aceptar', 'rechazar'], true)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Decision de riesgo invalida proporcionada.',
+                    ], 422);
+                }
+
+                if ($decisionRiesgo === 'aceptar') {
+                    $estadoCredito = $tipoRiesgo;
+                    $mensajeResultado = 'Solicitud registrada con estado ' . $tipoRiesgo . ' por deuda detectada.';
+                } else {
+                    $estadoCredito = 'rechazado';
+                    $mensajeResultado = 'Solicitud registrada como rechazada por deuda detectada.';
                 }
             }
 
@@ -299,17 +357,20 @@ class PromotorController extends Controller
                 'ultimo_credito' => null,
             ];
 
-            $resultadoFiltros = $this->filtrosController->evaluar($clienteEvaluado, $formulario, $contexto);
+            $evaluarFiltros = $estadoCredito !== 'rechazado';
+            if ($evaluarFiltros) {
+                $resultadoFiltros = $this->filtrosController->evaluar($clienteEvaluado, $formulario, $contexto);
 
-            if (!$resultadoFiltros['passed']) {
-                $mensajeFiltro = $resultadoFiltros['message'] ?? 'La solicitud no cumple con los criterios requeridos.';
+                if (!$resultadoFiltros['passed']) {
+                    $mensajeFiltro = $resultadoFiltros['message'] ?? 'La solicitud no cumple con los criterios requeridos.';
 
-                return $request->expectsJson()
-                    ? response()->json(['success' => false, 'message' => $mensajeFiltro], 422)
-                    : back()->with('error', $mensajeFiltro)->withInput();
+                    return $request->expectsJson()
+                        ? response()->json(['success' => false, 'message' => $mensajeFiltro], 422)
+                        : back()->with('error', $mensajeFiltro)->withInput();
+                }
             }
 
-            DB::transaction(function () use ($data, $promotor) {
+            DB::transaction(function () use ($data, $promotor, $estadoCredito) {
                 $cliente = Cliente::create([
                     'promotor_id' => $promotor->id,
                     'CURP' => $data['CURP'],
@@ -326,7 +387,7 @@ class PromotorController extends Controller
                 $credito = Credito::create([
                     'cliente_id' => $cliente->id,
                     'monto_total' => $data['monto'],
-                    'estado' => 'prospectado',
+                    'estado' => $estadoCredito,
                     'interes' => 0,
                     'periodicidad' => '15Semanas',
                     'fecha_inicio' => now(),
@@ -346,10 +407,23 @@ class PromotorController extends Controller
                 ]);
             });
 
-            $message = 'Cliente creado con exito.';
-            return $request->expectsJson()
-                ? response()->json(['success' => true, 'message' => $message])
-                : redirect()->route('mobile.promotor.ingresar_cliente')->with('success', $message);
+            $respuesta = [
+                'success' => true,
+                'message' => $mensajeResultado,
+                'estado_credito' => $estadoCredito,
+                'cliente_tiene_deuda' => $clienteTieneDeuda,
+                'aval_tiene_deuda' => $avalTieneDeuda,
+                'deuda_cliente' => $registrosDeudaCliente,
+                'deuda_aval' => $registrosDeudaAval,
+            ];
+
+            if ($request->expectsJson()) {
+                return response()->json($respuesta);
+            }
+
+            return redirect()
+                ->route('mobile.promotor.ingresar_cliente')
+                ->with('success', $mensajeResultado);
         } catch (ValidationException $exception) {
             Log::warning('Error de validacion al crear cliente.', ['errors' => $exception->errors(), 'user_id' => Auth::id()]);
 
