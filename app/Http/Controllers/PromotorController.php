@@ -2,6 +2,8 @@
 namespace App\Http\Controllers;
 
 
+use App\Enums\ClienteEstado;
+use App\Enums\CreditoEstado;
 use App\Http\Controllers\FiltrosController;
 use App\Models\Aval;
 use App\Models\Cliente;
@@ -26,20 +28,20 @@ class PromotorController extends Controller
     }
 
     private const AVAL_CREDIT_STATUS_BLOCKLIST = [
-        'prospectado',
-        'prospectado_recredito',
-        'solicitado',
-        'aprobado',
-        'supervisado',
-        'desembolsado',
-        'vencido',
-        'cancelado',
+        CreditoEstado::PROSPECTADO->value,
+        CreditoEstado::PROSPECTADO_REACREDITO->value,
+        CreditoEstado::SOLICITADO->value,
+        CreditoEstado::APROBADO->value,
+        CreditoEstado::SUPERVISADO->value,
+        CreditoEstado::DESEMBOLSADO->value,
+        CreditoEstado::VENCIDO->value,
+        CreditoEstado::CANCELADO->value,
     ];
 
     private const AVAL_CARTERA_STATUS_BLOCKLIST = [
-        'activo',
-        'moroso',
-        'desembolsado',
+        ClienteEstado::ACTIVO->value,
+        ClienteEstado::MOROSO->value,
+        ClienteEstado::DESEMBOLSADO->value,
     ];
 
     public function index(Request $request)
@@ -179,15 +181,16 @@ class PromotorController extends Controller
             foreach ($clientes as $cliente) {
                 $cliente->update([
                     'tiene_credito_activo' => false,
-                    'cliente_estado' => 'inactivo',
+                    'cliente_estado' => ClienteEstado::INACTIVO->value,
                     'activo' => false,
                 ]);
 
                 $credito = $cliente->credito;
                 if ($credito) {
-                    $nuevoEstado = $credito->estado === 'prospectado_recredito'
-                        ? 'prospectado_recredito'
-                        : 'prospectado';
+                    $estadoActual = CreditoEstado::tryFrom((string) $credito->estado);
+                    $nuevoEstado = $estadoActual === CreditoEstado::PROSPECTADO_REACREDITO
+                        ? CreditoEstado::PROSPECTADO_REACREDITO->value
+                        : CreditoEstado::PROSPECTADO->value;
 
                     $credito->update([
                         'estado' => $nuevoEstado,
@@ -272,7 +275,7 @@ class PromotorController extends Controller
             $clienteTieneDeuda = !empty($registrosDeudaCliente);
             $avalTieneDeuda = !empty($registrosDeudaAval);
 
-            $estadoCredito = 'prospectado';
+            $estadoCredito = CreditoEstado::PROSPECTADO->value;
             $mensajeResultado = 'Cliente creado con exito.';
             $tipoRiesgo = null;
             $decisionRiesgo = $request->input('decision_riesgo');
@@ -282,7 +285,7 @@ class PromotorController extends Controller
             }
 
             if ($clienteTieneDeuda && $avalTieneDeuda) {
-                $estadoCredito = 'rechazado';
+                $estadoCredito = CreditoEstado::RECHAZADO->value;
                 $mensajeResultado = 'Solicitud rechazada automaticamente: Cliente y Aval presentan deuda registrada.';
                 $decisionRiesgo = 'rechazar';
             } elseif ($clienteTieneDeuda || $avalTieneDeuda) {
@@ -318,7 +321,7 @@ class PromotorController extends Controller
                     $estadoCredito = $tipoRiesgo;
                     $mensajeResultado = 'Solicitud registrada con estado ' . $tipoRiesgo . ' por deuda detectada.';
                 } else {
-                    $estadoCredito = 'rechazado';
+                    $estadoCredito = CreditoEstado::RECHAZADO->value;
                     $mensajeResultado = 'Solicitud registrada como rechazada por deuda detectada.';
                 }
             }
@@ -331,7 +334,7 @@ class PromotorController extends Controller
                 'apellido_p' => $data['apellido_p'],
                 'apellido_m' => $data['apellido_m'] ?? '',
                 'tiene_credito_activo' => false,
-                'cliente_estado' => 'inactivo',
+                'cliente_estado' => ClienteEstado::INACTIVO->value,
             ]);
             $clienteEvaluado->setRelation('promotor', $promotor);
             $clienteEvaluado->setRelation('creditos', collect());
@@ -379,7 +382,7 @@ class PromotorController extends Controller
                     'apellido_m' => $data['apellido_m'] ?? '',
                     'fecha_nacimiento' => now()->subYears(18),
                     'tiene_credito_activo' => false,
-                    'cliente_estado' => 'inactivo',
+                    'cliente_estado' => ClienteEstado::INACTIVO->value,
                     'monto_maximo' => $data['monto'],
                     'activo' => false,
                 ]);
@@ -625,7 +628,7 @@ class PromotorController extends Controller
                 $credito = Credito::create([
                     'cliente_id' => $cliente->id,
                     'monto_total' => $data['monto'],
-                    'estado' => 'prospectado_recredito',
+                    'estado' => CreditoEstado::PROSPECTADO_REACREDITO->value,
                     'interes' => 0,
                     'periodicidad' => 'Mes',
                     'fecha_inicio' => now(),
@@ -636,7 +639,7 @@ class PromotorController extends Controller
 
                 $cliente->update([
                     'tiene_credito_activo' => false,
-                    'cliente_estado' => 'inactivo',
+                    'cliente_estado' => ClienteEstado::INACTIVO->value,
                     'activo' => false,
                 ]);
             });
@@ -708,7 +711,9 @@ class PromotorController extends Controller
 
         foreach ($clientes as $cliente) {
             $credito = $cliente->credito;
-            $estadoCartera = $cliente->cliente_estado ?? $this->mapCreditoEstadoACartera($credito) ?? 'inactivo';
+            $estadoCartera = $cliente->cliente_estado
+                ?? $this->mapCreditoEstadoACartera($credito)
+                ?? ClienteEstado::INACTIVO->value;
 
             $pagoPendiente = $credito?->pagosProyectados?->firstWhere('estado', 'pendiente');
             $pagoPendienteData = $this->buildPendingPaymentData($pagoPendiente, $cliente);
@@ -719,10 +724,17 @@ class PromotorController extends Controller
             }
 
             $cliente->cliente_estado = $estadoCartera;
-            $cliente->tiene_credito_activo = in_array($estadoCartera, ['activo', 'moroso', 'desembolsado'], true);
+            $cliente->tiene_credito_activo = in_array($estadoCartera, [
+                ClienteEstado::ACTIVO->value,
+                ClienteEstado::MOROSO->value,
+                ClienteEstado::DESEMBOLSADO->value,
+            ], true);
             unset($cliente->semana_credito, $cliente->monto_semanal);
 
-            if (in_array($estadoCartera, ['activo', 'desembolsado'], true)) {
+            if (in_array($estadoCartera, [
+                ClienteEstado::ACTIVO->value,
+                ClienteEstado::DESEMBOLSADO->value,
+            ], true)) {
                 if ($pagoPendiente) {
                     $cliente->semana_credito = $pagoPendiente->semana;
                     $cliente->monto_semanal = $pagoPendiente->monto_proyectado;
@@ -732,7 +744,7 @@ class PromotorController extends Controller
                 continue;
             }
 
-            if ($estadoCartera === 'moroso') {
+            if ($estadoCartera === ClienteEstado::MOROSO->value) {
                 $vencidos->push($cliente);
                 continue;
             }
@@ -1196,12 +1208,21 @@ class PromotorController extends Controller
             return null;
         }
 
-        return match ($credito->estado) {
-            'desembolsado' => 'desembolsado',
-            'vencido' => 'moroso',
-            'liquidado' => 'regularizado',
-            'cancelado' => 'inactivo',
-            'prospectado', 'prospectado_recredito', 'solicitado', 'aprobado', 'supervisado' => 'activo',
+        $estado = is_string($credito->estado)
+            ? CreditoEstado::tryFrom(strtolower($credito->estado))
+            : null;
+
+        return match ($estado) {
+            CreditoEstado::DESEMBOLSADO => ClienteEstado::DESEMBOLSADO->value,
+            CreditoEstado::VENCIDO => ClienteEstado::MOROSO->value,
+            CreditoEstado::LIQUIDADO => ClienteEstado::REGULARIZADO->value,
+            CreditoEstado::CANCELADO => ClienteEstado::INACTIVO->value,
+            CreditoEstado::ACTIVO,
+            CreditoEstado::PROSPECTADO,
+            CreditoEstado::PROSPECTADO_REACREDITO,
+            CreditoEstado::SOLICITADO,
+            CreditoEstado::APROBADO,
+            CreditoEstado::SUPERVISADO => ClienteEstado::ACTIVO->value,
             default => null,
         };
     }

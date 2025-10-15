@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ClienteEstado;
+use App\Enums\CreditoEstado;
 use App\Models\Aval;
 use App\Models\Cliente;
 use App\Models\Credito;
@@ -53,26 +55,26 @@ class FiltrosController extends Controller
     public const FILTER_BLOQUEO_TIEMPO_REACREDITOS = 'bloqueo_tiempo_recreditos';
 
     public const CREDIT_ACTIVE_STATES = [
-        'prospectado',
-        'prospectado_recredito',
-        'solicitado',
-        'aprobado',
-        'supervisado',
-        'desembolsado',
+        CreditoEstado::PROSPECTADO->value,
+        CreditoEstado::PROSPECTADO_REACREDITO->value,
+        CreditoEstado::SOLICITADO->value,
+        CreditoEstado::APROBADO->value,
+        CreditoEstado::SUPERVISADO->value,
+        CreditoEstado::DESEMBOLSADO->value,
     ];
 
     public const CREDIT_FAILURE_STATES = [
-        'vencido',
+        CreditoEstado::VENCIDO->value,
     ];
 
     private const CREDIT_FAILURE_STATES_FOR_PROMOTOR = [
-        'vencido',
-        'cancelado',
+        CreditoEstado::VENCIDO->value,
+        CreditoEstado::CANCELADO->value,
     ];
 
     private const CARTERA_FAILURE_STATES = [
-        'moroso',
-        'falla',
+        ClienteEstado::MOROSO->value,
+        ClienteEstado::FALLA->value,
     ];
 
     private const TIPO_SOLICITUD_REACREDITACION = 'recredito';
