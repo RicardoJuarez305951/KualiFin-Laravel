@@ -20,7 +20,7 @@ enum ClienteEstado: string
     case DOBLE_CHECK = 'doble_check';
     case PROSPECTO = 'prospecto';
     case CANCELADO = 'cancelado';
-    case RIESGO = 'riesgo';
+    
 
     /**
      * @return array<int, string>

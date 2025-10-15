@@ -15,7 +15,8 @@ enum CreditoEstado: string
     case SOLICITADO = 'solicitado';
     case SUPERVISADO = 'supervisado';
     case VENCIDO = 'vencido';
-
+    case AVAL_RIESGO = 'aval_riesgo';
+    case CLIENTE_RIESGO = 'cliente_riesgo';
     /**
      * @return array<int, string>
      */
