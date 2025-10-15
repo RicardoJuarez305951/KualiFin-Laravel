@@ -32,23 +32,47 @@ class DemoClientSeeder extends Seeder
 {
     public function run(): void
     {
-        $promotores = Promotor::with(['supervisor.ejecutivo'])->get();
+        $promotores = Promotor::with(['supervisor.ejecutivo', 'user'])->get();
 
         if ($promotores->isEmpty()) {
             return;
         }
 
         $faker = fake();
-        $scenarios = $this->clientScenarios();
         $tipoDocumento = TipoDocumento::firstOrCreate(['nombre' => 'default']);
         $ocupaciones = [];
+        $promotorStats = [];
 
         foreach ($promotores as $promotor) {
+            $plan = $this->promotorPlan($promotor);
             $creditosPromotor = [];
+            $promotorStats[$promotor->id] = [
+                'totalCredits' => 0,
+                'failureCredits' => 0,
+                'failureAmount' => 0.0,
+                'totalAmount' => 0.0,
+                'email' => optional($promotor->user)->email ?? 'sin-correo',
+            ];
 
-            foreach ($scenarios as $index => $scenario) {
+            foreach ($plan['states'] as $index => $creditState) {
+                $scenario = $this->buildScenarioForState(
+                    $creditState,
+                    $index,
+                    $plan['override_amounts'][$index] ?? null,
+                    $faker
+                );
+
                 $cliente = $this->createClienteParaPromotor($promotor, $scenario, $index, $faker);
-                $creditosPromotor[] = $this->createCreditoConRelaciones($cliente, $scenario, $faker, $ocupaciones);
+                $credito = $this->createCreditoConRelaciones($cliente, $scenario, $faker, $ocupaciones);
+                $creditosPromotor[] = $credito;
+
+                $promotorStats[$promotor->id]['totalCredits']++;
+                $promotorStats[$promotor->id]['totalAmount'] += (float) $scenario['monto_total'];
+
+                if (in_array($scenario['credito_estado'], $this->failureStates(), true)) {
+                    $promotorStats[$promotor->id]['failureCredits']++;
+                    $promotorStats[$promotor->id]['failureAmount'] += (float) $scenario['monto_total'];
+                }
             }
 
             $faker->unique(true);
@@ -76,112 +100,8 @@ class DemoClientSeeder extends Seeder
         }
 
         $faker->unique(true);
-    }
 
-    private function clientScenarios(): array
-    {
-        return [
-            [
-                'slug' => 'prospectado',
-                'cliente_estado' => ClienteEstado::INACTIVO->value,
-                'credito_estado' => CreditoEstado::PROSPECTADO->value,
-                'monto_total' => 4500.00,
-                'periodicidad' => '14Semanas',
-                'pagos' => [],
-                'extras' => [],
-                'interes' => 10.0,
-            ],
-            [
-                'slug' => 'prospectado_recredito',
-                'cliente_estado' => ClienteEstado::REGULARIZADO->value,
-                'credito_estado' => CreditoEstado::PROSPECTADO_REACREDITO->value,
-                'monto_total' => 5200.00,
-                'periodicidad' => '15Semanas',
-                'pagos' => [],
-                'extras' => [],
-                'interes' => 10.5,
-            ],
-            [
-                'slug' => 'solicitado',
-                'cliente_estado' => ClienteEstado::INACTIVO->value,
-                'credito_estado' => CreditoEstado::SOLICITADO->value,
-                'monto_total' => 5800.00,
-                'periodicidad' => 'Mes',
-                'pagos' => ['pendiente', 'pendiente', 'pendiente'],
-                'extras' => [],
-                'interes' => 12.5,
-            ],
-            [
-                'slug' => 'aprobado',
-                'cliente_estado' => ClienteEstado::ACTIVO->value,
-                'credito_estado' => CreditoEstado::APROBADO->value,
-                'monto_total' => 6400.00,
-                'periodicidad' => '15Semanas',
-                'pagos' => ['pendiente', 'pendiente', 'pendiente', 'pendiente'],
-                'extras' => [],
-                'interes' => 11.8,
-            ],
-            [
-                'slug' => 'supervisado',
-                'cliente_estado' => ClienteEstado::ACTIVO->value,
-                'credito_estado' => CreditoEstado::SUPERVISADO->value,
-                'monto_total' => 7000.00,
-                'periodicidad' => '14Semanas',
-                'pagos' => ['pagado', 'pagado', 'pendiente', 'pendiente', 'pendiente'],
-                'extras' => ['completo', 'anticipo'],
-                'interes' => 12.2,
-            ],
-            [
-                'slug' => 'desembolsado',
-                'cliente_estado' => ClienteEstado::DESEMBOLSADO->value,
-                'credito_estado' => CreditoEstado::DESEMBOLSADO->value,
-                'monto_total' => 7600.00,
-                'periodicidad' => '14Semanas',
-                'pagos' => ['pagado', 'pendiente', 'pendiente', 'pendiente', 'pendiente'],
-                'extras' => ['anticipo'],
-                'interes' => 12.8,
-            ],
-            [
-                'slug' => 'liquidado',
-                'cliente_estado' => ClienteEstado::REGULARIZADO->value,
-                'credito_estado' => CreditoEstado::LIQUIDADO->value,
-                'monto_total' => 6200.00,
-                'periodicidad' => '14Semanas',
-                'pagos' => array_fill(0, 6, 'pagado'),
-                'extras' => ['completo'],
-                'interes' => 9.8,
-            ],
-            [
-                'slug' => 'vencido',
-                'cliente_estado' => ClienteEstado::MOROSO->value,
-                'credito_estado' => CreditoEstado::VENCIDO->value,
-                'monto_total' => 7800.00,
-                'periodicidad' => '14Semanas',
-                'pagos' => ['pagado', 'vencido', 'vencido', 'pendiente', 'pendiente'],
-                'extras' => ['diferido'],
-                'interes' => 14.5,
-            ],
-            [
-                'slug' => 'cancelado',
-                'cliente_estado' => ClienteEstado::INACTIVO->value,
-                'credito_estado' => CreditoEstado::CANCELADO->value,
-                'monto_total' => 5000.00,
-                'periodicidad' => '15Semanas',
-                'pagos' => ['pagado', 'vencido'],
-                'extras' => [],
-                'interes' => 9.5,
-            ],
-            [
-                'slug' => 'desembolsado_en_recuperacion',
-                'cliente_estado' => ClienteEstado::ACTIVO->value,
-                'credito_estado' => CreditoEstado::DESEMBOLSADO->value,
-                'monto_total' => 8100.00,
-                'periodicidad' => '22Semanas',
-                'pagos' => ['pagado', 'pagado', 'pendiente', 'pendiente', 'pendiente', 'pendiente'],
-                'extras' => ['completo', 'anticipo', 'diferido'],
-                'interes' => 13.5,
-            ],
-        ];
+        $this->printPromotorFailureSummary($promotorStats);
     }
 
     private function createClienteParaPromotor(Promotor $promotor, array $scenario, int $scenarioIndex, Generator $faker): Cliente
@@ -203,6 +123,317 @@ class DemoClientSeeder extends Seeder
             'actualizado_en' => Carbon::now(),
             'activo' => $tieneActivo,
         ]);
+    }
+
+    private function buildScenarioForState(string $creditState, int $index, ?float $overrideAmount, Generator $faker): array
+    {
+        $amounts = $this->allowedCreditAmounts();
+        $blueprints = $this->scenarioBlueprints();
+        $scenario = $blueprints[$creditState] ?? $blueprints[CreditoEstado::PROSPECTADO->value];
+
+        $scenario['credito_estado'] = $creditState;
+        $scenario['monto_total'] = $overrideAmount ?? $amounts[$index % count($amounts)];
+        $scenario['slug'] = sprintf('%s-%d', $creditState, $index + 1);
+
+        if (!isset($scenario['tiene_credito_activo'])) {
+            $scenario['tiene_credito_activo'] = $this->hasActiveCredit($creditState);
+        }
+
+        if (!isset($scenario['periodicidad'])) {
+            $scenario['periodicidad'] = '14Semanas';
+        }
+
+        if (!isset($scenario['interes'])) {
+            $scenario['interes'] = $faker->randomFloat(1, 9.0, 14.5);
+        }
+
+        if (!isset($scenario['pagos'])) {
+            $scenario['pagos'] = [];
+        }
+
+        if (!isset($scenario['extras'])) {
+            $scenario['extras'] = [];
+        }
+
+        return $scenario;
+    }
+
+    /**
+     * @return array<int, float>
+     */
+    private function allowedCreditAmounts(): array
+    {
+        static $amounts;
+
+        if ($amounts === null) {
+            $amounts = array_map(static fn (int $value): float => (float) $value, range(3000, 10000, 500));
+        }
+
+        return $amounts;
+    }
+
+    private function scenarioBlueprints(): array
+    {
+        return [
+            CreditoEstado::PROSPECTADO->value => [
+                'cliente_estado' => ClienteEstado::PROSPECTO->value,
+                'pagos' => [],
+                'extras' => [],
+                'interes' => 10.0,
+            ],
+            CreditoEstado::PROSPECTADO_REACREDITO->value => [
+                'cliente_estado' => ClienteEstado::REGULARIZADO->value,
+                'pagos' => [],
+                'extras' => [],
+                'interes' => 10.5,
+            ],
+            CreditoEstado::SOLICITADO->value => [
+                'cliente_estado' => ClienteEstado::INACTIVO->value,
+                'pagos' => ['pendiente', 'pendiente', 'pendiente'],
+                'extras' => [],
+                'interes' => 12.0,
+            ],
+            CreditoEstado::APROBADO->value => [
+                'cliente_estado' => ClienteEstado::ACTIVO->value,
+                'pagos' => ['pendiente', 'pendiente', 'pendiente', 'pendiente'],
+                'extras' => [],
+                'interes' => 11.2,
+                'tiene_credito_activo' => true,
+            ],
+            CreditoEstado::SUPERVISADO->value => [
+                'cliente_estado' => ClienteEstado::SUPERVISADO->value,
+                'pagos' => ['pagado', 'pagado', 'pendiente', 'pendiente', 'pendiente'],
+                'extras' => ['completo', 'anticipo'],
+                'interes' => 11.8,
+                'tiene_credito_activo' => true,
+            ],
+            CreditoEstado::DESEMBOLSADO->value => [
+                'cliente_estado' => ClienteEstado::DESEMBOLSADO->value,
+                'pagos' => ['pagado', 'pendiente', 'pendiente', 'pendiente', 'pendiente'],
+                'extras' => ['anticipo'],
+                'interes' => 12.6,
+                'tiene_credito_activo' => true,
+            ],
+            CreditoEstado::LIQUIDADO->value => [
+                'cliente_estado' => ClienteEstado::REGULARIZADO->value,
+                'pagos' => array_fill(0, 6, 'pagado'),
+                'extras' => ['completo'],
+                'interes' => 9.6,
+            ],
+            CreditoEstado::ACTIVO->value => [
+                'cliente_estado' => ClienteEstado::ACTIVO->value,
+                'pagos' => ['pagado', 'pagado', 'pendiente', 'pendiente'],
+                'extras' => ['completo'],
+                'interes' => 11.0,
+                'tiene_credito_activo' => true,
+            ],
+            CreditoEstado::RECHAZADO->value => [
+                'cliente_estado' => ClienteEstado::CANCELADO->value,
+                'pagos' => [],
+                'extras' => [],
+                'interes' => 0.0,
+                'tiene_credito_activo' => false,
+            ],
+            CreditoEstado::VENCIDO->value => [
+                'cliente_estado' => ClienteEstado::MOROSO->value,
+                'pagos' => ['pagado', 'vencido', 'vencido', 'pendiente', 'pendiente'],
+                'extras' => ['diferido'],
+                'interes' => 14.0,
+                'tiene_credito_activo' => true,
+            ],
+            CreditoEstado::CANCELADO->value => [
+                'cliente_estado' => ClienteEstado::CANCELADO->value,
+                'pagos' => ['pagado', 'vencido'],
+                'extras' => [],
+                'interes' => 9.4,
+            ],
+            CreditoEstado::AVAL_RIESGO->value => [
+                'cliente_estado' => ClienteEstado::POR_SUPERVISAR->value,
+                'pagos' => ['pendiente', 'pendiente', 'pendiente'],
+                'extras' => ['anticipo'],
+                'interes' => 12.2,
+            ],
+            CreditoEstado::CLIENTE_RIESGO->value => [
+                'cliente_estado' => ClienteEstado::FALLA->value,
+                'pagos' => ['pagado', 'vencido', 'pendiente', 'pendiente'],
+                'extras' => ['diferido'],
+                'interes' => 13.2,
+            ],
+        ];
+    }
+
+    private function promotorPlan(Promotor $promotor): array
+    {
+        $email = optional($promotor->user)->email;
+
+        return match ($email) {
+            'promotor@example.com' => [
+                'states' => [
+                    CreditoEstado::PROSPECTADO->value,
+                    CreditoEstado::PROSPECTADO_REACREDITO->value,
+                    CreditoEstado::SOLICITADO->value,
+                    CreditoEstado::APROBADO->value,
+                    CreditoEstado::SUPERVISADO->value,
+                    CreditoEstado::DESEMBOLSADO->value,
+                    CreditoEstado::LIQUIDADO->value,
+                    CreditoEstado::ACTIVO->value,
+                    CreditoEstado::RECHAZADO->value,
+                    CreditoEstado::AVAL_RIESGO->value,
+                    CreditoEstado::CLIENTE_RIESGO->value,
+                    CreditoEstado::VENCIDO->value,
+                    CreditoEstado::DESEMBOLSADO->value,
+                    CreditoEstado::SUPERVISADO->value,
+                    CreditoEstado::APROBADO->value,
+                    CreditoEstado::SOLICITADO->value,
+                    CreditoEstado::PROSPECTADO->value,
+                    CreditoEstado::ACTIVO->value,
+                    CreditoEstado::LIQUIDADO->value,
+                    CreditoEstado::PROSPECTADO_REACREDITO->value,
+                ],
+                'override_amounts' => [
+                    11 => 3000.0,
+                ],
+            ],
+            'promotor2@example.com' => [
+                'states' => [
+                    CreditoEstado::PROSPECTADO->value,
+                    CreditoEstado::PROSPECTADO_REACREDITO->value,
+                    CreditoEstado::SOLICITADO->value,
+                    CreditoEstado::APROBADO->value,
+                    CreditoEstado::SUPERVISADO->value,
+                    CreditoEstado::DESEMBOLSADO->value,
+                    CreditoEstado::LIQUIDADO->value,
+                    CreditoEstado::ACTIVO->value,
+                    CreditoEstado::RECHAZADO->value,
+                    CreditoEstado::AVAL_RIESGO->value,
+                    CreditoEstado::CLIENTE_RIESGO->value,
+                    CreditoEstado::APROBADO->value,
+                    CreditoEstado::SUPERVISADO->value,
+                    CreditoEstado::DESEMBOLSADO->value,
+                    CreditoEstado::ACTIVO->value,
+                    CreditoEstado::LIQUIDADO->value,
+                    CreditoEstado::PROSPECTADO->value,
+                    CreditoEstado::PROSPECTADO_REACREDITO->value,
+                    CreditoEstado::SOLICITADO->value,
+                    CreditoEstado::APROBADO->value,
+                ],
+                'override_amounts' => [],
+            ],
+            'ejecutivo1.supervisor2.promotor1@example.com' => [
+                'states' => $this->defaultStateSequence(),
+                'override_amounts' => [
+                    11 => 4500.0,
+                    12 => 4000.0,
+                ],
+            ],
+            'ejecutivo1.supervisor2.promotor2@example.com' => [
+                'states' => [
+                    CreditoEstado::PROSPECTADO->value,
+                    CreditoEstado::PROSPECTADO_REACREDITO->value,
+                    CreditoEstado::SOLICITADO->value,
+                    CreditoEstado::APROBADO->value,
+                    CreditoEstado::SUPERVISADO->value,
+                    CreditoEstado::DESEMBOLSADO->value,
+                    CreditoEstado::LIQUIDADO->value,
+                    CreditoEstado::ACTIVO->value,
+                    CreditoEstado::RECHAZADO->value,
+                    CreditoEstado::AVAL_RIESGO->value,
+                    CreditoEstado::CLIENTE_RIESGO->value,
+                    CreditoEstado::VENCIDO->value,
+                    CreditoEstado::CANCELADO->value,
+                    CreditoEstado::VENCIDO->value,
+                    CreditoEstado::CANCELADO->value,
+                    CreditoEstado::DESEMBOLSADO->value,
+                    CreditoEstado::SUPERVISADO->value,
+                    CreditoEstado::APROBADO->value,
+                    CreditoEstado::SOLICITADO->value,
+                    CreditoEstado::ACTIVO->value,
+                ],
+                'override_amounts' => [
+                    11 => 10000.0,
+                    12 => 9500.0,
+                    13 => 9000.0,
+                    14 => 8500.0,
+                ],
+            ],
+            default => [
+                'states' => $this->defaultStateSequence(),
+                'override_amounts' => [],
+            ],
+        };
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function defaultStateSequence(): array
+    {
+        return [
+            CreditoEstado::PROSPECTADO->value,
+            CreditoEstado::PROSPECTADO_REACREDITO->value,
+            CreditoEstado::SOLICITADO->value,
+            CreditoEstado::APROBADO->value,
+            CreditoEstado::SUPERVISADO->value,
+            CreditoEstado::DESEMBOLSADO->value,
+            CreditoEstado::LIQUIDADO->value,
+            CreditoEstado::ACTIVO->value,
+            CreditoEstado::RECHAZADO->value,
+            CreditoEstado::AVAL_RIESGO->value,
+            CreditoEstado::CLIENTE_RIESGO->value,
+            CreditoEstado::VENCIDO->value,
+            CreditoEstado::CANCELADO->value,
+            CreditoEstado::DESEMBOLSADO->value,
+            CreditoEstado::SUPERVISADO->value,
+            CreditoEstado::APROBADO->value,
+            CreditoEstado::SOLICITADO->value,
+            CreditoEstado::PROSPECTADO->value,
+            CreditoEstado::ACTIVO->value,
+            CreditoEstado::LIQUIDADO->value,
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function failureStates(): array
+    {
+        return [
+            CreditoEstado::VENCIDO->value,
+            CreditoEstado::CANCELADO->value,
+        ];
+    }
+
+    private function printPromotorFailureSummary(array $promotorStats): void
+    {
+        if (empty($promotorStats)) {
+            return;
+        }
+
+        $collection = collect($promotorStats)->map(static function (array $stats) {
+            $percentage = $stats['totalAmount'] > 0
+                ? round(($stats['failureAmount'] / $stats['totalAmount']) * 100, 2)
+                : 0.0;
+
+            return array_merge($stats, ['failurePercentage' => $percentage]);
+        });
+
+        $lessThanFive = $collection
+            ->reject(static fn (array $stats) => $stats['email'] === 'promotor@example.com')
+            ->first(static fn (array $stats) => $stats['failurePercentage'] < 5.0);
+
+        $betweenFiveAndTen = $collection
+            ->first(static fn (array $stats) => $stats['failurePercentage'] > 5.0 && $stats['failurePercentage'] < 10.0);
+
+        $greaterThanTen = $collection
+            ->first(static fn (array $stats) => $stats['failurePercentage'] > 10.0);
+
+        foreach ([$lessThanFive, $betweenFiveAndTen, $greaterThanTen] as $stats) {
+            if (!$stats) {
+                continue;
+            }
+
+            printf("%s | falla del %.2f%%\n", $stats['email'], $stats['failurePercentage']);
+        }
     }
 
     private function createCreditoConRelaciones(Cliente $cliente, array $scenario, Generator $faker, array &$ocupacionesBucket): Credito
@@ -459,6 +690,7 @@ class DemoClientSeeder extends Seeder
     private function hasActiveCredit(string $estadoCredito): bool
     {
         return in_array($estadoCredito, [
+            CreditoEstado::ACTIVO->value,
             CreditoEstado::APROBADO->value,
             CreditoEstado::SUPERVISADO->value,
             CreditoEstado::DESEMBOLSADO->value,
