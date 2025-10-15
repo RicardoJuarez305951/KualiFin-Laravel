@@ -6,16 +6,47 @@
     $ejecutivoNombre = $ejecutivoNombre ?? ''; // necesario para el bloque de firmas superior
     $fechaHoy = $fechaHoy ?? now()->format('d/m/Y');
 
-    $rows = collect($clienteRows ?? []);
-    $totals = $totalesTabla ?? [];
-    $totalPrestamoSolicitado = $totalPrestamoSolicitado ?? $rows->sum(fn ($row) => $row['prestamo_solicitado'] ?? 0);
-    $comisionPromotor = $comisionPromotor ?? 0;
-    $comisionSupervisor = $comisionSupervisor ?? 0;
-    $carteraActual = $carteraActual ?? 0;
-    $inversion = $inversion ?? 0;
+    $rows = collect($clienteRows ?? [])->map(function ($row) {
+        $estado = strtolower((string) ($row['estado'] ?? ''));
+        $estadoNormalizado = str_replace('_', ' ', $estado);
 
-    // ¡UTF-8 directo para evitar caracteres raros!
-    $receiptIssuer = 'MARCO ANTONIO GÜEMES ABUD';
+        $row['_estado_texto'] = $estadoNormalizado !== '' ? ucwords($estadoNormalizado) : '';
+        $row['_cancelado'] = in_array($estado, [
+            'cancelado', 'cancelada', 'rechazado', 'rechazada', 'eliminado', 'eliminada',
+        ], true);
+        $row['_motivo_cancelacion'] = trim((string) ($row['motivo_cancelacion'] ?? ''));
+        $row['_cancelado_por'] = trim((string) ($row['cancelado_por'] ?? ''));
+        $row['_cancelado_en'] = $row['cancelado_en'] ?? null;
+
+        return $row;
+    });
+
+    $cancelledRows = $rows->filter(fn ($row) => !empty($row['_cancelado']));
+    $activeRows = $rows->reject(fn ($row) => !empty($row['_cancelado']));
+
+    $sumKeys = [
+        'prestamo_anterior',
+        'prestamo_solicitado',
+        'comision_cinco',
+        'total_prestamo',
+        'recredito_nuevo',
+        'total_recredito',
+        'saldo_post_recredito',
+    ];
+
+    $totals = array_merge($totalesTabla ?? [], []);
+    foreach ($sumKeys as $key) {
+        $totals[$key] = $activeRows->sum(fn ($row) => (float) ($row[$key] ?? 0));
+    }
+
+    $totalPrestamoSolicitado = (float) ($totals['prestamo_solicitado'] ?? 0);
+    $comisionPromotor = (float) ($totals['comision_cinco'] ?? 0);
+    $comisionSupervisor = round($totalPrestamoSolicitado * 0.10, 2);
+    $carteraActual = (float) ($totals['saldo_post_recredito'] ?? 0);
+    $inversion = $comisionPromotor + $comisionSupervisor + $totalPrestamoSolicitado - $carteraActual;
+
+    // Evita caracteres raros al generar el PDF
+    $receiptIssuer = 'MARCO ANTONIO GOMEZ ABUD';
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -52,6 +83,10 @@
         border:0.35px solid #000; padding:1.5px 2px; line-height:1.05; white-space:nowrap;
     }
     .clients-table th{ font-size:7.2px; font-weight:700; text-align:center; text-transform:uppercase; }
+    .clients-table .cancelled-row td{ color:#8a8a8a; }
+    .clients-table .cancelled-row td.text-right{ color:#8a8a8a; }
+    .cancelled-label{ display:block; font-size:6.8px; font-weight:700; text-transform:uppercase; color:#b91c1c; margin-top:1px; }
+    .cancelled-meta{ display:block; font-size:6.5px; color:#6b7280; }
 
     .signatures{ width:100%; border-collapse:collapse; }
     .signatures td{ border:0.35px solid #000; padding:2px 3px; width:50%; vertical-align:top; }
@@ -117,8 +152,29 @@
             </thead>
             <tbody>
                 @forelse ($rows as $i => $row)
-                    <tr>
-                        <td>{{ $i+1 }}. {{ $row['nombre'] ?? 'Sin nombre' }}</td>
+                    @php
+                        $cancelado = !empty($row['_cancelado']);
+                        $estadoTexto = $row['_estado_texto'] ?? '';
+                        $motivoCancelacionFila = $row['_motivo_cancelacion'] ?? '';
+                        $canceladoEn = $row['_cancelado_en'] ?? null;
+                        $canceladoPor = $row['_cancelado_por'] ?? '';
+                    @endphp
+                    <tr class="{{ $cancelado ? 'cancelled-row' : '' }}">
+                        <td>
+                            <div>{{ $i + 1 }}. {{ $row['nombre'] ?? 'Sin nombre' }}</div>
+                            @if($cancelado)
+                                <span class="cancelled-label">{{ $estadoTexto !== '' ? $estadoTexto : 'Cancelado' }}</span>
+                                <span class="cancelled-meta">
+                                    Motivo: {{ $motivoCancelacionFila !== '' ? $motivoCancelacionFila : 'Sin motivo registrado' }}
+                                </span>
+                                @if($canceladoEn)
+                                    <span class="cancelled-meta">Fecha: {{ $canceladoEn }}</span>
+                                @endif
+                                @if($canceladoPor !== '')
+                                    <span class="cancelled-meta">Registró: {{ $canceladoPor }}</span>
+                                @endif
+                            @endif
+                        </td>
                         <td class="text-right">{{ Formatter::currencyNullable($row['prestamo_anterior'] ?? null) }}</td>
                         <td class="text-right">{{ Formatter::currencyNullable($row['prestamo_solicitado'] ?? null) }}</td>
                         <td class="text-right">{{ Formatter::currencyNullable($row['comision_cinco'] ?? null) }}</td>
@@ -167,14 +223,14 @@
         <table class="summary-table">
             <tbody>
                 <tr><th>Comisi&oacute;n promotor</th><td class="text-right">{{ Formatter::currency($comisionPromotor) }}</td></tr>
-                <tr><th>Comisi&oacute;n supervisor</th><td class="text-right">{{ Formatter::currency($comisionSupervisor) }}</td></tr>
+                <tr><th>Comisi&oacute;n supervisor (10%)</th><td class="text-right">{{ Formatter::currency($comisionSupervisor) }}</td></tr>
                 <tr><th>Total pr&eacute;stamos solicitados</th><td class="text-right">{{ Formatter::currency($totalPrestamoSolicitado) }}</td></tr>
                 <tr><th>Cartera actual promotor</th><td class="text-right">{{ Formatter::currency($carteraActual) }}</td></tr>
                 <tr><th>Inversi&oacute;n</th><td class="text-right summary-total">{{ Formatter::currency($inversion) }}</td></tr>
             </tbody>
         </table>
         <div class="small" style="margin-top:2px;">
-            <b>Nota:</b> Inversi&oacute;n = comisiones + &uacute;ltimos cr&eacute;ditos − cartera actual.
+            <b>Nota:</b> Inversi&oacute;n = comisiones (promotor + supervisor 10%) + &uacute;ltimos cr&eacute;ditos - cartera actual. Las sumas excluyen cr&eacute;ditos cancelados.
         </div>
     </div>
 
@@ -270,3 +326,6 @@
     </div>
 </body>
 </html>
+
+
+

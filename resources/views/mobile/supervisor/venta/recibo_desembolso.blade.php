@@ -1,31 +1,68 @@
 {{-- resources/views/mobile/supervisor/venta/recibo_desembolso.blade.php --}}
 @php
     $clienteRows = $clienteRows ?? [];
-    $totalPrestamoSolicitado = $totalPrestamoSolicitado ?? collect($clienteRows)->sum(fn ($row) => $row['prestamo_solicitado'] ?? 0);
-    $comisionPromotor = isset($comisionPromotor) ? (float) $comisionPromotor : 0.0;
-    $comisionSupervisor = isset($comisionSupervisor) ? (float) $comisionSupervisor : 0.0;
-    $carteraActual = isset($carteraActual) ? (float) $carteraActual : 0.0;
+    $clienteRowsCollection = collect($clienteRows)->map(function ($row) {
+        $estado = strtolower((string) ($row['estado'] ?? ''));
+        $estadoNormalizado = str_replace('_', ' ', $estado);
+
+        $row['_estado_texto'] = $estadoNormalizado !== ''
+            ? (string) \Illuminate\Support\Str::of($estadoNormalizado)->title()
+            : 'Sin estado';
+        $row['_cancelado'] = in_array($estado, [
+            'cancelado', 'cancelada', 'rechazado', 'rechazada', 'eliminado', 'eliminada',
+        ], true);
+        $row['_motivo_cancelacion'] = trim((string) ($row['motivo_cancelacion'] ?? ''));
+        $row['_cancelado_por'] = trim((string) ($row['cancelado_por'] ?? ''));
+        $row['_cancelado_en'] = $row['cancelado_en'] ?? null;
+
+        return $row;
+    });
+    $clienteRows = $clienteRowsCollection->toArray();
+
+    $activeRows = $clienteRowsCollection->reject(fn ($row) => !empty($row['_cancelado']));
+    $cancelledRows = $clienteRowsCollection->filter(fn ($row) => !empty($row['_cancelado']));
+
+    $sumKeys = [
+        'prestamo_anterior',
+        'prestamo_solicitado',
+        'comision_cinco',
+        'total_prestamo',
+        'recredito_nuevo',
+        'total_recredito',
+        'saldo_post_recredito',
+    ];
+
+    $totalesCalculados = [];
+    foreach ($sumKeys as $key) {
+        $totalesCalculados[$key] = $activeRows->sum(fn ($row) => (float) ($row[$key] ?? 0));
+    }
+
+    $totalesTabla = array_merge($totalesTabla ?? [], $totalesCalculados);
+
+    $totalPrestamoSolicitado = (float) ($totalesTabla['prestamo_solicitado'] ?? 0);
+    $comisionPromotor = (float) ($totalesTabla['comision_cinco'] ?? 0);
+    $comisionSupervisor = round($totalPrestamoSolicitado * 0.10, 2);
+    $carteraActual = (float) ($totalesTabla['saldo_post_recredito'] ?? 0);
     $inversion = $comisionPromotor + $comisionSupervisor + $totalPrestamoSolicitado - $carteraActual;
     $cancelRouteName = $cancelRouteName ?? null;
     $puedeCancelarCreditos = $puedeCancelarCreditos ?? false;
     $supervisorQuery = $supervisorContextQuery ?? [];
     $reciboPdfRoute = '#';
-    $clienteRowsCollection = collect($clienteRows);
 
-    $ultimoCancelado = $clienteRowsCollection
-        ->filter(fn ($row) => isset($row['estado']) && strtolower((string) $row['estado']) === 'cancelado' && !empty($row['cancelado_en'] ?? null))
+    $ultimoCancelado = $cancelledRows
+        ->filter(fn ($row) => !empty($row['_cancelado_en']))
         ->sortByDesc(function ($row) {
             try {
-                return \Illuminate\Support\Carbon::parse($row['cancelado_en'])->timestamp;
+                return \Illuminate\Support\Carbon::parse($row['_cancelado_en'])->timestamp;
             } catch (\Throwable $e) {
                 return PHP_INT_MIN;
             }
         })
         ->first();
 
-    $motivoCancelacion = $ultimoCancelado['motivo_cancelacion'] ?? '';
+    $motivoCancelacion = $ultimoCancelado['_motivo_cancelacion'] ?? '';
     $motivoCancelacionCliente = $ultimoCancelado['nombre'] ?? '';
-    $motivoCancelacionFecha = $ultimoCancelado['cancelado_en'] ?? '';
+    $motivoCancelacionFecha = $ultimoCancelado['_cancelado_en'] ?? '';
 
     if (isset($promotor) && $promotor?->id && \Illuminate\Support\Facades\Route::has('mobile.supervisor.venta.recibo_desembolso.pdf')) {
         $reciboPdfRoute = route('mobile.supervisor.venta.recibo_desembolso.pdf', array_merge($supervisorQuery, [
@@ -98,27 +135,25 @@
                     <tbody class="divide-y divide-gray-200">
                         @forelse($clienteRows as $row)
                             @php
-                                $estadoBruto = strtolower((string) ($row['estado'] ?? ''));
-                                $estadoTexto = $estadoBruto !== ''
-                                    ? (string) \Illuminate\Support\Str::of($row['estado'])->replace('_', ' ')->title()
-                                    : 'Sin estado';
-                                $cancelado = $estadoBruto === 'cancelado';
-                                $canceladoEn = $row['cancelado_en'] ?? null;
-                                $motivoFila = trim((string) ($row['motivo_cancelacion'] ?? ''));
-                                $canceladoPorFila = trim((string) ($row['cancelado_por'] ?? ''));
+                                $estadoTexto = $row['_estado_texto'] ?? 'Sin estado';
+                                $cancelado = !empty($row['_cancelado']);
+                                $canceladoEn = $row['_cancelado_en'] ?? null;
+                                $motivoFila = $row['_motivo_cancelacion'] ?? '';
+                                $canceladoPorFila = $row['_cancelado_por'] ?? '';
                                 $cancelRoute = $cancelRouteName && isset($promotor) && $promotor?->id && !empty($row['credito_id'])
                                     ? route($cancelRouteName, array_merge($supervisorQuery, ['promotor' => $promotor->id, 'credito' => $row['credito_id']]))
                                     : null;
+                                $numericMuted = $cancelado ? 'text-gray-400' : '';
                             @endphp
-                            <tr class="text-gray-800 align-top">
+                            <tr class="align-top {{ $cancelado ? 'bg-rose-50 text-gray-500' : 'text-gray-800' }}">
                                 <td class="px-2 py-1">{{ $row['nombre'] ?: 'Sin nombre' }}</td>
-                                <td class="px-2 py-1 text-right">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['prestamo_anterior']) }}</td>
-                                <td class="px-2 py-1 text-right font-semibold">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['prestamo_solicitado']) }}</td>
-                                <td class="px-2 py-1 text-right">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['comision_cinco']) }}</td>
-                                <td class="px-2 py-1 text-right">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['total_prestamo']) }}</td>
-                                <td class="px-2 py-1 text-right">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['recredito_nuevo']) }}</td>
-                                <td class="px-2 py-1 text-right">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['total_recredito']) }}</td>
-                                <td class="px-2 py-1 text-right">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['saldo_post_recredito']) }}</td>
+                                <td class="px-2 py-1 text-right {{ $numericMuted }}">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['prestamo_anterior']) }}</td>
+                                <td class="px-2 py-1 text-right {{ $cancelado ? 'font-medium text-gray-400' : 'font-semibold' }}">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['prestamo_solicitado']) }}</td>
+                                <td class="px-2 py-1 text-right {{ $numericMuted }}">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['comision_cinco']) }}</td>
+                                <td class="px-2 py-1 text-right {{ $numericMuted }}">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['total_prestamo']) }}</td>
+                                <td class="px-2 py-1 text-right {{ $numericMuted }}">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['recredito_nuevo']) }}</td>
+                                <td class="px-2 py-1 text-right {{ $numericMuted }}">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['total_recredito']) }}</td>
+                                <td class="px-2 py-1 text-right {{ $numericMuted }}">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['saldo_post_recredito']) }}</td>
                                 <td class="px-2 py-1 text-left">
                                     <div class="flex flex-col gap-0.5">
                                         <span class="font-semibold {{ $cancelado ? 'text-red-600' : 'text-emerald-600' }}">{{ $estadoTexto }}</span>
@@ -238,7 +273,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <th class="px-2 py-1 text-left font-semibold text-gray-700">Comisión de supervisor</th>
+                            <th class="px-2 py-1 text-left font-semibold text-gray-700">Comisión de supervisor (10%)</th>
                             <td class="px-2 py-1 text-right">
                                 <input type="number" step="0.01" name="comision_supervisor"
                                        value="{{ number_format($comisionSupervisor, 2, '.', '') }}" readonly
@@ -263,7 +298,7 @@
                     </tbody>
                 </table>
             </div>
-            <p class="text-[9px] text-gray-500">La inversión se calcula como comisiones + total de últimos créditos − cartera actual.</p>
+            <p class="text-[9px] text-gray-500">La inversión se calcula como comisiones (promotor + supervisor 10%) + total de últimos créditos - cartera actual.</p>
         </div>
 
         {{-- Recibos --}}
@@ -314,7 +349,7 @@
                     </p>
                 </div>
                 <button type="button" class="text-gray-400 hover:text-gray-600" data-credit-cancel-close aria-label="Cerrar ventana de rechazo">
-                    ✕
+                    &times;
                 </button>
             </div>
 
@@ -324,17 +359,17 @@
                 <div class="rounded-md bg-gray-50 p-2 text-[10px] text-gray-600">
                     <p class="leading-tight">
                         Cancelarás el crédito de
-                        <span class="font-semibold text-gray-800" data-credit-cancel-client>—</span>.
+                        <span class="font-semibold text-gray-800" data-credit-cancel-client>---</span>.
                         Esta acción es definitiva.
                     </p>
                     <div class="mt-1 grid grid-cols-2 gap-y-1 text-gray-500">
                         <div class="col-span-2">
                             <span class="font-semibold text-gray-700">Estado actual:</span>
-                            <span data-credit-cancel-state>—</span>
+                            <span data-credit-cancel-state>---</span>
                         </div>
                         <div>
                             <span class="font-semibold text-gray-700">Monto solicitado:</span>
-                            <span data-credit-cancel-amount>—</span>
+                            <span data-credit-cancel-amount>---</span>
                         </div>
                     </div>
                 </div>
