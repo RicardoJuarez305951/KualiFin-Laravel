@@ -451,33 +451,12 @@
         @endif
       </section>
 
-      <section class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-3">
-        <div class="flex items-center justify-between">
-          <h3 class="text-sm font-semibold text-gray-800">Cobranza semanal</h3>
-          <span class="text-xs font-semibold text-gray-700">{{ $formatCurrency($cobranzaTotal) }}</span>
-        </div>
-
-        @if(empty($cobranzaDias))
-          <p class="text-sm text-gray-600">Sin pagos registrados en la semana.</p>
-        @else
-          <div class="divide-y divide-gray-200 text-sm">
-            @foreach($cobranzaDias as $dia)
-              <div class="flex items-center justify-between py-2">
-                <div>
-                  <p class="text-xs uppercase text-gray-500">{{ $dia['dia'] ?? 'Dia' }}</p>
-                  <p class="text-sm text-gray-700">{{ $dia['fecha_texto'] ?? '---' }}</p>
-                </div>
-                <p class="text-sm font-semibold text-gray-800">{{ $formatCurrency($dia['total'] ?? 0) }}</p>
-              </div>
-            @endforeach
-          </div>
-        @endif
-      </section>
+      
 
       @if(!empty($debeProyectadoSemanal))
         <section class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-3">
           <div class="flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-gray-800">Debe Proyectado por Semana</h3>
+            <h3 class="text-sm font-semibold text-gray-800">Cobranza Semanal</h3>
           </div>
           <div class="divide-y divide-gray-200 text-sm">
             @foreach($debeProyectadoSemanal as $semana)
