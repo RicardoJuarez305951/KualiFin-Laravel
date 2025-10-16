@@ -66,15 +66,16 @@
         <div class="h-full px-3 pb-4 overflow-y-auto bg-white">
             <ul class="space-y-2 font-medium">
                 <x-layouts.navlink route="dashboard" icon="🏠" text="Dashboard" />
-                {{-- <x-layouts.navlink route="credito.create" icon="📋" text="Nueva Solicitud" />
-                <x-layouts.navlink route="nuevoCliente" icon="👥" text="Nuevo Cliente" />
-                <x-layouts.navlink route="panelRevision" icon="🔍" text="Panel de Revisión" />
-                <x-layouts.navlink route="preAprobacion" icon="📝" text="Pre Aprobación" />
-                <x-layouts.navlink route="reportes" icon="📊" text="Reportes" />
-                <x-layouts.navlink route="recreditoClientes" icon="🔄" text="Recrédito Clientes" /> --}}
                 <x-layouts.navlink route='consulta.historica' icon="🔍" text="Consulta Histórica" />
                 <x-layouts.navlink route='mobile.index' icon="📱" text="Vista Móvil" />
                 <x-layouts.navlink route="admin.index" icon="🧑‍💼" text="Panel Administrativo" />
+
+                {{-- <x-layouts.navlink route="credito.create" icon="📋" text="Nueva Solicitud" /> --}}
+                {{-- <x-layouts.navlink route="nuevoCliente" icon="👥" text="Nuevo Cliente" /> --}}
+                {{-- <x-layouts.navlink route="recreditoClientes" icon="🔄" text="Recrédito Clientes" /> --}}
+                <x-layouts.navlink route="panelRevision" icon="🔍" text="Panel de Revisión" />
+                <x-layouts.navlink route="preAprobacion" icon="📝" text="Pre Aprobación" />
+                <x-layouts.navlink route="reportes" icon="📊" text="Reportes" />
             </ul>
             
             <div class="pt-4 mt-4 space-y-2 border-t border-gray-200">

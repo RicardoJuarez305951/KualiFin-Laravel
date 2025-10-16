@@ -28,7 +28,8 @@
           </svg>
         </div>
         <div>
-            <p class="text-xl font-semibold text-gray-800">Error en la operación</p>
+            <p class="text-xl font-semibold text-gray-800"
+               x-text="resultadoEstado === 'rechazado' ? 'Crédito registrado como rechazado' : 'Error en la operación'"></p>
             <p class="mt-1 text-gray-600" x-text="resultadoMensaje"></p>
         </div>
         <button @click="showResultado = false" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold py-2.5 rounded-lg transition-colors">

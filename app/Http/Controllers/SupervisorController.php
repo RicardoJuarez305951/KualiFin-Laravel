@@ -1,6 +1,8 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Enums\ClienteEstado;
+use App\Enums\CreditoEstado;
 use App\Models\Cliente;
 use App\Models\Credito;
 use App\Models\Ejecutivo;
@@ -11,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Route;
@@ -297,8 +300,17 @@ class SupervisorController extends Controller
 
         $promotorIds = $promotores->pluck('id')->filter()->values();
 
-        $prospectStatuses = ['activo', 'desembolsado', 'regularizado', 'inactivo'];
-        $supervisionStatuses = ['moroso', 'desembolsado', 'regularizado'];
+        $prospectStatuses = [
+            ClienteEstado::ACTIVO->value,
+            ClienteEstado::DESEMBOLSADO->value,
+            ClienteEstado::REGULARIZADO->value,
+            ClienteEstado::INACTIVO->value,
+        ];
+        $supervisionStatuses = [
+            ClienteEstado::MOROSO->value,
+            ClienteEstado::DESEMBOLSADO->value,
+            ClienteEstado::REGULARIZADO->value,
+        ];
 
         $clientesProspectados = $promotorIds->isEmpty()
             ? 0
@@ -307,7 +319,7 @@ class SupervisorController extends Controller
         $clientesPorSupervisar = $promotorIds->isEmpty()
             ? 0
             : Cliente::whereIn('promotor_id', $promotorIds)
-                ->whereIn('cartera_estado', $supervisionStatuses)
+                ->whereIn('cliente_estado', $supervisionStatuses)
                 ->count();
 
         $supervisorIds = $supervisores->pluck('id')->filter()->values();
@@ -345,12 +357,12 @@ class SupervisorController extends Controller
             $clientes = $promotor->clientes ?? collect();
 
             $prospectos = $clientes
-                ->whereIn('cartera_estado', $prospectStatuses)
+                ->whereIn('cliente_estado', $prospectStatuses)
                 ->map($formatNombre)
                 ->values();
 
             $porSupervisar = $clientes
-                ->whereIn('cartera_estado', $supervisionStatuses)
+                ->whereIn('cliente_estado', $supervisionStatuses)
                 ->map($formatNombre)
                 ->values();
 
@@ -389,6 +401,151 @@ class SupervisorController extends Controller
         $payload = $dataService->build($promotor);
 
         return view('mobile.supervisor.venta.recibo_desembolso', $payload);
+    }
+
+    /**
+     * Cancela el crédito seleccionado y registra el motivo para que quede trazabilidad.
+     */
+    public function rechazarCredito(Request $request, Promotor $promotor, Credito $credito)
+    {
+        $supervisor = $this->resolveSupervisorContext($request);
+        $primaryRole = RoleHierarchy::resolvePrimaryRole($request->user());
+
+        $this->ensurePromotorBelongsToContext($supervisor, $promotor, $primaryRole);
+
+        $cliente = $credito->cliente;
+
+        if (!$cliente || $cliente->promotor_id !== $promotor->id) {
+            abort(404, 'El crédito no pertenece al promotor indicado.');
+        }
+
+        $estadoCredito = CreditoEstado::tryFrom(strtolower((string) $credito->estado));
+        if ($estadoCredito === CreditoEstado::CANCELADO) {
+            $message = 'El crédito ya fue cancelado anteriormente.';
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => $message,
+                ], 409);
+            }
+
+            return back()->with('error', $message);
+        }
+
+        $validated = $request->validate([
+            'motivo_cancelacion' => ['required', 'string', 'min:5', 'max:2000'],
+        ]);
+
+        $motivo = trim($validated['motivo_cancelacion']);
+
+        DB::transaction(function () use ($credito, $cliente, $motivo) {
+            $credito->forceFill([
+                'estado' => CreditoEstado::CANCELADO->value,
+                'motivo_cancelacion' => $motivo,
+                'cancelado_en' => now(),
+                'cancelado_por_id' => Auth::id(),
+            ])->save();
+
+            $cliente->loadMissing(['creditos']);
+
+            $estadoActivo = $cliente->creditos
+                ->filter(fn (Credito $c) => $c->id !== $credito->id)
+                ->contains(function (Credito $c) {
+                    $estado = CreditoEstado::tryFrom(strtolower((string) $c->estado));
+
+                    return !in_array($estado, [
+                        CreditoEstado::CANCELADO,
+                        CreditoEstado::LIQUIDADO,
+                    ], true);
+                });
+
+            // Registramos si el cliente todavía conserva algún crédito con estatus operativo.
+            $ultimoCredito = $cliente->creditos
+                ->sortByDesc(function (Credito $c) {
+                    if ($c->fecha_inicio) {
+                        return Carbon::parse($c->fecha_inicio)->timestamp;
+                    }
+
+                    return PHP_INT_MIN + (int) $c->id;
+                })
+                ->first();
+
+            // Refrescamos el resumen de cartera con la misma lógica usada en la app móvil.
+            $cliente->forceFill([
+                'tiene_credito_activo' => $estadoActivo,
+                'cliente_estado' => $this->mapCreditoEstadoACartera($ultimoCredito)
+                    ?? ($estadoActivo ? ClienteEstado::ACTIVO->value : ClienteEstado::INACTIVO->value),
+            ])->save();
+        });
+
+        $credito->refresh();
+
+        $canceladoPor = $credito->canceladoPor;
+        $canceladoPorNombre = null;
+
+        if ($canceladoPor) {
+            $canceladoPorNombre = trim(collect([
+                $canceladoPor->name ?? null,
+                $canceladoPor->apellido_p ?? null,
+                $canceladoPor->apellido_m ?? null,
+            ])->filter()->implode(' '));
+
+            if ($canceladoPorNombre === '') {
+                $canceladoPorNombre = $canceladoPor->email ?? null;
+            }
+        }
+
+        $payload = [
+            'ok' => true,
+            'message' => 'El crédito se canceló correctamente.',
+            'credito' => [
+                'id' => $credito->id,
+                'estado' => $credito->estado,
+                'motivo_cancelacion' => (string) ($credito->motivo_cancelacion ?? ''),
+                'cancelado_en' => optional($credito->cancelado_en)->format('d/m/Y H:i'),
+                'cancelado_por' => $canceladoPorNombre,
+                'cliente_id' => $credito->cliente_id,
+            ],
+        ];
+
+        if ($request->wantsJson()) {
+            return response()->json($payload);
+        }
+
+        $supervisorContextQuery = $request->attributes->get('supervisor_context_query', []);
+
+        return redirect()
+            ->route(
+                'mobile.supervisor.venta.recibo_desembolso',
+                array_merge($supervisorContextQuery, ['promotor' => $promotor->id])
+            )
+            ->with('status', $payload['message']);
+    }
+
+    private function mapCreditoEstadoACartera(?Credito $credito): ?string
+    {
+        if (!$credito) {
+            return null;
+        }
+
+        $estado = is_string($credito->estado)
+            ? CreditoEstado::tryFrom(strtolower($credito->estado))
+            : null;
+
+        return match ($estado) {
+            CreditoEstado::DESEMBOLSADO => ClienteEstado::DESEMBOLSADO->value,
+            CreditoEstado::VENCIDO => ClienteEstado::MOROSO->value,
+            CreditoEstado::LIQUIDADO => ClienteEstado::REGULARIZADO->value,
+            CreditoEstado::CANCELADO => ClienteEstado::INACTIVO->value,
+            CreditoEstado::ACTIVO,
+            CreditoEstado::PROSPECTADO,
+            CreditoEstado::PROSPECTADO_REACREDITO,
+            CreditoEstado::SOLICITADO,
+            CreditoEstado::APROBADO,
+            CreditoEstado::SUPERVISADO => ClienteEstado::ACTIVO->value,
+            default => null,
+        };
     }
 
     public function solicitar_venta()
@@ -510,8 +667,13 @@ class SupervisorController extends Controller
     {
         [, $promotores] = $this->resolveSupervisorPromotoresConClientes($request);
 
-        $nuevoStatuses = ['activo', 'desembolsado', 'regularizado', 'inactivo'];
-        $recreditoStatuses = ['moroso'];
+        $nuevoStatuses = [
+            ClienteEstado::ACTIVO->value,
+            ClienteEstado::DESEMBOLSADO->value,
+            ClienteEstado::REGULARIZADO->value,
+            ClienteEstado::INACTIVO->value,
+        ];
+        $recreditoStatuses = [ClienteEstado::MOROSO->value];
 
         $promotoresData = $promotores->map(function ($promotor) use ($nuevoStatuses, $recreditoStatuses) {
             $clientes = $promotor->clientes ?? collect();
@@ -523,8 +685,8 @@ class SupervisorController extends Controller
             return [
                 'id' => $promotor->id,
                 'nombre' => trim($promotor->nombre . ' ' . $promotor->apellido_p . ' ' . ($promotor->apellido_m ?? '')),
-                'clientes' => $clientes->whereIn('cartera_estado', $nuevoStatuses)->map($mapCliente)->values(),
-                'recreditos' => $clientes->whereIn('cartera_estado', $recreditoStatuses)->map($mapCliente)->values(),
+                'clientes' => $clientes->whereIn('cliente_estado', $nuevoStatuses)->map($mapCliente)->values(),
+                'recreditos' => $clientes->whereIn('cliente_estado', $recreditoStatuses)->map($mapCliente)->values(),
             ];
         });
 
@@ -537,8 +699,12 @@ class SupervisorController extends Controller
     {
         [, $promotores] = $this->resolveSupervisorPromotoresConClientes($request);
 
-        $supervisionStatuses = ['moroso', 'desembolsado', 'regularizado'];
-        $recreditoStatuses = ['moroso'];
+        $supervisionStatuses = [
+            ClienteEstado::MOROSO->value,
+            ClienteEstado::DESEMBOLSADO->value,
+            ClienteEstado::REGULARIZADO->value,
+        ];
+        $recreditoStatuses = [ClienteEstado::MOROSO->value];
 
         $promotoresData = $promotores->map(function ($promotor) use ($supervisionStatuses, $recreditoStatuses) {
             $clientes = $promotor->clientes ?? collect();
@@ -552,8 +718,8 @@ class SupervisorController extends Controller
             return [
                 'id' => $promotor->id,
                 'nombre' => trim($promotor->nombre . ' ' . $promotor->apellido_p . ' ' . ($promotor->apellido_m ?? '')),
-                'clientes' => $clientes->whereIn('cartera_estado', $supervisionStatuses)->map($mapCliente)->values(),
-                'recreditos' => $clientes->whereIn('cartera_estado', $recreditoStatuses)->map($mapCliente)->values(),
+                'clientes' => $clientes->whereIn('cliente_estado', $supervisionStatuses)->map($mapCliente)->values(),
+                'recreditos' => $clientes->whereIn('cliente_estado', $recreditoStatuses)->map($mapCliente)->values(),
             ];
         });
 
@@ -571,10 +737,10 @@ class SupervisorController extends Controller
         }
 
         DB::transaction(function () use ($cliente, $credito) {
-            $credito->estado = 'Supervisado';
+            $credito->estado = CreditoEstado::SUPERVISADO->value;
             $credito->save();
 
-            $cliente->cartera_estado = 'activo';
+            $cliente->cliente_estado = ClienteEstado::ACTIVO->value;
             $cliente->activo = true;
             $cliente->save();
         });
@@ -586,7 +752,7 @@ class SupervisorController extends Controller
             'message' => 'Cliente supervisado correctamente.',
             'cliente' => [
                 'id' => $cliente->id,
-                'cartera_estado' => $cliente->cartera_estado,
+                'cliente_estado' => $cliente->cliente_estado,
                 'credito_estado' => $credito->estado,
             ],
         ]);
@@ -601,10 +767,10 @@ class SupervisorController extends Controller
         }
 
         DB::transaction(function () use ($cliente, $credito) {
-            $credito->estado = 'Rechazado';
+            $credito->estado = CreditoEstado::RECHAZADO->value;
             $credito->save();
 
-            $cliente->cartera_estado = 'inactivo';
+            $cliente->cliente_estado = ClienteEstado::INACTIVO->value;
             $cliente->activo = false;
             $cliente->save();
         });
@@ -616,7 +782,7 @@ class SupervisorController extends Controller
             'message' => 'Cliente rechazado correctamente.',
             'cliente' => [
                 'id' => $cliente->id,
-                'cartera_estado' => $cliente->cartera_estado,
+                'cliente_estado' => $cliente->cliente_estado,
                 'credito_estado' => $credito->estado,
             ],
         ]);
@@ -667,7 +833,10 @@ class SupervisorController extends Controller
                     $weekStart->copy()->startOfDay()->toDateTimeString(),
                     $weekEnd->copy()->endOfDay()->toDateTimeString(),
                 ])
-                ->whereIn('creditos.estado', ['desembolsado', 'activo'])
+                ->whereIn('creditos.estado', [
+                    CreditoEstado::DESEMBOLSADO->value,
+                    CreditoEstado::ACTIVO->value,
+                ])
                 ->groupBy('clientes.promotor_id')
                 ->pluck('total', 'promotor_id')
             : collect();
@@ -710,13 +879,13 @@ class SupervisorController extends Controller
 
         $cartera_activa = $clienteIds->isNotEmpty()
             ? (float) Credito::whereIn('cliente_id', $clienteIds)
-                ->where('estado', 'activo')
+                ->where('estado', CreditoEstado::ACTIVO->value)
                 ->sum('monto_total')
             : 0.0;
 
         $cartera_vencida = $clienteIds->isNotEmpty()
             ? (float) Credito::whereIn('cliente_id', $clienteIds)
-                ->where('estado', 'vencido')
+                ->where('estado', CreditoEstado::VENCIDO->value)
                 ->sum('monto_total')
             : 0.0;
 
@@ -1013,7 +1182,7 @@ class SupervisorController extends Controller
 
         $blocks = collect($promotoresPaginator->items())->map(function (Promotor $p) {
             $clientes = Cliente::where('promotor_id', $p->id)
-                ->whereHas('credito', fn($q) => $q->where('estado', 'activo'))
+                ->whereHas('credito', fn($q) => $q->where('estado', CreditoEstado::ACTIVO->value))
                 ->with(['credito.pagosProyectados.pagosReales.pagoCompleto', 'credito.pagosProyectados.pagosReales.pagoAnticipo', 'credito.pagosProyectados.pagosReales.pagoDiferido'])
                 ->get();
 
@@ -1331,7 +1500,7 @@ class SupervisorController extends Controller
                 $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo', 'dia_de_pago', 'hora_de_pago')
                     ->with([
                         'clientes' => function ($clienteQuery) {
-                            $clienteQuery->select('id', 'promotor_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'fecha_nacimiento', 'tiene_credito_activo', 'monto_maximo', 'activo')
+                            $clienteQuery->select('id', 'promotor_id', 'CURP', 'nombre', 'apellido_p', 'apellido_m', 'cliente_estado', 'fecha_nacimiento', 'tiene_credito_activo', 'monto_maximo', 'activo')
                                 ->with([
                                     'documentos',
                                     'credito' => function ($creditoQuery) {
@@ -1430,7 +1599,7 @@ class SupervisorController extends Controller
             'promotores' => function ($query) {
                 $query->select('id', 'supervisor_id', 'nombre', 'apellido_p', 'apellido_m', 'venta_maxima', 'venta_proyectada_objetivo', 'dia_de_pago', 'hora_de_pago')
                     ->with(['clientes' => function ($clienteQuery) {
-                        $clienteQuery->select('id', 'promotor_id', 'nombre', 'apellido_p', 'apellido_m', 'cartera_estado', 'tiene_credito_activo')
+                        $clienteQuery->select('id', 'promotor_id', 'nombre', 'apellido_p', 'apellido_m', 'cliente_estado', 'tiene_credito_activo')
                             ->orderBy('nombre');
                     }])
                     ->orderBy('nombre');
@@ -1507,7 +1676,7 @@ class SupervisorController extends Controller
             'apellido_p' => $cliente->apellido_p,
             'apellido_m' => $cliente->apellido_m,
             'curp' => $cliente->CURP,
-            'cartera_estado' => $cliente->cartera_estado,
+            'cliente_estado' => $cliente->cliente_estado,
             'fecha_nacimiento' => $cliente->fecha_nacimiento?->format('Y-m-d'),
             'tiene_credito_activo' => (bool) $cliente->tiene_credito_activo,
             'activo' => (bool) $cliente->activo,

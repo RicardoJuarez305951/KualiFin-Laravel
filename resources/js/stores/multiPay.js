@@ -4,11 +4,15 @@ document.addEventListener('alpine:init', () => {
         clients: [],
 
         lastError: null,
+        showSuccess: false,
+        successMessage: '',
+        successDetails: [],
 
         toggleMode() {
             if (this.active) {
                 this.cancel();
             } else {
+                this.clearSuccess();
                 this.active = true;
             }
         },
@@ -16,6 +20,24 @@ document.addEventListener('alpine:init', () => {
         reset() {
             this.clients = [];
             this.lastError = null;
+        },
+
+        clearSuccess() {
+            this.showSuccess = false;
+            this.successMessage = '';
+            this.successDetails = [];
+        },
+
+        notifySuccess(message, details = []) {
+            this.successMessage = typeof message === 'string' && message.trim().length
+                ? message.trim()
+                : 'Pagos registrados correctamente.';
+            this.successDetails = Array.isArray(details) ? details : [];
+            this.showSuccess = true;
+        },
+
+        acknowledgeSuccess() {
+            this.clearSuccess();
         },
 
         ensureClientRecord(cliente) {
@@ -27,6 +49,11 @@ document.addEventListener('alpine:init', () => {
             let index = this.findIndex(clientId);
 
             if (index !== -1) {
+                const existingRecord = this.clients[index];
+                if (existingRecord && typeof existingRecord.anticipo === 'undefined') {
+                    this.clients.splice(index, 1, { ...existingRecord, anticipo: 0 });
+                }
+
                 return { index, record: this.clients[index] };
             }
 
@@ -384,6 +411,7 @@ document.addEventListener('alpine:init', () => {
                 monto: montos[defaultType] ?? montos.default ?? 0,
                 montos,
                 limites,
+                anticipo: 0,
             };
         },
 
@@ -446,7 +474,10 @@ document.addEventListener('alpine:init', () => {
             }
 
             const clientName = record.nombre ?? this.resolveClientName(cliente);
-            const initialAmount = record.tipo === 'diferido' ? record.monto : '';
+            const initialAmount =
+                record.tipo === 'diferido'
+                    ? (record.monto ?? 0) + (record.anticipo ?? 0)
+                    : '';
 
             calcStore.open({
                 client: clientName,
@@ -466,8 +497,55 @@ document.addEventListener('alpine:init', () => {
 
             calcStore.mode = record.tipo === 'diferido' ? 'deferred' : null;
             if (record.tipo === 'diferido') {
-                calcStore.amount = String(record.monto ?? '');
+                const totalAmount = (record.monto ?? 0) + (record.anticipo ?? 0);
+                calcStore.amount = String(totalAmount ?? '');
             } else {
+                calcStore.amount = '';
+            }
+        },
+
+        openSingleCalculator(cliente) {
+            const calcStore = typeof Alpine !== 'undefined' ? Alpine.store('calc') : null;
+
+            if (!calcStore) {
+                console.warn('No se encontró el store de la calculadora para pago individual.');
+                return;
+            }
+
+            const pagoProyectadoId = this.resolvePagoProyectadoId(cliente);
+
+            if (pagoProyectadoId === null) {
+                if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+                    window.alert('No se pudo identificar el pago proyectado del cliente seleccionado.');
+                }
+                return;
+            }
+
+            const clientId = this.resolveId(cliente) ?? pagoProyectadoId;
+            const provisionalRecord = this.buildClientRecord(cliente, clientId, pagoProyectadoId);
+
+            calcStore.open({
+                client: provisionalRecord.nombre,
+                initialAmount: provisionalRecord.tipo === 'diferido' ? provisionalRecord.monto : '',
+                context: {
+                    mode: 'singlePay',
+                    clientId: provisionalRecord.id,
+                    pagoProyectadoId,
+                },
+                clientData: {
+                    id: provisionalRecord.id,
+                    tipo: provisionalRecord.tipo,
+                    montos: { ...(provisionalRecord.montos ?? {}) },
+                    limites: { ...(provisionalRecord.limites ?? {}) },
+                },
+                onAccept: (payload) => this.registerSinglePayment(cliente, payload),
+            });
+
+            if (provisionalRecord.tipo === 'diferido') {
+                calcStore.mode = 'deferred';
+                calcStore.amount = String(provisionalRecord.monto ?? '');
+            } else {
+                calcStore.mode = null;
                 calcStore.amount = '';
             }
         },
@@ -514,6 +592,10 @@ document.addEventListener('alpine:init', () => {
             const normalized = this.normalizeType(type);
             this.clients[index].tipo = normalized;
             this.updateRecordAmountForType(this.clients[index]);
+
+            if (normalized !== 'diferido') {
+                this.clients[index].anticipo = 0;
+            }
         },
 
         setMonto(clienteOrId, value) {
@@ -584,36 +666,34 @@ document.addEventListener('alpine:init', () => {
 
                 const safeAmount = amountValue !== null ? Math.max(amountValue, 0) : 0;
                 const tolerance = 0.005;
+                const effectiveLimit = limit !== null ? Math.max(limit, 0) : null;
 
-                if (limit !== null && safeAmount - limit > tolerance) {
-                    const formatter =
-                        typeof Intl !== 'undefined' && typeof Intl.NumberFormat === 'function'
-                            ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })
-                            : null;
-                    const limitText = formatter ? formatter.format(limit) : `${limit}`;
-                    const message = `El monto diferido no puede exceder el pago proyectado de ${limitText}.`;
+                let diferidoAmount = safeAmount;
+                let anticipoAmount = 0;
 
-                    this.lastError = message;
-
-                    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
-                        window.alert(message);
-                    }
-
-                    return false;
+                if (effectiveLimit !== null && safeAmount - effectiveLimit > tolerance) {
+                    diferidoAmount = effectiveLimit;
+                    anticipoAmount = safeAmount - effectiveLimit;
                 }
 
-                record.monto = safeAmount;
-                record.montos = { ...(record.montos ?? {}), diferido: safeAmount };
+                if (effectiveLimit !== null && diferidoAmount - effectiveLimit > tolerance) {
+                    diferidoAmount = effectiveLimit;
+                }
+
+                record.monto = diferidoAmount;
+                record.montos = { ...(record.montos ?? {}), diferido: diferidoAmount };
                 record.limites = { ...(record.limites ?? {}) };
 
                 if (record.limites.diferido === undefined || record.limites.diferido === null) {
-                    record.limites.diferido = limit !== null ? limit : safeAmount;
+                    record.limites.diferido = effectiveLimit !== null ? effectiveLimit : diferidoAmount;
                 }
 
+                record.anticipo = anticipoAmount > tolerance ? anticipoAmount : 0;
                 this.lastError = null;
             } else {
                 this.updateRecordAmountForType(record);
                 this.lastError = null;
+                record.anticipo = 0;
             }
 
             this.clients.splice(targetIndex, 1, { ...record });
@@ -666,6 +746,193 @@ document.addEventListener('alpine:init', () => {
             return fallback ? fallback.charAt(0).toUpperCase() + fallback.slice(1) : 'Sin tipo';
         },
 
+        buildSuccessMessage(pagos) {
+            if (!Array.isArray(pagos) || !pagos.length) {
+                return 'Pagos registrados correctamente.';
+            }
+
+            if (pagos.length === 1) {
+                const tipo = this.normalizeType(pagos[0]?.tipo);
+                const label = this.typeLabel(tipo).toLowerCase();
+                return `Pago ${label} registrado correctamente.`;
+            }
+
+            const counts = pagos.reduce((accumulator, pago) => {
+                const tipo = this.normalizeType(pago?.tipo);
+                if (!tipo) {
+                    return accumulator;
+                }
+
+                accumulator[tipo] = (accumulator[tipo] ?? 0) + 1;
+                return accumulator;
+            }, {});
+
+            const parts = Object.entries(counts)
+                .filter(([, count]) => count > 0)
+                .map(([tipo, count]) => this.describeSuccessCount(tipo, count))
+                .filter(Boolean);
+
+            if (!parts.length) {
+                return `${pagos.length} pagos registrados correctamente.`;
+            }
+
+            if (parts.length === 1) {
+                return `Se registraron ${parts[0]} correctamente.`;
+            }
+
+            const lastPart = parts.pop();
+            return `Se registraron ${parts.join(', ')} y ${lastPart} correctamente.`;
+        },
+
+        describeSuccessCount(tipo, count) {
+            if (!count) {
+                return '';
+            }
+
+            const label = this.typeLabel(tipo).toLowerCase();
+            const plural = count === 1 ? label : `${label}s`;
+            return `${count} ${plural}`;
+        },
+
+        formatCurrency(value) {
+            const numeric = this.normalizeNumber(value);
+            if (numeric === null) {
+                return '';
+            }
+
+            try {
+                return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(numeric);
+            } catch (error) {
+                return `$${numeric.toFixed(2)}`;
+            }
+        },
+
+        paymentAmount(pago) {
+            if (!pago || typeof pago !== 'object') {
+                return '';
+            }
+
+            const tipo = this.normalizeType(pago?.tipo);
+            let amount = null;
+
+            if (tipo === 'completo') {
+                amount = this.normalizeNumber(pago?.pago_completo?.monto_completo ?? pago?.monto);
+            } else if (tipo === 'diferido') {
+                amount = this.normalizeNumber(pago?.pago_diferido?.monto_diferido ?? pago?.monto);
+            } else if (tipo === 'anticipo') {
+                amount = this.normalizeNumber(pago?.pago_anticipo?.monto_anticipo ?? pago?.monto);
+            }
+
+            if (amount === null) {
+                return '';
+            }
+
+            return this.formatCurrency(amount);
+        },
+
+        registerSinglePayment(cliente, payload = {}) {
+            const pagoProyectadoId = this.resolvePagoProyectadoId(cliente);
+
+            if (pagoProyectadoId === null) {
+                if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+                    window.alert('No se pudo identificar el pago pendiente del cliente.');
+                }
+                return Promise.reject(new Error('Pago proyectado no encontrado.'));
+            }
+
+            const rawMode = typeof payload?.mode === 'string' ? payload.mode.trim().toLowerCase() : '';
+            const rawType = typeof payload?.tipo === 'string' ? payload.tipo.trim().toLowerCase() : '';
+            let tipo = rawType ? this.normalizeType(rawType) : null;
+
+            if (!tipo) {
+                if (rawMode === 'deferred' || rawMode === 'diferido') {
+                    tipo = 'diferido';
+                } else {
+                    tipo = 'completo';
+                }
+            }
+
+            let monto = 0;
+            if (tipo === 'diferido') {
+                const numeric = this.normalizeNumber(payload?.amount ?? payload?.monto);
+                if (numeric === null || numeric <= 0) {
+                    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+                        window.alert('Ingresa un monto válido para registrar el pago diferido.');
+                    }
+                    return Promise.reject(new Error('Monto diferido inválido.'));
+                }
+                monto = numeric;
+            }
+
+            const requestPayload = {
+                pagos: [
+                    {
+                        pago_proyectado_id: pagoProyectadoId,
+                        tipo,
+                        monto,
+                    },
+                ],
+            };
+
+            this.lastError = null;
+            this.clearSuccess();
+
+            return axios
+                .post('/mobile/promotor/pagos-multiples', requestPayload)
+                .then((response) => {
+                    const data = Array.isArray(response?.data) ? response.data : [];
+                    const message = this.buildSuccessMessage(data);
+                    this.notifySuccess(message, data);
+                    return response;
+                })
+                .catch((error) => {
+                    this.handleRequestError(error);
+                    throw error;
+                });
+        },
+
+        handleRequestError(error) {
+            console.error('Error al registrar pagos.', error);
+
+            const response = error?.response;
+            const data = response?.data ?? {};
+            const baseMessage =
+                typeof data.message === 'string' && data.message.trim().length
+                    ? data.message.trim()
+                    : 'No se pudieron registrar los pagos seleccionados.';
+
+            const rawErrors = data?.errors;
+            let errors = [];
+
+            if (Array.isArray(rawErrors)) {
+                errors = rawErrors;
+            } else if (rawErrors && typeof rawErrors === 'object') {
+                errors = Object.values(rawErrors).reduce((accumulator, value) => {
+                    if (Array.isArray(value)) {
+                        return accumulator.concat(value);
+                    }
+
+                    if (typeof value === 'string') {
+                        accumulator.push(value);
+                    }
+
+                    return accumulator;
+                }, []);
+            }
+
+            const details = errors
+                .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+                .filter(Boolean);
+
+            const message = details.length ? `${baseMessage}\n- ${details.join('\n- ')}` : baseMessage;
+
+            this.lastError = message;
+
+            if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+                window.alert(message);
+            }
+        },
+
         summaryItemClasses(type) {
             const normalized = this.normalizeType(type);
             const mapping = {
@@ -712,23 +979,36 @@ document.addEventListener('alpine:init', () => {
         },
 
         get detailedPayload() {
+            const tolerance = 0.005;
             const pagos = this.clients
                 .map((client) => {
                     const pagoId = this.normalizeId(client.pago_proyectado_id);
                     if (pagoId === null) {
-                        return null;
+                        return [];
                     }
 
                     const amount = this.normalizeNumber(client.monto);
                     const monto = amount !== null ? Math.max(amount, 0) : 0;
+                    const entries = [
+                        {
+                            pago_proyectado_id: pagoId,
+                            tipo: this.normalizeType(client.tipo),
+                            monto,
+                        },
+                    ];
 
-                    return {
-                        pago_proyectado_id: pagoId,
-                        tipo: this.normalizeType(client.tipo),
-                        monto,
-                    };
+                    const anticipoAmount = this.normalizeNumber(client.anticipo);
+                    if (anticipoAmount !== null && anticipoAmount > tolerance) {
+                        entries.push({
+                            pago_proyectado_id: pagoId,
+                            tipo: 'anticipo',
+                            monto: Math.max(anticipoAmount, 0),
+                        });
+                    }
+
+                    return entries;
                 })
-                .filter(Boolean);
+                .flat();
 
             return { pagos };
         },
@@ -746,52 +1026,14 @@ document.addEventListener('alpine:init', () => {
             return axios
                 .post('/mobile/promotor/pagos-multiples', payload)
                 .then((response) => {
+                    const data = Array.isArray(response?.data) ? response.data : [];
+                    const message = this.buildSuccessMessage(data);
+                    this.notifySuccess(message, data);
                     this.cancel();
                     return response;
                 })
                 .catch((error) => {
-                    console.error('Error al registrar pagos múltiples.', error);
-
-                    const response = error?.response;
-                    const data = response?.data ?? {};
-                    const baseMessage =
-                        typeof data.message === 'string' && data.message.trim().length
-                            ? data.message.trim()
-                            : 'No se pudieron registrar los pagos seleccionados.';
-
-                    const rawErrors = data?.errors;
-                    let errors = [];
-
-                    if (Array.isArray(rawErrors)) {
-                        errors = rawErrors;
-                    } else if (rawErrors && typeof rawErrors === 'object') {
-                        errors = Object.values(rawErrors).reduce((accumulator, value) => {
-                            if (Array.isArray(value)) {
-                                return accumulator.concat(value);
-                            }
-
-                            if (typeof value === 'string') {
-                                accumulator.push(value);
-                            }
-
-                            return accumulator;
-                        }, []);
-                    }
-
-                    const details = errors
-                        .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
-                        .filter(Boolean);
-
-                    const message = details.length
-                        ? `${baseMessage}\n- ${details.join('\n- ')}`
-                        : baseMessage;
-
-                    this.lastError = message;
-
-                    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
-                        window.alert(message);
-                    }
-
+                    this.handleRequestError(error);
                     throw error;
                 });
         },

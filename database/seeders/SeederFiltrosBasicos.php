@@ -2,6 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ClienteEstado;
+use App\Enums\CreditoEstado;
+use App\Enums\PeriodicidadCreditos;
 use App\Models\Aval;
 use App\Models\Cliente;
 use App\Models\Credito;
@@ -80,10 +83,10 @@ class SeederFiltrosBasicos extends Seeder
             'tiene_credito_activo' => true,
             'creditos' => [
                 [
-                    'estado' => 'desembolsado',
+                    'estado' => CreditoEstado::DESEMBOLSADO->value,
                     'monto_total' => 15000,
                     'interes' => 16.5,
-                    'periodicidad' => 'Semanal 13',
+                    'periodicidad' => PeriodicidadCreditos::TRECE->value,
                     'fecha_inicio_weeks_ago' => 30,
                     'fecha_final_weeks_ahead' => 10,
                     'avales' => [
@@ -109,10 +112,10 @@ class SeederFiltrosBasicos extends Seeder
             'tiene_credito_activo' => true,
             'creditos' => [
                 [
-                    'estado' => 'supervisado',
+                    'estado' => CreditoEstado::SUPERVISADO->value,
                     'monto_total' => 14200,
                     'interes' => 15.0,
-                    'periodicidad' => 'Semanal 14',
+                    'periodicidad' => PeriodicidadCreditos::VEINTIDOS->value,
                     'fecha_inicio_weeks_ago' => 26,
                     'fecha_final_weeks_ahead' => 8,
                     'avales' => [
@@ -149,8 +152,8 @@ class SeederFiltrosBasicos extends Seeder
             'CURP' => 'REAT800101HDFRMC09',
             'creditos' => [
                 [
-                    'estado' => 'liquidado',
-                    'periodicidad' => 'Semanal 13',
+                    'estado' => CreditoEstado::LIQUIDADO->value,
+                    'periodicidad' => PeriodicidadCreditos::TRECE->value,
                     'monto_total' => 9800,
                     'interes' => 11.5,
                     'fecha_inicio_weeks_ago' => 6,
@@ -163,11 +166,11 @@ class SeederFiltrosBasicos extends Seeder
             'apellido_p' => 'Recredito',
             'apellido_m' => 'Morosa',
             'CURP' => 'REAM800202MDFRMD10',
-            'cartera_estado' => 'moroso',
+            'cliente_estado' => ClienteEstado::MOROSO->value,
             'creditos' => [
                 [
-                    'estado' => 'vencido',
-                    'periodicidad' => 'Semanal 14',
+                    'estado' => CreditoEstado::VENCIDO->value,
+                    'periodicidad' => PeriodicidadCreditos::VEINTIDOS->value,
                     'monto_total' => 10500,
                     'interes' => 12.5,
                     'fecha_inicio_weeks_ago' => 20,
@@ -182,8 +185,8 @@ class SeederFiltrosBasicos extends Seeder
             'CURP' => 'REAL800303HDFRME11',
             'creditos' => [
                 [
-                    'estado' => 'liquidado',
-                    'periodicidad' => 'Semanal 13',
+                    'estado' => CreditoEstado::LIQUIDADO->value,
+                    'periodicidad' => PeriodicidadCreditos::TRECE->value,
                     'monto_total' => 11200,
                     'interes' => 12.0,
                     'fecha_inicio_weeks_ago' => 12,
@@ -370,7 +373,7 @@ class SeederFiltrosBasicos extends Seeder
             'promotor_id' => $promotor->id,
             'fecha_nacimiento' => '1985-01-01',
             'tiene_credito_activo' => false,
-            'cartera_estado' => 'vigente',
+            'cliente_estado' => ClienteEstado::VIGENTE->value,
             'monto_maximo' => 8000,
             'creado_en' => Carbon::now()->subMonths(2),
             'actualizado_en' => Carbon::now()->subWeeks(3),
@@ -398,9 +401,9 @@ class SeederFiltrosBasicos extends Seeder
 
         $credito = Credito::create(array_merge([
             'monto_total' => 7500,
-            'estado' => 'liquidado',
+            'estado' => CreditoEstado::LIQUIDADO->value,
             'interes' => 10.5,
-            'periodicidad' => 'Semanal 13',
+            'periodicidad' => PeriodicidadCreditos::TRECE->value,
             'fecha_inicio' => Carbon::now()->subWeeks(10)->toDateString(),
             'fecha_final' => Carbon::now()->addWeeks(5)->toDateString(),
         ], $attributes));

@@ -188,7 +188,7 @@ function createClienteParaSupervisorCartera(Promotor $promotor, string $curp, st
         'apellido_m' => 'Demo',
         'fecha_nacimiento' => '1990-01-01',
         'tiene_credito_activo' => true,
-        'cartera_estado' => 'activo',
+        'cliente_estado' => 'activo',
         'monto_maximo' => 15000,
         'creado_en' => now(),
         'actualizado_en' => now(),

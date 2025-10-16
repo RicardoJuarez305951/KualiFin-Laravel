@@ -2,6 +2,8 @@
 namespace App\Http\Controllers;
 
 
+use App\Enums\ClienteEstado;
+use App\Enums\CreditoEstado;
 use App\Http\Controllers\FiltrosController;
 use App\Models\Aval;
 use App\Models\Cliente;
@@ -26,20 +28,20 @@ class PromotorController extends Controller
     }
 
     private const AVAL_CREDIT_STATUS_BLOCKLIST = [
-        'prospectado',
-        'prospectado_recredito',
-        'solicitado',
-        'aprobado',
-        'supervisado',
-        'desembolsado',
-        'vencido',
-        'cancelado',
+        CreditoEstado::PROSPECTADO->value,
+        CreditoEstado::PROSPECTADO_REACREDITO->value,
+        CreditoEstado::SOLICITADO->value,
+        CreditoEstado::APROBADO->value,
+        CreditoEstado::SUPERVISADO->value,
+        CreditoEstado::DESEMBOLSADO->value,
+        CreditoEstado::VENCIDO->value,
+        CreditoEstado::CANCELADO->value,
     ];
 
     private const AVAL_CARTERA_STATUS_BLOCKLIST = [
-        'activo',
-        'moroso',
-        'desembolsado',
+        ClienteEstado::ACTIVO->value,
+        ClienteEstado::MOROSO->value,
+        ClienteEstado::DESEMBOLSADO->value,
     ];
 
     public function index(Request $request)
@@ -179,15 +181,16 @@ class PromotorController extends Controller
             foreach ($clientes as $cliente) {
                 $cliente->update([
                     'tiene_credito_activo' => false,
-                    'cartera_estado' => 'inactivo',
+                    'cliente_estado' => ClienteEstado::INACTIVO->value,
                     'activo' => false,
                 ]);
 
                 $credito = $cliente->credito;
                 if ($credito) {
-                    $nuevoEstado = $credito->estado === 'prospectado_recredito'
-                        ? 'prospectado_recredito'
-                        : 'prospectado';
+                    $estadoActual = CreditoEstado::tryFrom((string) $credito->estado);
+                    $nuevoEstado = $estadoActual === CreditoEstado::PROSPECTADO_REACREDITO
+                        ? CreditoEstado::PROSPECTADO_REACREDITO->value
+                        : CreditoEstado::PROSPECTADO->value;
 
                     $credito->update([
                         'estado' => $nuevoEstado,
@@ -256,12 +259,70 @@ class PromotorController extends Controller
                 $data['apellido_p'],
                 $data['apellido_m'] ?? ''
             );
-            if ($nombreCompleto !== '') {
-                $registrosDeudores = $excel->searchDebtors($nombreCompleto);
-                if (!empty($registrosDeudores)) {
-                    throw ValidationException::withMessages([
-                        'nombre' => 'El cliente aparece en la lista de deudores y no puede registrarse.',
+            $avalNombreCompleto = $this->formatFullName(
+                $data['aval_nombre'],
+                $data['aval_apellido_p'],
+                $data['aval_apellido_m'] ?? ''
+            );
+
+            $registrosDeudaCliente = $nombreCompleto !== ''
+                ? $excel->searchDebtors($nombreCompleto)
+                : [];
+            $registrosDeudaAval = $avalNombreCompleto !== ''
+                ? $excel->searchDebtors($avalNombreCompleto)
+                : [];
+
+            $clienteTieneDeuda = !empty($registrosDeudaCliente);
+            $avalTieneDeuda = !empty($registrosDeudaAval);
+
+            $estadoCredito = CreditoEstado::PROSPECTADO->value;
+            $mensajeResultado = 'Cliente creado con exito.';
+            $tipoRiesgo = null;
+            $decisionRiesgo = $request->input('decision_riesgo');
+
+            if (!$clienteTieneDeuda && !$avalTieneDeuda) {
+                $decisionRiesgo = null;
+            }
+
+            if ($clienteTieneDeuda && $avalTieneDeuda) {
+                $estadoCredito = CreditoEstado::RECHAZADO->value;
+                $mensajeResultado = 'Solicitud rechazada automaticamente: Cliente y Aval presentan deuda registrada.';
+                $decisionRiesgo = 'rechazar';
+            } elseif ($clienteTieneDeuda || $avalTieneDeuda) {
+                $tipoRiesgo = $clienteTieneDeuda ? 'ClienteRiesgo' : 'AvalRiesgo';
+                $mensajeBase = $clienteTieneDeuda
+                    ? 'Se detecto deuda registrada para el cliente.'
+                    : 'Se detecto deuda registrada para el aval.';
+
+                if ($decisionRiesgo === null) {
+                    $mensajeConfirmacion = $mensajeBase . ' ¿Deseas continuar y registrar el credito como ' . $tipoRiesgo . '?';
+
+                    return response()->json([
+                        'success' => false,
+                        'requires_confirmation' => true,
+                        'message' => $mensajeConfirmacion,
+                        'risk_type' => $tipoRiesgo,
+                        'estado_credito' => $tipoRiesgo,
+                        'deuda_cliente' => $registrosDeudaCliente,
+                        'deuda_aval' => $registrosDeudaAval,
+                        'cliente_tiene_deuda' => $clienteTieneDeuda,
+                        'aval_tiene_deuda' => $avalTieneDeuda,
                     ]);
+                }
+
+                if (!in_array($decisionRiesgo, ['aceptar', 'rechazar'], true)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Decision de riesgo invalida proporcionada.',
+                    ], 422);
+                }
+
+                if ($decisionRiesgo === 'aceptar') {
+                    $estadoCredito = $tipoRiesgo;
+                    $mensajeResultado = 'Solicitud registrada con estado ' . $tipoRiesgo . ' por deuda detectada.';
+                } else {
+                    $estadoCredito = CreditoEstado::RECHAZADO->value;
+                    $mensajeResultado = 'Solicitud registrada como rechazada por deuda detectada.';
                 }
             }
 
@@ -273,7 +334,7 @@ class PromotorController extends Controller
                 'apellido_p' => $data['apellido_p'],
                 'apellido_m' => $data['apellido_m'] ?? '',
                 'tiene_credito_activo' => false,
-                'cartera_estado' => 'inactivo',
+                'cliente_estado' => ClienteEstado::INACTIVO->value,
             ]);
             $clienteEvaluado->setRelation('promotor', $promotor);
             $clienteEvaluado->setRelation('creditos', collect());
@@ -299,17 +360,20 @@ class PromotorController extends Controller
                 'ultimo_credito' => null,
             ];
 
-            $resultadoFiltros = $this->filtrosController->evaluar($clienteEvaluado, $formulario, $contexto);
+            $evaluarFiltros = $estadoCredito !== 'rechazado';
+            if ($evaluarFiltros) {
+                $resultadoFiltros = $this->filtrosController->evaluar($clienteEvaluado, $formulario, $contexto);
 
-            if (!$resultadoFiltros['passed']) {
-                $mensajeFiltro = $resultadoFiltros['message'] ?? 'La solicitud no cumple con los criterios requeridos.';
+                if (!$resultadoFiltros['passed']) {
+                    $mensajeFiltro = $resultadoFiltros['message'] ?? 'La solicitud no cumple con los criterios requeridos.';
 
-                return $request->expectsJson()
-                    ? response()->json(['success' => false, 'message' => $mensajeFiltro], 422)
-                    : back()->with('error', $mensajeFiltro)->withInput();
+                    return $request->expectsJson()
+                        ? response()->json(['success' => false, 'message' => $mensajeFiltro], 422)
+                        : back()->with('error', $mensajeFiltro)->withInput();
+                }
             }
 
-            DB::transaction(function () use ($data, $promotor) {
+            DB::transaction(function () use ($data, $promotor, $estadoCredito) {
                 $cliente = Cliente::create([
                     'promotor_id' => $promotor->id,
                     'CURP' => $data['CURP'],
@@ -318,7 +382,7 @@ class PromotorController extends Controller
                     'apellido_m' => $data['apellido_m'] ?? '',
                     'fecha_nacimiento' => now()->subYears(18),
                     'tiene_credito_activo' => false,
-                    'cartera_estado' => 'inactivo',
+                    'cliente_estado' => ClienteEstado::INACTIVO->value,
                     'monto_maximo' => $data['monto'],
                     'activo' => false,
                 ]);
@@ -326,7 +390,7 @@ class PromotorController extends Controller
                 $credito = Credito::create([
                     'cliente_id' => $cliente->id,
                     'monto_total' => $data['monto'],
-                    'estado' => 'prospectado',
+                    'estado' => $estadoCredito,
                     'interes' => 0,
                     'periodicidad' => '15Semanas',
                     'fecha_inicio' => now(),
@@ -346,10 +410,23 @@ class PromotorController extends Controller
                 ]);
             });
 
-            $message = 'Cliente creado con exito.';
-            return $request->expectsJson()
-                ? response()->json(['success' => true, 'message' => $message])
-                : redirect()->route('mobile.promotor.ingresar_cliente')->with('success', $message);
+            $respuesta = [
+                'success' => true,
+                'message' => $mensajeResultado,
+                'estado_credito' => $estadoCredito,
+                'cliente_tiene_deuda' => $clienteTieneDeuda,
+                'aval_tiene_deuda' => $avalTieneDeuda,
+                'deuda_cliente' => $registrosDeudaCliente,
+                'deuda_aval' => $registrosDeudaAval,
+            ];
+
+            if ($request->expectsJson()) {
+                return response()->json($respuesta);
+            }
+
+            return redirect()
+                ->route('mobile.promotor.ingresar_cliente')
+                ->with('success', $mensajeResultado);
         } catch (ValidationException $exception) {
             Log::warning('Error de validacion al crear cliente.', ['errors' => $exception->errors(), 'user_id' => Auth::id()]);
 
@@ -551,7 +628,7 @@ class PromotorController extends Controller
                 $credito = Credito::create([
                     'cliente_id' => $cliente->id,
                     'monto_total' => $data['monto'],
-                    'estado' => 'prospectado_recredito',
+                    'estado' => CreditoEstado::PROSPECTADO_REACREDITO->value,
                     'interes' => 0,
                     'periodicidad' => 'Mes',
                     'fecha_inicio' => now(),
@@ -562,7 +639,7 @@ class PromotorController extends Controller
 
                 $cliente->update([
                     'tiene_credito_activo' => false,
-                    'cartera_estado' => 'inactivo',
+                    'cliente_estado' => ClienteEstado::INACTIVO->value,
                     'activo' => false,
                 ]);
             });
@@ -595,7 +672,15 @@ class PromotorController extends Controller
                 $query->with([
                     'credito' => function ($creditQuery) {
                         $creditQuery->with([
-                            'pagosProyectados' => fn ($subQuery) => $subQuery->orderBy('semana'),
+                            'pagosProyectados' => function ($subQuery) {
+                                $subQuery
+                                    ->orderBy('semana')
+                                    ->with([
+                                        'pagosReales.pagoCompleto',
+                                        'pagosReales.pagoAnticipo',
+                                        'pagosReales.pagoDiferido',
+                                    ]);
+                            },
                             'avales' => fn ($subQuery) => $subQuery->orderByDesc('id'),
                             'datoContacto',
                         ]);
@@ -626,7 +711,9 @@ class PromotorController extends Controller
 
         foreach ($clientes as $cliente) {
             $credito = $cliente->credito;
-            $estadoCartera = $cliente->cartera_estado ?? $this->mapCreditoEstadoACartera($credito) ?? 'inactivo';
+            $estadoCartera = $cliente->cliente_estado
+                ?? $this->mapCreditoEstadoACartera($credito)
+                ?? ClienteEstado::INACTIVO->value;
 
             $pagoPendiente = $credito?->pagosProyectados?->firstWhere('estado', 'pendiente');
             $pagoPendienteData = $this->buildPendingPaymentData($pagoPendiente, $cliente);
@@ -636,11 +723,18 @@ class PromotorController extends Controller
                 $cliente->deuda_total = $pagoPendienteData['deuda_vencida'];
             }
 
-            $cliente->cartera_estado = $estadoCartera;
-            $cliente->tiene_credito_activo = in_array($estadoCartera, ['activo', 'moroso', 'desembolsado'], true);
+            $cliente->cliente_estado = $estadoCartera;
+            $cliente->tiene_credito_activo = in_array($estadoCartera, [
+                ClienteEstado::ACTIVO->value,
+                ClienteEstado::MOROSO->value,
+                ClienteEstado::DESEMBOLSADO->value,
+            ], true);
             unset($cliente->semana_credito, $cliente->monto_semanal);
 
-            if (in_array($estadoCartera, ['activo', 'desembolsado'], true)) {
+            if (in_array($estadoCartera, [
+                ClienteEstado::ACTIVO->value,
+                ClienteEstado::DESEMBOLSADO->value,
+            ], true)) {
                 if ($pagoPendiente) {
                     $cliente->semana_credito = $pagoPendiente->semana;
                     $cliente->monto_semanal = $pagoPendiente->monto_proyectado;
@@ -650,7 +744,7 @@ class PromotorController extends Controller
                 continue;
             }
 
-            if ($estadoCartera === 'moroso') {
+            if ($estadoCartera === ClienteEstado::MOROSO->value) {
                 $vencidos->push($cliente);
                 continue;
             }
@@ -737,6 +831,19 @@ class PromotorController extends Controller
 
         $montoProyectado = (float) ($pagoProyectado->monto_proyectado ?? 0);
 
+        $pagosReales = $pagoProyectado->relationLoaded('pagosReales')
+            ? $pagoProyectado->pagosReales
+            : $pagoProyectado->pagosReales()
+                ->with(['pagoCompleto', 'pagoAnticipo', 'pagoDiferido'])
+                ->get();
+
+        $totalPagado = $pagosReales
+            ->map(fn ($pagoReal) => (float) ($pagoReal->monto ?? 0))
+            ->sum();
+
+        $abonado = min($totalPagado, $montoProyectado);
+        $adelantado = max(0.0, $totalPagado - $montoProyectado);
+
         $deudaVencida = collect([
             $pagoProyectado->deuda_total ?? null,
             $pagoProyectado->deuda_vencida ?? null,
@@ -747,13 +854,28 @@ class PromotorController extends Controller
             ->map(fn ($value) => (float) $value)
             ->first();
 
+        $deudaCalculada = max(0.0, $montoProyectado - $abonado);
+        $tolerance = 0.01;
+
         if ($deudaVencida === null) {
-            $deudaVencida = $montoProyectado;
+            $deudaVencida = $deudaCalculada;
+        } else {
+            $deudaVencida = max(0.0, min((float) $deudaVencida, $montoProyectado));
+            if ($deudaVencida + $tolerance < $deudaCalculada) {
+                $deudaVencida = $deudaCalculada;
+            }
+        }
+
+        if ($deudaVencida <= $tolerance) {
+            $deudaVencida = 0.0;
         }
 
         return [
             'id' => $pagoProyectado->id,
             'monto_proyectado' => $montoProyectado,
+            'abonado' => $abonado,
+            'adelantado' => $adelantado,
+            'pagado_total' => $totalPagado,
             'deuda_vencida' => $deudaVencida,
         ];
     }
@@ -963,11 +1085,121 @@ class PromotorController extends Controller
             'promotor.user',
             'promotor.supervisor.user',
             'credito.pagosProyectados' => function ($query) {
-                $query->orderBy('semana');
+                $query
+                    ->orderBy('semana')
+                    ->with([
+                        'pagosReales' => function ($pagosQuery) {
+                            $pagosQuery
+                                ->orderBy('fecha_pago')
+                                ->with(['pagoCompleto', 'pagoDiferido', 'pagoAnticipo']);
+                        },
+                    ]);
             },
         ]);
 
-        return view('mobile.promotor.cartera.cliente_historial', compact('cliente'));
+        $credito = $cliente->credito;
+        $pagosProyectados = $credito?->pagosProyectados ?? collect();
+        $now = now();
+
+        $proximoPago = $pagosProyectados->first(function ($pago) use ($now) {
+            $fechaLimite = $pago->fecha_limite instanceof Carbon
+                ? $pago->fecha_limite
+                : ($pago->fecha_limite ? Carbon::parse($pago->fecha_limite) : null);
+
+            return $fechaLimite && $fechaLimite->endOfDay()->greaterThanOrEqualTo($now);
+        });
+
+        $semanaActual = $proximoPago?->semana ?? ($pagosProyectados->last()?->semana ?? null);
+
+        $tablaDebeSemanal = $pagosProyectados
+            ->map(function ($pago) {
+                return [
+                    'semana' => $pago->semana,
+                    'monto' => (float) ($pago->monto_proyectado ?? 0),
+                ];
+            })
+            ->values();
+
+        $historialPagos = $pagosProyectados
+            ->flatMap(function ($pagoProyectado) {
+                return ($pagoProyectado->pagosReales ?? collect())->map(function ($pagoReal) use ($pagoProyectado) {
+                    $tipo = strtolower((string) ($pagoReal->tipo ?? ''));
+                    $fechaPago = $pagoReal->fecha_pago instanceof Carbon
+                        ? $pagoReal->fecha_pago
+                        : ($pagoReal->fecha_pago ? Carbon::parse($pagoReal->fecha_pago) : null);
+
+                    $monto = (float) ($pagoReal->monto ?? 0);
+                    if ($monto <= 0.0) {
+                        return null;
+                    }
+
+                    $etiqueta = match ($tipo) {
+                        'completo' => 'Pago',
+                        'diferido' => 'Adelanto',
+                        'anticipo' => 'Anticipo',
+                        default => ucfirst($tipo ?: 'Pago'),
+                    };
+
+                    $color = match ($tipo) {
+                        'anticipo' => 'bg-yellow-100 text-yellow-800 border border-yellow-200',
+                        'completo', 'diferido' => 'bg-green-100 text-green-800 border border-green-200',
+                        default => 'bg-gray-100 text-gray-700 border border-gray-200',
+                    };
+
+                    return [
+                        'id' => $pagoReal->id,
+                        'semana' => $pagoProyectado->semana,
+                        'tipo' => $tipo,
+                        'etiqueta' => $etiqueta,
+                        'monto' => $monto,
+                        'fecha' => $fechaPago,
+                        'fecha_texto' => $fechaPago?->format('Y-m-d'),
+                        'clase' => $color,
+                    ];
+                })->filter();
+            })
+            ->filter()
+            ->sortBy(fn ($entry) => $entry['fecha'] ?? Carbon::minValue())
+            ->values();
+
+        $dineroRecuperado = $historialPagos->sum('monto');
+
+        $pagosHastaSemanaActual = $pagosProyectados->filter(function ($pago) use ($now, $semanaActual) {
+            if ($semanaActual !== null && $pago->semana !== null) {
+                return (int) $pago->semana <= (int) $semanaActual;
+            }
+
+            $fechaLimite = $pago->fecha_limite instanceof Carbon
+                ? $pago->fecha_limite
+                : ($pago->fecha_limite ? Carbon::parse($pago->fecha_limite) : null);
+
+            return $fechaLimite
+                ? $fechaLimite->endOfDay()->lessThanOrEqualTo($now)
+                : false;
+        });
+
+        $proyectadoHastaSemanaActual = $pagosHastaSemanaActual->sum(function ($pago) {
+            return (float) ($pago->monto_proyectado ?? 0);
+        });
+
+        $debeProyectado = $proyectadoHastaSemanaActual;
+        $saldoContraProyeccion = max(0.0, $proyectadoHastaSemanaActual - $dineroRecuperado);
+
+        $resumenFinanciero = [
+            'prestamo' => (float) ($credito?->monto_total ?? 0),
+            'recuperado' => $dineroRecuperado,
+            'proyectado_hasta_hoy' => $proyectadoHastaSemanaActual,
+            'debe_proyectado' => $debeProyectado,
+            'saldo_proyectado' => $saldoContraProyeccion,
+        ];
+
+        return view('mobile.promotor.cartera.cliente_historial', [
+            'cliente' => $cliente,
+            'historialPagos' => $historialPagos,
+            'resumenFinanciero' => $resumenFinanciero,
+            'semanaActual' => $semanaActual,
+            'tablaDebeSemanal' => $tablaDebeSemanal,
+        ]);
     }
 
     private function mapCreditoEstadoACartera(?Credito $credito): ?string
@@ -976,12 +1208,21 @@ class PromotorController extends Controller
             return null;
         }
 
-        return match ($credito->estado) {
-            'desembolsado' => 'desembolsado',
-            'vencido' => 'moroso',
-            'liquidado' => 'regularizado',
-            'cancelado' => 'inactivo',
-            'prospectado', 'prospectado_recredito', 'solicitado', 'aprobado', 'supervisado' => 'activo',
+        $estado = is_string($credito->estado)
+            ? CreditoEstado::tryFrom(strtolower($credito->estado))
+            : null;
+
+        return match ($estado) {
+            CreditoEstado::DESEMBOLSADO => ClienteEstado::DESEMBOLSADO->value,
+            CreditoEstado::VENCIDO => ClienteEstado::MOROSO->value,
+            CreditoEstado::LIQUIDADO => ClienteEstado::REGULARIZADO->value,
+            CreditoEstado::CANCELADO => ClienteEstado::INACTIVO->value,
+            CreditoEstado::ACTIVO,
+            CreditoEstado::PROSPECTADO,
+            CreditoEstado::PROSPECTADO_REACREDITO,
+            CreditoEstado::SOLICITADO,
+            CreditoEstado::APROBADO,
+            CreditoEstado::SUPERVISADO => ClienteEstado::ACTIVO->value,
             default => null,
         };
     }
@@ -996,7 +1237,7 @@ class PromotorController extends Controller
             return true;
         }
 
-        if ($cliente->cartera_estado && in_array($cliente->cartera_estado, self::AVAL_CARTERA_STATUS_BLOCKLIST, true)) {
+        if ($cliente->cliente_estado && in_array($cliente->cliente_estado, self::AVAL_CARTERA_STATUS_BLOCKLIST, true)) {
             return true;
         }
 

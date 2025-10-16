@@ -1,13 +1,68 @@
 {{-- resources/views/mobile/supervisor/venta/recibo_desembolso.blade.php --}}
 @php
     $clienteRows = $clienteRows ?? [];
-    $totalPrestamoSolicitado = $totalPrestamoSolicitado ?? collect($clienteRows)->sum(fn ($row) => $row['prestamo_solicitado'] ?? 0);
-    $comisionPromotor = isset($comisionPromotor) ? (float) $comisionPromotor : 0.0;
-    $comisionSupervisor = isset($comisionSupervisor) ? (float) $comisionSupervisor : 0.0;
-    $carteraActual = isset($carteraActual) ? (float) $carteraActual : 0.0;
+    $clienteRowsCollection = collect($clienteRows)->map(function ($row) {
+        $estado = strtolower((string) ($row['estado'] ?? ''));
+        $estadoNormalizado = str_replace('_', ' ', $estado);
+
+        $row['_estado_texto'] = $estadoNormalizado !== ''
+            ? (string) \Illuminate\Support\Str::of($estadoNormalizado)->title()
+            : 'Sin estado';
+        $row['_cancelado'] = in_array($estado, [
+            'cancelado', 'cancelada', 'rechazado', 'rechazada', 'eliminado', 'eliminada',
+        ], true);
+        $row['_motivo_cancelacion'] = trim((string) ($row['motivo_cancelacion'] ?? ''));
+        $row['_cancelado_por'] = trim((string) ($row['cancelado_por'] ?? ''));
+        $row['_cancelado_en'] = $row['cancelado_en'] ?? null;
+
+        return $row;
+    });
+    $clienteRows = $clienteRowsCollection->toArray();
+
+    $activeRows = $clienteRowsCollection->reject(fn ($row) => !empty($row['_cancelado']));
+    $cancelledRows = $clienteRowsCollection->filter(fn ($row) => !empty($row['_cancelado']));
+
+    $sumKeys = [
+        'prestamo_anterior',
+        'prestamo_solicitado',
+        'comision_cinco',
+        'total_prestamo',
+        'recredito_nuevo',
+        'total_recredito',
+        'saldo_post_recredito',
+    ];
+
+    $totalesCalculados = [];
+    foreach ($sumKeys as $key) {
+        $totalesCalculados[$key] = $activeRows->sum(fn ($row) => (float) ($row[$key] ?? 0));
+    }
+
+    $totalesTabla = array_merge($totalesTabla ?? [], $totalesCalculados);
+
+    $totalPrestamoSolicitado = (float) ($totalesTabla['prestamo_solicitado'] ?? 0);
+    $comisionPromotor = (float) ($totalesTabla['comision_cinco'] ?? 0);
+    $comisionSupervisor = round($totalPrestamoSolicitado * 0.10, 2);
+    $carteraActual = (float) ($totalesTabla['saldo_post_recredito'] ?? 0);
     $inversion = $comisionPromotor + $comisionSupervisor + $totalPrestamoSolicitado - $carteraActual;
+    $cancelRouteName = $cancelRouteName ?? null;
+    $puedeCancelarCreditos = $puedeCancelarCreditos ?? false;
     $supervisorQuery = $supervisorContextQuery ?? [];
     $reciboPdfRoute = '#';
+
+    $ultimoCancelado = $cancelledRows
+        ->filter(fn ($row) => !empty($row['_cancelado_en']))
+        ->sortByDesc(function ($row) {
+            try {
+                return \Illuminate\Support\Carbon::parse($row['_cancelado_en'])->timestamp;
+            } catch (\Throwable $e) {
+                return PHP_INT_MIN;
+            }
+        })
+        ->first();
+
+    $motivoCancelacion = $ultimoCancelado['_motivo_cancelacion'] ?? '';
+    $motivoCancelacionCliente = $ultimoCancelado['nombre'] ?? '';
+    $motivoCancelacionFecha = $ultimoCancelado['_cancelado_en'] ?? '';
 
     if (isset($promotor) && $promotor?->id && \Illuminate\Support\Facades\Route::has('mobile.supervisor.venta.recibo_desembolso.pdf')) {
         $reciboPdfRoute = route('mobile.supervisor.venta.recibo_desembolso.pdf', array_merge($supervisorQuery, [
@@ -38,6 +93,7 @@
                     <p class="text-[10px] text-gray-600">Ejecutivo:
                         <span class="font-semibold text-gray-800">{{ $ejecutivoNombre !== '' ? $ejecutivoNombre : 'Sin ejecutivo' }}</span>
                     </p>
+                    
                 </div>
 
                 <div class="flex flex-col sm:items-end gap-2">
@@ -72,23 +128,67 @@
                             <th class="px-2 py-1 text-right font-bold whitespace-nowrap">Recréd. nuevo</th>
                             <th class="px-2 py-1 text-right font-bold whitespace-nowrap">Total recréd.</th>
                             <th class="px-2 py-1 text-right font-bold whitespace-nowrap">Saldo post</th>
+                            <th class="px-2 py-1 text-left font-bold whitespace-nowrap">Estado</th>
+                            <th class="px-2 py-1 text-left font-bold whitespace-nowrap recibo-print-hidden">Acción</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
                         @forelse($clienteRows as $row)
-                            <tr class="text-gray-800">
+                            @php
+                                $estadoTexto = $row['_estado_texto'] ?? 'Sin estado';
+                                $cancelado = !empty($row['_cancelado']);
+                                $canceladoEn = $row['_cancelado_en'] ?? null;
+                                $motivoFila = $row['_motivo_cancelacion'] ?? '';
+                                $canceladoPorFila = $row['_cancelado_por'] ?? '';
+                                $cancelRoute = $cancelRouteName && isset($promotor) && $promotor?->id && !empty($row['credito_id'])
+                                    ? route($cancelRouteName, array_merge($supervisorQuery, ['promotor' => $promotor->id, 'credito' => $row['credito_id']]))
+                                    : null;
+                                $numericMuted = $cancelado ? 'text-gray-400' : '';
+                            @endphp
+                            <tr class="align-top {{ $cancelado ? 'bg-rose-50 text-gray-500' : 'text-gray-800' }}">
                                 <td class="px-2 py-1">{{ $row['nombre'] ?: 'Sin nombre' }}</td>
-                                <td class="px-2 py-1 text-right">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['prestamo_anterior']) }}</td>
-                                <td class="px-2 py-1 text-right font-semibold">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['prestamo_solicitado']) }}</td>
-                                <td class="px-2 py-1 text-right">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['comision_cinco']) }}</td>
-                                <td class="px-2 py-1 text-right">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['total_prestamo']) }}</td>
-                                <td class="px-2 py-1 text-right">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['recredito_nuevo']) }}</td>
-                                <td class="px-2 py-1 text-right">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['total_recredito']) }}</td>
-                                <td class="px-2 py-1 text-right">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['saldo_post_recredito']) }}</td>
+                                <td class="px-2 py-1 text-right {{ $numericMuted }}">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['prestamo_anterior']) }}</td>
+                                <td class="px-2 py-1 text-right {{ $cancelado ? 'font-medium text-gray-400' : 'font-semibold' }}">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['prestamo_solicitado']) }}</td>
+                                <td class="px-2 py-1 text-right {{ $numericMuted }}">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['comision_cinco']) }}</td>
+                                <td class="px-2 py-1 text-right {{ $numericMuted }}">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['total_prestamo']) }}</td>
+                                <td class="px-2 py-1 text-right {{ $numericMuted }}">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['recredito_nuevo']) }}</td>
+                                <td class="px-2 py-1 text-right {{ $numericMuted }}">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['total_recredito']) }}</td>
+                                <td class="px-2 py-1 text-right {{ $numericMuted }}">{{ \App\Support\ReciboDesembolsoFormatter::currencyNullable($row['saldo_post_recredito']) }}</td>
+                                <td class="px-2 py-1 text-left">
+                                    <div class="flex flex-col gap-0.5">
+                                        <span class="font-semibold {{ $cancelado ? 'text-red-600' : 'text-emerald-600' }}">{{ $estadoTexto }}</span>
+                                        @if($canceladoEn)
+                                            <span class="text-[9px] text-gray-600">Cancelado el {{ $canceladoEn }}</span>
+                                        @endif
+                                        @if($canceladoPorFila !== '')
+                                            <span class="text-[9px] text-gray-500">Registró: {{ $canceladoPorFila }}</span>
+                                        @endif
+                                        @if($motivoFila !== '')
+                                            <span class="text-[9px] text-gray-600">Motivo: {{ $motivoFila }}</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="px-2 py-1 text-left recibo-print-hidden">
+                                    @if($puedeCancelarCreditos && $cancelRoute && !empty($row['credito_id']) && !$cancelado)
+                                        <button type="button"
+                                                class="inline-flex items-center justify-center rounded-md bg-red-600 px-2 py-1 text-[9px] font-semibold text-white shadow hover:bg-red-700 focus:outline-none focus:ring focus:ring-red-200"
+                                                data-credit-cancel-button
+                                                data-route="{{ $cancelRoute }}"
+                                                data-cliente="{{ e($row['nombre'] ?: 'Sin nombre') }}"
+                                                data-credito-id="{{ $row['credito_id'] }}"
+                                                data-monto="{{ $row['prestamo_solicitado'] ?? 0 }}"
+                                                data-estado="{{ $estadoTexto }}"
+                                                data-motivo="{{ e($motivoFila) }}">
+                                            Rechazar crédito
+                                        </button>
+                                    @else
+                                        <span class="text-[9px] text-gray-400">---</span>
+                                    @endif
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-2 py-2 text-center text-gray-500 text-[9px]">Sin clientes registrados.</td>
+                                <td colspan="10" class="px-2 py-2 text-center text-gray-500 text-[9px]">Sin clientes registrados.</td>
                             </tr>
                         @endforelse
 
@@ -102,6 +202,8 @@
                                 <td class="px-2 py-1 text-right">{{ \App\Support\ReciboDesembolsoFormatter::currency($totalesTabla['recredito_nuevo'] ?? 0) }}</td>
                                 <td class="px-2 py-1 text-right">{{ \App\Support\ReciboDesembolsoFormatter::currency($totalesTabla['total_recredito'] ?? 0) }}</td>
                                 <td class="px-2 py-1 text-right">{{ \App\Support\ReciboDesembolsoFormatter::currency($totalesTabla['saldo_post_recredito'] ?? 0) }}</td>
+                                <td class="px-2 py-1"></td>
+                                <td class="px-2 py-1 recibo-print-hidden"></td>
                             </tr>
                         @endif
                     </tbody>
@@ -132,6 +234,29 @@
             </div>
         </div> --}}
 
+        {{-- Firmas --}}
+        <div class="bg-white rounded-xl shadow p-3 space-y-2 w-full max-w-5xl">
+            <h2 class="text-sm font-bold text-gray-700 tracking-tight">Firmas</h2>
+
+            <div class="grid sm:grid-cols-2 gap-3">
+                <div class="space-y-1.5">
+                    <label class="block text-[10px] font-semibold text-gray-700" for="firma-promotor">Nombre de promotora</label>
+                    <input type="text" id="firma-promotor" value="{{ $promotorNombre !== '' ? $promotorNombre : 'Sin promotor' }}" readonly
+                           class="w-full rounded-md border border-gray-300 px-2 py-1 text-[10px] focus:border-blue-500 focus:ring focus:ring-blue-200"
+                           placeholder="Nombre completo">
+                    <div class="h-16 rounded-lg border border-dashed border-gray-300 flex items-end justify-center pb-2 text-[10px] text-gray-500 font-semibold uppercase tracking-wide">Firma promotor</div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-[10px] font-semibold text-gray-700" for="firma-supervisor">Nombre de supervisor</label>
+                    <input type="text" id="firma-supervisor" value="{{ $supervisorNombre !== '' ? $supervisorNombre : 'Sin supervisor' }}" readonly
+                           class="w-full rounded-md border border-gray-300 px-2 py-1 text-[10px] focus:border-blue-500 focus:ring focus:ring-blue-200"
+                           placeholder="Nombre completo">
+                    <div class="h-16 rounded-lg border border-dashed border-gray-300 flex items-end justify-center pb-2 text-[10px] text-gray-500 font-semibold uppercase tracking-wide">Firma supervisor</div>
+                </div>
+            </div>
+        </div>
+
         {{-- Resumen financiero --}}
         <div class="bg-white rounded-xl shadow p-3 space-y-2 w-full max-w-5xl">
             <h2 class="text-sm font-bold text-gray-700 tracking-tight">Resumen financiero</h2>
@@ -148,7 +273,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <th class="px-2 py-1 text-left font-semibold text-gray-700">Comisión de supervisor</th>
+                            <th class="px-2 py-1 text-left font-semibold text-gray-700">Comisión de supervisor (10%)</th>
                             <td class="px-2 py-1 text-right">
                                 <input type="number" step="0.01" name="comision_supervisor"
                                        value="{{ number_format($comisionSupervisor, 2, '.', '') }}" readonly
@@ -163,6 +288,7 @@
                                        class="w-full max-w-[160px] rounded-md border border-gray-300 px-2 py-1 text-[10px] text-right focus:border-blue-500 focus:ring focus:ring-blue-200">
                             </td>
                         </tr>
+                        
                         <tr>
                             <th class="px-2 py-1 text-left font-bold text-gray-800">Inversión</th>
                             <td class="px-2 py-1 text-right text-[12px] font-bold {{ $inversion >= 0 ? 'text-emerald-600' : 'text-red-600' }}">
@@ -172,7 +298,7 @@
                     </tbody>
                 </table>
             </div>
-            <p class="text-[9px] text-gray-500">La inversión se calcula como comisiones + total de últimos créditos − cartera actual.</p>
+            <p class="text-[9px] text-gray-500">La inversión se calcula como comisiones (promotor + supervisor 10%) + total de últimos créditos - cartera actual.</p>
         </div>
 
         {{-- Recibos --}}
@@ -211,4 +337,171 @@
         </div> --}}
 
     </div>
+
+    {{-- Modal ligero para capturar el motivo del rechazo de crédito --}}
+    <div id="credit-cancel-modal" class="recibo-print-hidden fixed inset-0 z-50 hidden items-center justify-center bg-black/40 px-4">
+        <div class="w-full max-w-md rounded-lg bg-white p-4 shadow-xl">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-800">Rechazar crédito</h3>
+                    <p class="text-[10px] text-gray-500 leading-tight" data-credit-cancel-summary>
+                        Describe el motivo del rechazo para dejar evidencia en el expediente del cliente.
+                    </p>
+                </div>
+                <button type="button" class="text-gray-400 hover:text-gray-600" data-credit-cancel-close aria-label="Cerrar ventana de rechazo">
+                    &times;
+                </button>
+            </div>
+
+            <form method="POST" class="mt-3 space-y-3" data-credit-cancel-form>
+                @csrf
+
+                <div class="rounded-md bg-gray-50 p-2 text-[10px] text-gray-600">
+                    <p class="leading-tight">
+                        Cancelarás el crédito de
+                        <span class="font-semibold text-gray-800" data-credit-cancel-client>---</span>.
+                        Esta acción es definitiva.
+                    </p>
+                    <div class="mt-1 grid grid-cols-2 gap-y-1 text-gray-500">
+                        <div class="col-span-2">
+                            <span class="font-semibold text-gray-700">Estado actual:</span>
+                            <span data-credit-cancel-state>---</span>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-700">Monto solicitado:</span>
+                            <span data-credit-cancel-amount>---</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label for="motivo_cancelacion_modal" class="text-[10px] font-semibold text-gray-700">Motivo del rechazo</label>
+                    <textarea id="motivo_cancelacion_modal" name="motivo_cancelacion" rows="3" required
+                              class="w-full rounded-md border border-gray-300 px-2 py-1 text-[10px] text-gray-800 focus:border-red-500 focus:ring focus:ring-red-200"
+                              data-credit-cancel-motivo></textarea>
+                    <p class="text-[9px] text-gray-500">Anota hechos concretos (por ejemplo, documento faltante, verificación no aprobada, etc.).</p>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="inline-flex items-center justify-center rounded-md border border-gray-300 px-3 py-1.5 text-[10px] font-semibold text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring focus:ring-gray-200"
+                            data-credit-cancel-close>Volver</button>
+                    <button type="submit" class="inline-flex items-center justify-center rounded-md bg-red-600 px-3 py-1.5 text-[10px] font-semibold text-white shadow hover:bg-red-700 focus:outline-none focus:ring focus:ring-red-300"
+                            data-credit-cancel-submit>Confirmar rechazo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        (() => {
+            // Controlador ligero en vanilla JS para abrir/cerrar el modal y precargar el formulario.
+            const modal = document.getElementById('credit-cancel-modal');
+            if (!modal) {
+                return;
+            }
+
+            const openButtons = document.querySelectorAll('[data-credit-cancel-button]');
+            if (!openButtons.length) {
+                return;
+            }
+
+            const form = modal.querySelector('[data-credit-cancel-form]');
+            const summary = modal.querySelector('[data-credit-cancel-summary]');
+            const clientTarget = modal.querySelector('[data-credit-cancel-client]');
+            const stateTarget = modal.querySelector('[data-credit-cancel-state]');
+            const amountTarget = modal.querySelector('[data-credit-cancel-amount]');
+            const motivoField = modal.querySelector('[data-credit-cancel-motivo]');
+            const submitButton = modal.querySelector('[data-credit-cancel-submit]');
+            const closeButtons = modal.querySelectorAll('[data-credit-cancel-close]');
+            const formatter = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+
+            const toggleModal = (show) => {
+                if (show) {
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                    setTimeout(() => motivoField?.focus(), 50);
+                    return;
+                }
+
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                form?.reset();
+                form?.setAttribute('action', '#');
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Confirmar rechazo';
+                }
+            };
+
+            const openModal = (button) => {
+                const route = button.getAttribute('data-route');
+                if (!route || !form) {
+                    return;
+                }
+
+                form.setAttribute('action', route);
+
+                const cliente = button.getAttribute('data-cliente') || 'Sin cliente';
+                const estado = button.getAttribute('data-estado') || 'Sin estado';
+                const monto = Number(button.getAttribute('data-monto') || 0);
+                const motivoPrevio = button.getAttribute('data-motivo') || '';
+
+                if (clientTarget) {
+                    clientTarget.textContent = cliente;
+                }
+
+                if (stateTarget) {
+                    stateTarget.textContent = estado;
+                }
+
+                if (amountTarget) {
+                    amountTarget.textContent = formatter.format(Number.isFinite(monto) ? monto : 0);
+                }
+
+                if (motivoField) {
+                    motivoField.value = motivoPrevio;
+                }
+
+                if (summary) {
+                    summary.textContent = 'Describe el motivo del rechazo para dejar evidencia en el expediente del cliente.';
+                }
+
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Confirmar rechazo';
+                }
+
+                toggleModal(true);
+            };
+
+            openButtons.forEach((button) => {
+                button.addEventListener('click', () => openModal(button));
+            });
+
+            closeButtons.forEach((button) => {
+                button.addEventListener('click', () => toggleModal(false));
+            });
+
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    toggleModal(false);
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    toggleModal(false);
+                }
+            });
+
+            form?.addEventListener('submit', () => {
+                if (!submitButton) {
+                    return;
+                }
+
+                submitButton.disabled = true;
+                submitButton.textContent = 'Cancelando...';
+            });
+        })();
+    </script>
 </x-layouts.mobile.mobile-layout>

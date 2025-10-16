@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PeriodicidadCreditos;
 use App\Http\Controllers\FiltrosController;
 use App\Models\Aval;
 use App\Models\Cliente;
@@ -92,7 +93,7 @@ class FiltroTest extends TestCase
     {
         $estructura = $this->crearJerarquiaBasica();
         [$clienteMoroso] = $this->crearClienteConCredito($estructura['promotor'], [
-            'cartera_estado' => 'moroso',
+            'cliente_estado' => 'moroso',
             'tiene_credito_activo' => true,
         ], [
             'estado' => 'vencido',
@@ -116,7 +117,7 @@ class FiltroTest extends TestCase
         $estructura = $this->crearJerarquiaBasica();
         [$clienteActivo] = $this->crearClienteConCredito($estructura['promotor'], [
             'tiene_credito_activo' => true,
-            'cartera_estado' => 'activo',
+            'cliente_estado' => 'activo',
         ], [
             'estado' => 'desembolsado',
         ]);
@@ -139,10 +140,10 @@ class FiltroTest extends TestCase
         $estructura = $this->crearJerarquiaBasica();
         [$clienteActivo] = $this->crearClienteConCredito($estructura['promotor'], [
             'tiene_credito_activo' => true,
-            'cartera_estado' => 'activo',
+            'cliente_estado' => 'activo',
         ], [
             'estado' => 'desembolsado',
-            'periodicidad' => '14Semanas',
+            'periodicidad' => PeriodicidadCreditos::VEINTIDOS->value,
             'fecha_inicio' => Carbon::now()->subWeeks(12)->toDateString(),
         ]);
 
@@ -223,11 +224,11 @@ class FiltroTest extends TestCase
         [$clienteNuevo] = $this->crearClienteConCredito($estructura['promotor'], [
             'CURP' => 'PROMOTORREAC0001',
             'tiene_credito_activo' => true,
-            'cartera_estado' => 'activo',
+            'cliente_estado' => 'activo',
         ], [
             'estado' => 'desembolsado',
             'fecha_inicio' => Carbon::now()->subWeeks(12)->toDateString(),
-            'periodicidad' => '14Semanas',
+            'periodicidad' => PeriodicidadCreditos::VEINTIDOS->value,
         ]);
 
         $form = [
@@ -332,10 +333,10 @@ class FiltroTest extends TestCase
         $estructura = $this->crearJerarquiaBasica();
         [$cliente] = $this->crearClienteConCredito($estructura['promotor'], [
             'tiene_credito_activo' => true,
-            'cartera_estado' => 'activo',
+            'cliente_estado' => 'activo',
         ], [
             'estado' => 'desembolsado',
-            'periodicidad' => '13Semanas',
+            'periodicidad' => PeriodicidadCreditos::TRECE->value,
             'fecha_inicio' => Carbon::now()->subWeeks(5)->toDateString(),
         ]);
 
@@ -361,10 +362,10 @@ class FiltroTest extends TestCase
         $estructura = $this->crearJerarquiaBasica();
         [$cliente] = $this->crearClienteConCredito($estructura['promotor'], [
             'tiene_credito_activo' => true,
-            'cartera_estado' => 'activo',
+            'cliente_estado' => 'activo',
         ], [
             'estado' => 'desembolsado',
-            'periodicidad' => '14Semanas',
+            'periodicidad' => PeriodicidadCreditos::VEINTIDOS->value,
             'fecha_inicio' => Carbon::now()->subWeeks(12)->toDateString(),
         ]);
 
@@ -455,16 +456,26 @@ class FiltroTest extends TestCase
             'apellido_m' => $apellidoM,
             'fecha_nacimiento' => Carbon::now()->subYears(30)->toDateString(),
             'tiene_credito_activo' => $clienteOverrides['tiene_credito_activo'] ?? false,
-            'cartera_estado' => $clienteOverrides['cartera_estado'] ?? 'inactivo',
+            'cliente_estado' => $clienteOverrides['cliente_estado'] ?? 'inactivo',
             'monto_maximo' => 5000,
-            'activo' => (($clienteOverrides['cartera_estado'] ?? 'inactivo') !== 'inactivo'),
+            'activo' => (($clienteOverrides['cliente_estado'] ?? 'inactivo') !== 'inactivo'),
         ], $clienteOverrides);
         $cliente = Cliente::create($clienteData);
 
         $fechaInicio = isset($creditoOverrides['fecha_inicio'])
             ? Carbon::parse($creditoOverrides['fecha_inicio'])
             : Carbon::now()->subWeeks(8);
-        $periodicidad = $creditoOverrides['periodicidad'] ?? '14Semanas';
+
+        $periodicidadOverride = $creditoOverrides['periodicidad'] ?? null;
+        if ($periodicidadOverride instanceof PeriodicidadCreditos) {
+            $periodicidad = $periodicidadOverride->value;
+        } elseif (is_string($periodicidadOverride)) {
+            $periodicidad = PeriodicidadCreditos::tryFromLabel($periodicidadOverride)?->value ?? $periodicidadOverride;
+        } else {
+            $periodicidad = PeriodicidadCreditos::VEINTIDOS->value;
+        }
+
+        $semanasPeriodicidad = PeriodicidadCreditos::resolveWeeks($periodicidad) ?? 14;
 
         $credito = Credito::create([
             'cliente_id' => $cliente->id,
@@ -473,7 +484,7 @@ class FiltroTest extends TestCase
             'interes' => 1.5,
             'periodicidad' => $periodicidad,
             'fecha_inicio' => $fechaInicio->toDateString(),
-            'fecha_final' => $fechaInicio->copy()->addWeeks(14)->toDateString(),
+            'fecha_final' => $fechaInicio->copy()->addWeeks($semanasPeriodicidad)->toDateString(),
         ]);
 
         $direccion = $creditoOverrides['direccion'] ?? [
