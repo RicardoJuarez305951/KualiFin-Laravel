@@ -62,6 +62,9 @@ class FiltrosController extends Controller
         CreditoEstado::APROBADO->value,
         CreditoEstado::SUPERVISADO->value,
         CreditoEstado::DESEMBOLSADO->value,
+        CreditoEstado::CLIENTE_RIESGO->value,
+        CreditoEstado::AVAL_RIESGO->value,
+        CreditoEstado::CLIENTE_AVAL_RIESGO->value,
     ];
 
     public const CREDIT_FAILURE_STATES = [
@@ -117,7 +120,7 @@ class FiltrosController extends Controller
         return [
             self::FILTER_CURP_UNICA => fn (Cliente $cliente, array $form, array $contexto) => $this->aplicarCurpUnica($cliente, $form),
             self::FILTER_DOBLE_FIRMA_AVAL => fn (Cliente $cliente, array $form, array $contexto) => $this->aplicarDobleFirmaAval($cliente, $form, $contexto),
-            self::FILTER_CREDITO_EN_FALLA => fn (Cliente $cliente, array $form, array $contexto) => $this->aplicarCreditoEnFalla($cliente),
+            self::FILTER_CREDITO_EN_FALLA => fn (Cliente $cliente, array $form, array $contexto) => $this->aplicarCreditoEnFalla($cliente, $contexto),
             self::FILTER_CREDITO_ACTIVO => fn (Cliente $cliente, array $form, array $contexto) => $this->aplicarCreditoActivo($cliente, $contexto),
             self::FILTER_OTRA_PLAZA => fn (Cliente $cliente, array $form, array $contexto) => $this->aplicarOtraPlaza($cliente, $contexto),
             self::FILTER_BLOQUEO_FALLA_PROMOTORA => fn (Cliente $cliente, array $form, array $contexto) => $this->aplicarBloqueoFallaPromotora($cliente, $contexto),
@@ -218,7 +221,7 @@ class FiltrosController extends Controller
         return $this->resultado(self::FILTER_DOBLE_FIRMA_AVAL, true, null, ['aval_curp' => $avalCurp, 'creditos_activos' => $creditosActivos]);
     }
 
-    private function aplicarCreditoEnFalla(Cliente $cliente): array
+    private function aplicarCreditoEnFalla(Cliente $cliente, array $contexto): array
     {
         $creditos = $cliente->relationLoaded('creditos') ? $cliente->creditos : $cliente->creditos()->get();
 
@@ -228,11 +231,26 @@ class FiltrosController extends Controller
 
         $carteraEnFalla = in_array($cliente->cliente_estado, self::CARTERA_FAILURE_STATES, true);
 
+        $permitirMoroso = (bool) ($contexto['permitir_credito_moroso'] ?? false);
+
+        if ($permitirMoroso && ($enFalla > 0 || $carteraEnFalla)) {
+            return $this->resultado(
+                self::FILTER_CREDITO_EN_FALLA,
+                true,
+                null,
+                [
+                    'creditos_en_falla' => $enFalla,
+                    'cliente_estado' => $cliente->cliente_estado,
+                    'override' => true,
+                ]
+            );
+        }
+
         if ($enFalla > 0 || $carteraEnFalla) {
             return $this->resultado(
                 self::FILTER_CREDITO_EN_FALLA,
                 false,
-                'El cliente tiene historial de créditos en falla y no puede solicitar uno nuevo.',
+                'El cliente tiene historial de cr�ditos en falla y no puede solicitar uno nuevo.',
                 [
                     'creditos_en_falla' => $enFalla,
                     'cliente_estado' => $cliente->cliente_estado,
@@ -489,11 +507,27 @@ class FiltrosController extends Controller
             );
         }
 
+        $permitirMoroso = (bool) ($contexto['permitir_credito_moroso'] ?? false);
+
         if (!$sinAtrasos) {
+            if ($permitirMoroso) {
+                return $this->resultado(
+                    self::FILTER_BLOQUEO_TIEMPO_REACREDITOS,
+                    true,
+                    null,
+                    [
+                        'periodicidad' => $ultimoCredito->periodicidad,
+                        'semanas_transcurridas' => $semanasTranscurridas,
+                        'sin_atrasos' => $sinAtrasos,
+                        'override' => true,
+                    ]
+                );
+            }
+
             return $this->resultado(
                 self::FILTER_BLOQUEO_TIEMPO_REACREDITOS,
                 false,
-                'El cliente presenta atrasos, no puede solicitar un recrédito.',
+                'El cliente presenta atrasos, no puede solicitar un recredito.',
                 [
                     'periodicidad' => $ultimoCredito->periodicidad,
                     'semanas_transcurridas' => $semanasTranscurridas,
@@ -548,4 +582,3 @@ class FiltrosController extends Controller
         ];
     }
 }
-

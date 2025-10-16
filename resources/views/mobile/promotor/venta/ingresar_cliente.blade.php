@@ -16,7 +16,7 @@
         avalCompUploaded: false,
         r_newAval: false,
 
-        // Recrédito (usar flags separados si quieres aislarlos del modal cliente)
+        // Recredito (usar flags separados si quieres aislarlos del modal cliente)
         r_clientCurpUploaded: false,
         r_clientIneUploaded: false,
         r_clientCompUploaded: false,
@@ -25,11 +25,17 @@
         r_avalIneUploaded: false,
         r_avalCompUploaded: false,
 
-        // Estado de inserción
+        // Estado de insercion
         showResultado: false,
         resultadoMensaje: '',
         resultadoExito: false,
         resultadoEstado: '',
+        riskConfirm: {
+          show: false,
+          message: '',
+          detalles: [],
+          decisionHandler: null,
+        },
 
         resetClienteForm() {
           this.showCliente = false;
@@ -40,6 +46,7 @@
           this.avalDomUploaded = false;
           this.avalIneUploaded = false;
           this.avalCompUploaded = false;
+          this.resetRiskConfirm();
         },
         resetRecreditoForm() {
           this.showRecredito = false;
@@ -50,6 +57,17 @@
           this.r_avalDomUploaded = false;
           this.r_avalIneUploaded = false;
           this.r_avalCompUploaded = false;
+        },
+        resetRiskConfirm() {
+          this.riskConfirm.show = false;
+          this.riskConfirm.message = '';
+          this.riskConfirm.detalles = [];
+          this.riskConfirm.decisionHandler = null;
+        },
+        handleRiskDecision(decision) {
+          if (typeof this.riskConfirm.decisionHandler === 'function') {
+            this.riskConfirm.decisionHandler(decision);
+          }
         },
         validateMonto(valor, max = 3000) {
           const monto = parseFloat(valor);
@@ -69,6 +87,8 @@
             this.showResultado = true;
             return;
           }
+
+          this.resetRiskConfirm();
 
           const enviarSolicitud = async (decision = null) => {
             const formData = new FormData(f);
@@ -107,6 +127,25 @@
             });
           };
 
+          const procesarRespuesta = (respuesta, datos) => {
+            const mensaje = datos?.message ?? 'Respuesta inesperada del servidor.';
+            const operacionExitosa = respuesta?.ok && datos?.success;
+            this.resultadoEstado = datos?.estado_credito ?? '';
+            this.resultadoExito = Boolean(operacionExitosa && this.resultadoEstado !== 'rechazado');
+
+            if (!operacionExitosa) {
+              this.resultadoExito = false;
+            }
+
+            this.resultadoMensaje = mensaje;
+            this.showResultado = true;
+
+            if (datos?.success) {
+              f.reset();
+              this.resetClienteForm();
+            }
+          };
+
           try {
             let { respuesta, datos } = await enviarSolicitud();
 
@@ -129,51 +168,47 @@
 
               if (clienteMensajes.length) {
                 mensajes.push('Cliente:');
-                clienteMensajes.forEach(linea => mensajes.push(`  • ${linea}`));
+                clienteMensajes.forEach(linea => mensajes.push(`  - ${linea}`));
               }
 
               if (avalMensajes.length) {
                 mensajes.push('Aval:');
-                avalMensajes.forEach(linea => mensajes.push(`  • ${linea}`));
+                avalMensajes.forEach(linea => mensajes.push(`  - ${linea}`));
               }
 
               if (mensajes.length === 0) {
                 mensajes.push('No se recibieron detalles de la deuda.');
               }
 
-              const confirmacion = window.confirm([
-                datos.message ?? 'Se detectaron deudas asociadas a la solicitud.',
-                '',
-                mensajes.join('\n'),
-                '',
-                'Pulsa Aceptar para registrar el crédito con riesgo o Cancelar para guardarlo como rechazado.'
-              ].join('\n'));
+              this.riskConfirm.show = true;
+              this.riskConfirm.message = datos.message ?? 'Se detectaron deudas asociadas a la solicitud.';
+              this.riskConfirm.detalles = mensajes;
+              this.riskConfirm.decisionHandler = async (decision) => {
+                this.riskConfirm.show = false;
+                try {
+                  const resultadoDecision = await enviarSolicitud(decision);
+                  procesarRespuesta(resultadoDecision.respuesta, resultadoDecision.datos);
+                } catch (errorDecision) {
+                  console.error(errorDecision);
+                  this.resultadoExito = false;
+                  this.resultadoEstado = '';
+                  this.resultadoMensaje = 'No se pudo completar la solicitud. Intentalo nuevamente.';
+                  this.showResultado = true;
+                } finally {
+                  this.resetRiskConfirm();
+                }
+              };
 
-              const decision = confirmacion ? 'aceptar' : 'rechazar';
-              ({ respuesta, datos } = await enviarSolicitud(decision));
+              return;
             }
 
-            const mensaje = datos?.message ?? 'Respuesta inesperada del servidor.';
-            const operacionExitosa = respuesta.ok && datos?.success;
-            this.resultadoEstado = datos?.estado_credito ?? '';
-            this.resultadoExito = operacionExitosa && this.resultadoEstado !== 'rechazado';
-
-            if (!operacionExitosa) {
-              this.resultadoExito = false;
-            }
-
-            this.resultadoMensaje = mensaje;
-            this.showResultado = true;
-
-            if (datos?.success) {
-              f.reset();
-              this.resetClienteForm();
-            }
+            procesarRespuesta(respuesta, datos);
           } catch (error) {
             console.error(error);
+            this.resetRiskConfirm();
             this.resultadoExito = false;
             this.resultadoEstado = '';
-            this.resultadoMensaje = 'Error de conexión. Inténtalo de nuevo.';
+            this.resultadoMensaje = 'Error de conexion. Intentalo de nuevo.';
             this.showResultado = true;
           }
         },
@@ -205,14 +240,14 @@
           })
           .catch(() => {
             this.resultadoExito = false;
-            this.resultadoMensaje = 'Error de conexión. Inténtalo de nuevo.';
+            this.resultadoMensaje = 'Error de conexion. Intentalo de nuevo.';
             this.showResultado = true;
           });
         },
         checkViabilidad() {
           const posiblesErrores = [
             'Cliente o Aval con deuda',
-            'Límite de firmas del Aval',
+            'Limite de firmas del Aval',
             'Cliente en otra plaza'
           ];
           this.viable = Math.random() > 0.5;
@@ -247,7 +282,7 @@
              stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true" role="img">
           <path d="M12 4a4 4 0 100 8 4 4 0 000-8zm0 10c-4 0-8 2-8 6v2h16v-2c0-4-4-6-8-6z"/>
         </svg>
-        Cliente nuevo (Crédito)
+        Cliente nuevo (Credito)
       </button>
 
       <button @click="showRecredito = true"
@@ -257,7 +292,7 @@
           <path d="M3 7h18M6 7v6a6 6 0 0012 0V7"/>
           <path d="M9 10h6"/>
         </svg>
-        Recrédito
+        Recredito
       </button>
 
       <button @click="window.history.back()"
@@ -275,3 +310,11 @@
   </div>
   
 </x-layouts.mobile.mobile-layout>
+
+
+
+
+
+
+
+

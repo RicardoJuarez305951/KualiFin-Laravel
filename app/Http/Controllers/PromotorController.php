@@ -16,6 +16,7 @@ use App\Services\ExcelReaderService;
 use App\Support\RoleHierarchy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -34,6 +35,9 @@ class PromotorController extends Controller
         CreditoEstado::APROBADO->value,
         CreditoEstado::SUPERVISADO->value,
         CreditoEstado::DESEMBOLSADO->value,
+        CreditoEstado::CLIENTE_RIESGO->value,
+        CreditoEstado::AVAL_RIESGO->value,
+        CreditoEstado::CLIENTE_AVAL_RIESGO->value,
         CreditoEstado::VENCIDO->value,
         CreditoEstado::CANCELADO->value,
     ];
@@ -291,6 +295,7 @@ class PromotorController extends Controller
                 $fuentesRiesgoCliente[] = 'la base de clientes morosos';
             }
             $mensajeRiesgoCliente = $this->construirMensajeRiesgo('cliente', $fuentesRiesgoCliente);
+
             $fuentesRiesgoAval = !empty($registrosDeudaAval)
                 ? ['la lista de deudores']
                 : [];
@@ -300,18 +305,27 @@ class PromotorController extends Controller
                 $decisionRiesgo = null;
             }
 
-            if ($clienteTieneDeuda && $avalTieneDeuda) {
-                $estadoCredito = CreditoEstado::RECHAZADO->value;
-                $mensajeResultado = 'Solicitud rechazada automaticamente: Cliente y Aval presentan deuda registrada.';
-                $decisionRiesgo = 'rechazar';
-            } elseif ($clienteTieneDeuda || $avalTieneDeuda) {
-                $tipoRiesgo = $clienteTieneDeuda ? 'ClienteRiesgo' : 'AvalRiesgo';
-                $mensajeBase = $clienteTieneDeuda
-                    ? $mensajeRiesgoCliente
-                    : $mensajeRiesgoAval;
+            if ($clienteTieneDeuda || $avalTieneDeuda) {
+                $riesgosDetectados = [];
+                if ($clienteTieneDeuda) {
+                    $riesgosDetectados['cliente'] = [
+                        'mensaje' => $mensajeRiesgoCliente,
+                    ];
+                }
+                if ($avalTieneDeuda) {
+                    $riesgosDetectados['aval'] = [
+                        'mensaje' => $mensajeRiesgoAval,
+                    ];
+                }
+
+                $tipoRiesgo = match (true) {
+                    $clienteTieneDeuda && $avalTieneDeuda => CreditoEstado::CLIENTE_AVAL_RIESGO->value,
+                    $clienteTieneDeuda => CreditoEstado::CLIENTE_RIESGO->value,
+                    default => CreditoEstado::AVAL_RIESGO->value,
+                };
 
                 if ($decisionRiesgo === null) {
-                    $mensajeConfirmacion = $mensajeBase . ' ¿Deseas continuar y registrar el credito como ' . $tipoRiesgo . '?';
+                    $mensajeConfirmacion = $this->construirMensajeConfirmacionRiesgo($riesgosDetectados, $tipoRiesgo);
 
                     return response()->json([
                         'success' => false,
@@ -337,7 +351,8 @@ class PromotorController extends Controller
 
                 if ($decisionRiesgo === 'aceptar') {
                     $estadoCredito = $tipoRiesgo;
-                    $mensajeResultado = 'Solicitud registrada con estado ' . $tipoRiesgo . ' por deuda detectada.';
+                    $estadoLegible = Str::of($tipoRiesgo)->replace('_', ' ')->title();
+                    $mensajeResultado = 'Solicitud registrada con estado ' . $estadoLegible . ' por deuda detectada.';
                 } else {
                     $estadoCredito = CreditoEstado::RECHAZADO->value;
                     $mensajeResultado = 'Solicitud registrada como rechazada por deuda detectada.';
@@ -376,6 +391,7 @@ class PromotorController extends Controller
                 'supervisor_id' => $promotor->supervisor_id,
                 'fecha_solicitud' => Carbon::now(),
                 'ultimo_credito' => null,
+                'permitir_credito_moroso' => $decisionRiesgo === 'aceptar' && $clienteTieneDeuda,
             ];
 
             $evaluarFiltros = $estadoCredito !== 'rechazado';
@@ -478,6 +494,22 @@ class PromotorController extends Controller
 
         $isNewAval = $request->boolean('r_newAval');
 
+        $estadoCreditoRecredito = CreditoEstado::PROSPECTADO_REACREDITO->value;
+        $mensajeRecredito = 'Recredito solicitado con exito.';
+        $decisionRiesgo = $request->input('decision_riesgo');
+        $clienteRegistro = null;
+        $clienteMarcadoMoroso = false;
+        $registrosDeudaCliente = [];
+        $mensajeRiesgoCliente = '';
+        $clienteTieneDeuda = false;
+        $registrosDeudaAval = [];
+        $mensajeRiesgoAval = '';
+        $avalTieneDeuda = false;
+        $avalCurp = null;
+        $avalNombreCompleto = '';
+        $tipoRiesgo = null;
+        $prevAvalParaRiesgo = null;
+
         $rules = [
             'CURP' => 'required|string|size:18|exists:clientes,CURP',
             'monto' => 'required|numeric|min:0|max:20000',
@@ -509,11 +541,7 @@ class PromotorController extends Controller
                 ->first();
 
             if ($clienteRegistro) {
-                if ($this->esEstadoMoroso($clienteRegistro->cliente_estado ?? null)) {
-                    throw ValidationException::withMessages([
-                        'CURP' => 'El cliente se encuentra marcado como moroso en la base de clientes y no puede solicitar un recredito.',
-                    ]);
-                }
+                $clienteMarcadoMoroso = $this->esEstadoMoroso($clienteRegistro->cliente_estado ?? null);
 
                 $nombreCompleto = $this->formatFullName(
                     $clienteRegistro->nombre,
@@ -522,13 +550,20 @@ class PromotorController extends Controller
                 );
 
                 if ($nombreCompleto !== '') {
-                    $registrosDeudores = $excel->searchDebtors($nombreCompleto);
+                    $registrosDeudaCliente = $excel->searchDebtors($nombreCompleto);
+                }
 
-                    if (!empty($registrosDeudores)) {
-                        throw ValidationException::withMessages([
-                            'CURP' => 'El cliente aparece en la lista de deudores y no puede solicitar un recredito.',
-                        ]);
+                $clienteTieneDeuda = $clienteMarcadoMoroso || !empty($registrosDeudaCliente);
+
+                if ($clienteTieneDeuda) {
+                    $fuentes = [];
+                    if (!empty($registrosDeudaCliente)) {
+                        $fuentes[] = 'la lista de deudores';
                     }
+                    if ($clienteMarcadoMoroso) {
+                        $fuentes[] = 'la base de clientes morosos';
+                    }
+                    $mensajeRiesgoCliente = $this->construirMensajeRiesgo('cliente', $fuentes);
                 }
             }
 
@@ -536,13 +571,17 @@ class PromotorController extends Controller
             if ($isNewAval) {
                 $avalCurp = $data['aval_CURP'];
             } else {
-                $cliente = $clienteRegistro;
-                if ($cliente) {
-                    $prevAval = Aval::whereHas('credito', fn ($query) => $query->where('cliente_id', $cliente->id))
+                if ($clienteRegistro) {
+                    $prevAvalParaRiesgo = Aval::whereHas('credito', fn ($query) => $query->where('cliente_id', $clienteRegistro->id))
                         ->latest('creado_en')
                         ->first();
-                    if ($prevAval) {
-                        $avalCurp = $prevAval->CURP;
+                    if ($prevAvalParaRiesgo) {
+                        $avalCurp = $prevAvalParaRiesgo->CURP;
+                        $avalNombreCompleto = $this->formatFullName(
+                            $prevAvalParaRiesgo->nombre,
+                            $prevAvalParaRiesgo->apellido_p,
+                            $prevAvalParaRiesgo->apellido_m
+                        );
                     }
                 }
             }
@@ -556,44 +595,128 @@ class PromotorController extends Controller
                 }
             }
 
-            if ($clienteRegistro) {
-                $clienteRegistro->setRelation('creditos', $clienteRegistro->creditos ?? collect());
-                if ($clienteRegistro->relationLoaded('promotor')) {
-                    $clienteRegistro->promotor?->loadMissing('supervisor');
+            if ($isNewAval) {
+                $avalNombreCompleto = $this->formatFullName(
+                    $data['aval_nombre'] ?? '',
+                    $data['aval_apellido_p'] ?? '',
+                    $data['aval_apellido_m'] ?? ''
+                );
+            }
+
+            if ($avalNombreCompleto !== '') {
+                $registrosDeudaAval = $excel->searchDebtors($avalNombreCompleto);
+            }
+
+            $avalTieneDeuda = !empty($registrosDeudaAval);
+            if ($avalTieneDeuda) {
+                $mensajeRiesgoAval = $this->construirMensajeRiesgo('aval', ['la lista de deudores']);
+            }
+
+            if (!$clienteTieneDeuda && !$avalTieneDeuda) {
+                $decisionRiesgo = null;
+            }
+
+            if ($clienteTieneDeuda || $avalTieneDeuda) {
+                $riesgosDetectados = [];
+                if ($clienteTieneDeuda) {
+                    $riesgosDetectados['cliente'] = [
+                        'mensaje' => $mensajeRiesgoCliente,
+                    ];
+                }
+                if ($avalTieneDeuda) {
+                    $riesgosDetectados['aval'] = [
+                        'mensaje' => $mensajeRiesgoAval,
+                    ];
                 }
 
-                $ultimoCredito = $clienteRegistro->creditos->first();
+                $tipoRiesgo = match (true) {
+                    $clienteTieneDeuda && $avalTieneDeuda => CreditoEstado::CLIENTE_AVAL_RIESGO->value,
+                    $clienteTieneDeuda => CreditoEstado::CLIENTE_RIESGO->value,
+                    default => CreditoEstado::AVAL_RIESGO->value,
+                };
 
-                $formulario = [
-                    'cliente' => [
-                        'curp' => $clienteRegistro->CURP,
-                    ],
-                    'aval' => [
-                        'curp' => $avalCurp ?? '',
-                    ],
-                    'contacto' => $data['contacto'] ?? [],
-                    'credito' => [
-                        'fecha_inicio' => Carbon::now()->toDateString(),
-                    ],
-                ];
+                if ($decisionRiesgo === null) {
+                    $mensajeConfirmacion = $this->construirMensajeConfirmacionRiesgo($riesgosDetectados, $tipoRiesgo);
 
-                $contexto = [
-                    'tipo_solicitud' => 'recredito',
-                    'promotor_id' => $promotor->id,
-                    'supervisor_id' => $promotor->supervisor_id,
-                    'fecha_solicitud' => Carbon::now(),
-                    'ultimo_credito' => $ultimoCredito,
-                    'credito_actual_id' => $ultimoCredito?->id,
-                ];
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'success' => false,
+                            'requires_confirmation' => true,
+                            'message' => $mensajeConfirmacion,
+                            'risk_type' => $tipoRiesgo,
+                            'estado_credito' => $tipoRiesgo,
+                            'cliente_tiene_deuda' => $clienteTieneDeuda,
+                            'cliente_moroso_bd' => $clienteMarcadoMoroso,
+                            'cliente_estado_bd' => $clienteRegistro?->cliente_estado,
+                            'deuda_cliente' => $registrosDeudaCliente,
+                            'aval_tiene_deuda' => $avalTieneDeuda,
+                            'deuda_aval' => $registrosDeudaAval,
+                        ]);
+                    }
 
-                $resultadoFiltros = $this->filtrosController->evaluar($clienteRegistro, $formulario, $contexto);
+                    return back()
+                        ->withInput()
+                        ->with('error', $mensajeConfirmacion);
+                }
 
-                if (!$resultadoFiltros['passed']) {
-                    $mensajeFiltro = $resultadoFiltros['message'] ?? 'La solicitud no cumple con los criterios requeridos.';
+                if (!in_array($decisionRiesgo, ['aceptar', 'rechazar'], true)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Decision de riesgo invalida proporcionada.',
+                    ], 422);
+                }
 
-                    return $request->expectsJson()
-                        ? response()->json(['success' => false, 'message' => $mensajeFiltro], 422)
-                        : back()->with('error', $mensajeFiltro)->withInput();
+                if ($decisionRiesgo === 'aceptar') {
+                    $estadoCreditoRecredito = $tipoRiesgo;
+                    $estadoLegible = Str::of($tipoRiesgo)->replace('_', ' ')->title();
+                    $mensajeRecredito = 'Solicitud registrada con estado ' . $estadoLegible . ' por deuda detectada.';
+                } else {
+                    $estadoCreditoRecredito = CreditoEstado::RECHAZADO->value;
+                    $mensajeRecredito = 'Solicitud registrada como rechazada por deuda detectada.';
+                }
+            }
+
+            if ($clienteRegistro) {
+                if ($estadoCreditoRecredito !== CreditoEstado::RECHAZADO->value) {
+                    $clienteRegistro->setRelation('creditos', $clienteRegistro->creditos ?? collect());
+                    if ($clienteRegistro->relationLoaded('promotor')) {
+                        $clienteRegistro->promotor?->loadMissing('supervisor');
+                    }
+
+                    $ultimoCredito = $clienteRegistro->creditos->first();
+
+                    $formulario = [
+                        'cliente' => [
+                            'curp' => $clienteRegistro->CURP,
+                        ],
+                        'aval' => [
+                            'curp' => $avalCurp ?? '',
+                        ],
+                        'contacto' => $data['contacto'] ?? [],
+                        'credito' => [
+                            'fecha_inicio' => Carbon::now()->toDateString(),
+                        ],
+                    ];
+
+                    $contexto = [
+                        'tipo_solicitud' => 'recredito',
+                        'promotor_id' => $promotor->id,
+                        'supervisor_id' => $promotor->supervisor_id,
+                        'fecha_solicitud' => Carbon::now(),
+                        'ultimo_credito' => $ultimoCredito,
+                        'credito_actual_id' => $ultimoCredito?->id,
+                        'permitir_credito_moroso' => $decisionRiesgo === 'aceptar' && $clienteTieneDeuda,
+                    ];
+
+                    $resultadoFiltros = $this->filtrosController->evaluar($clienteRegistro, $formulario, $contexto);
+
+                    if (!$resultadoFiltros['passed']) {
+                        $mensajeFiltro = $resultadoFiltros['message'] ?? 'La solicitud no cumple con los criterios requeridos.';
+
+                        return $request->expectsJson()
+                            ? response()->json(['success' => false, 'message' => $mensajeFiltro], 422)
+                            : back()->with('error', $mensajeFiltro)->withInput();
+                    }
                 }
             }
         } catch (ValidationException $exception) {
@@ -606,7 +729,7 @@ class PromotorController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($data, $promotor, $isNewAval) {
+            DB::transaction(function () use ($data, $promotor, $isNewAval, $estadoCreditoRecredito) {
                 $cliente = Cliente::where('CURP', $data['CURP'])->lockForUpdate()->firstOrFail();
 
                 if ($cliente->promotor_id !== $promotor->id) {
@@ -654,7 +777,7 @@ class PromotorController extends Controller
                 $credito = Credito::create([
                     'cliente_id' => $cliente->id,
                     'monto_total' => $data['monto'],
-                    'estado' => CreditoEstado::PROSPECTADO_REACREDITO->value,
+                    'estado' => $estadoCreditoRecredito,
                     'interes' => 0,
                     'periodicidad' => 'Mes',
                     'fecha_inicio' => now(),
@@ -670,10 +793,22 @@ class PromotorController extends Controller
                 ]);
             });
 
-            $message = 'Recredito solicitado con exito.';
+            $payload = [
+                'success' => true,
+                'message' => $mensajeRecredito,
+                'estado_credito' => $estadoCreditoRecredito,
+                'risk_type' => $tipoRiesgo,
+                'cliente_tiene_deuda' => $clienteTieneDeuda,
+                'cliente_moroso_bd' => $clienteMarcadoMoroso,
+                'cliente_estado_bd' => $clienteRegistro?->cliente_estado,
+                'deuda_cliente' => $registrosDeudaCliente,
+                'aval_tiene_deuda' => $avalTieneDeuda,
+                'deuda_aval' => $registrosDeudaAval,
+            ];
+
             return $request->expectsJson()
-                ? response()->json(['success' => true, 'message' => $message])
-                : redirect()->route('mobile.promotor.ingresar_cliente')->with('success', $message);
+                ? response()->json($payload)
+                : redirect()->route('mobile.promotor.ingresar_cliente')->with('success', $mensajeRecredito);
         } catch (\Throwable $exception) {
             Log::error('Error al procesar recredito: ' . $exception->getMessage(), [
                 'user_id' => Auth::id(),
@@ -1095,6 +1230,27 @@ class PromotorController extends Controller
     }
 
     /**
+     * @param array<string, array<string, string>> $riesgos
+     */
+    private function construirMensajeConfirmacionRiesgo(array $riesgos, string $tipoRiesgo): string
+    {
+        $mensajes = collect($riesgos)
+            ->map(fn ($detalle) => $detalle['mensaje'] ?? null)
+            ->filter()
+            ->implode(' ');
+
+        $mensajes = trim($mensajes);
+
+        if ($mensajes === '') {
+            $mensajes = 'Se detecto riesgo registrado para la solicitud.';
+        }
+
+        $estadoLegible = Str::of($tipoRiesgo)->replace('_', ' ')->title();
+
+        return $mensajes . ' ¿Deseas continuar y registrar el credito como ' . $estadoLegible . '?';
+    }
+
+    /**
      * @param array<int, string> $fuentes
      */
     private function formatearFuentesRiesgo(array $fuentes): string
@@ -1304,7 +1460,10 @@ class PromotorController extends Controller
             CreditoEstado::PROSPECTADO_REACREDITO,
             CreditoEstado::SOLICITADO,
             CreditoEstado::APROBADO,
-            CreditoEstado::SUPERVISADO => ClienteEstado::ACTIVO->value,
+            CreditoEstado::SUPERVISADO,
+            CreditoEstado::CLIENTE_RIESGO,
+            CreditoEstado::AVAL_RIESGO,
+            CreditoEstado::CLIENTE_AVAL_RIESGO => ClienteEstado::ACTIVO->value,
             default => null,
         };
     }

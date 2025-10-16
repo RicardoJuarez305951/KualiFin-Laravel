@@ -17,6 +17,7 @@ enum CreditoEstado: string
     case VENCIDO = 'vencido';
     case AVAL_RIESGO = 'aval_riesgo';
     case CLIENTE_RIESGO = 'cliente_riesgo';
+    case CLIENTE_AVAL_RIESGO = 'cliente_aval_riesgo';
     /**
      * @return array<int, string>
      */
