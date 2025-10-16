@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PeriodicidadCreditos;
 use App\Http\Controllers\FiltrosController;
 use App\Models\Aval;
 use App\Models\Cliente;
@@ -142,7 +143,7 @@ class FiltroTest extends TestCase
             'cliente_estado' => 'activo',
         ], [
             'estado' => 'desembolsado',
-            'periodicidad' => '14Semanas',
+            'periodicidad' => PeriodicidadCreditos::VEINTIDOS->value,
             'fecha_inicio' => Carbon::now()->subWeeks(12)->toDateString(),
         ]);
 
@@ -227,7 +228,7 @@ class FiltroTest extends TestCase
         ], [
             'estado' => 'desembolsado',
             'fecha_inicio' => Carbon::now()->subWeeks(12)->toDateString(),
-            'periodicidad' => '14Semanas',
+            'periodicidad' => PeriodicidadCreditos::VEINTIDOS->value,
         ]);
 
         $form = [
@@ -335,7 +336,7 @@ class FiltroTest extends TestCase
             'cliente_estado' => 'activo',
         ], [
             'estado' => 'desembolsado',
-            'periodicidad' => '13Semanas',
+            'periodicidad' => PeriodicidadCreditos::TRECE->value,
             'fecha_inicio' => Carbon::now()->subWeeks(5)->toDateString(),
         ]);
 
@@ -364,7 +365,7 @@ class FiltroTest extends TestCase
             'cliente_estado' => 'activo',
         ], [
             'estado' => 'desembolsado',
-            'periodicidad' => '14Semanas',
+            'periodicidad' => PeriodicidadCreditos::VEINTIDOS->value,
             'fecha_inicio' => Carbon::now()->subWeeks(12)->toDateString(),
         ]);
 
@@ -464,7 +465,17 @@ class FiltroTest extends TestCase
         $fechaInicio = isset($creditoOverrides['fecha_inicio'])
             ? Carbon::parse($creditoOverrides['fecha_inicio'])
             : Carbon::now()->subWeeks(8);
-        $periodicidad = $creditoOverrides['periodicidad'] ?? '14Semanas';
+
+        $periodicidadOverride = $creditoOverrides['periodicidad'] ?? null;
+        if ($periodicidadOverride instanceof PeriodicidadCreditos) {
+            $periodicidad = $periodicidadOverride->value;
+        } elseif (is_string($periodicidadOverride)) {
+            $periodicidad = PeriodicidadCreditos::tryFromLabel($periodicidadOverride)?->value ?? $periodicidadOverride;
+        } else {
+            $periodicidad = PeriodicidadCreditos::VEINTIDOS->value;
+        }
+
+        $semanasPeriodicidad = PeriodicidadCreditos::resolveWeeks($periodicidad) ?? 14;
 
         $credito = Credito::create([
             'cliente_id' => $cliente->id,
@@ -473,7 +484,7 @@ class FiltroTest extends TestCase
             'interes' => 1.5,
             'periodicidad' => $periodicidad,
             'fecha_inicio' => $fechaInicio->toDateString(),
-            'fecha_final' => $fechaInicio->copy()->addWeeks(14)->toDateString(),
+            'fecha_final' => $fechaInicio->copy()->addWeeks($semanasPeriodicidad)->toDateString(),
         ]);
 
         $direccion = $creditoOverrides['direccion'] ?? [
