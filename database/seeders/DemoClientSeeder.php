@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\ClienteEstado;
 use App\Enums\CreditoEstado;
+use App\Enums\PeriodicidadCreditos;
 use App\Models\Aval;
 use App\Models\Cliente;
 use App\Models\Contrato;
@@ -140,7 +141,10 @@ class DemoClientSeeder extends Seeder
         }
 
         if (!isset($scenario['periodicidad'])) {
-            $scenario['periodicidad'] = '14Semanas';
+            $scenario['periodicidad'] = PeriodicidadCreditos::default()->value;
+        } else {
+            $scenario['periodicidad'] = PeriodicidadCreditos::tryFromLabel((string) $scenario['periodicidad'])?->value
+                ?? (string) $scenario['periodicidad'];
         }
 
         if (!isset($scenario['interes'])) {
@@ -440,7 +444,7 @@ class DemoClientSeeder extends Seeder
     {
         $pagos = $scenario['pagos'] ?? [];
         $montoTotal = $scenario['monto_total'];
-        $periodicidad = $scenario['periodicidad'] ?? '14Semanas';
+        $periodicidad = $scenario['periodicidad'] ?? PeriodicidadCreditos::default()->value;
         $extras = $scenario['extras'] ?? [];
         $interes = $scenario['interes'] ?? 11.5;
 

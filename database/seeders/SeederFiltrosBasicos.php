@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\ClienteEstado;
 use App\Enums\CreditoEstado;
+use App\Enums\PeriodicidadCreditos;
 use App\Models\Aval;
 use App\Models\Cliente;
 use App\Models\Credito;
@@ -85,7 +86,7 @@ class SeederFiltrosBasicos extends Seeder
                     'estado' => CreditoEstado::DESEMBOLSADO->value,
                     'monto_total' => 15000,
                     'interes' => 16.5,
-                    'periodicidad' => 'Semanal 13',
+                    'periodicidad' => PeriodicidadCreditos::TRECE->value,
                     'fecha_inicio_weeks_ago' => 30,
                     'fecha_final_weeks_ahead' => 10,
                     'avales' => [
@@ -114,7 +115,7 @@ class SeederFiltrosBasicos extends Seeder
                     'estado' => CreditoEstado::SUPERVISADO->value,
                     'monto_total' => 14200,
                     'interes' => 15.0,
-                    'periodicidad' => 'Semanal 14',
+                    'periodicidad' => PeriodicidadCreditos::VEINTIDOS->value,
                     'fecha_inicio_weeks_ago' => 26,
                     'fecha_final_weeks_ahead' => 8,
                     'avales' => [
@@ -152,7 +153,7 @@ class SeederFiltrosBasicos extends Seeder
             'creditos' => [
                 [
                     'estado' => CreditoEstado::LIQUIDADO->value,
-                    'periodicidad' => 'Semanal 13',
+                    'periodicidad' => PeriodicidadCreditos::TRECE->value,
                     'monto_total' => 9800,
                     'interes' => 11.5,
                     'fecha_inicio_weeks_ago' => 6,
@@ -169,7 +170,7 @@ class SeederFiltrosBasicos extends Seeder
             'creditos' => [
                 [
                     'estado' => CreditoEstado::VENCIDO->value,
-                    'periodicidad' => 'Semanal 14',
+                    'periodicidad' => PeriodicidadCreditos::VEINTIDOS->value,
                     'monto_total' => 10500,
                     'interes' => 12.5,
                     'fecha_inicio_weeks_ago' => 20,
@@ -185,7 +186,7 @@ class SeederFiltrosBasicos extends Seeder
             'creditos' => [
                 [
                     'estado' => CreditoEstado::LIQUIDADO->value,
-                    'periodicidad' => 'Semanal 13',
+                    'periodicidad' => PeriodicidadCreditos::TRECE->value,
                     'monto_total' => 11200,
                     'interes' => 12.0,
                     'fecha_inicio_weeks_ago' => 12,
@@ -402,7 +403,7 @@ class SeederFiltrosBasicos extends Seeder
             'monto_total' => 7500,
             'estado' => CreditoEstado::LIQUIDADO->value,
             'interes' => 10.5,
-            'periodicidad' => 'Semanal 13',
+            'periodicidad' => PeriodicidadCreditos::TRECE->value,
             'fecha_inicio' => Carbon::now()->subWeeks(10)->toDateString(),
             'fecha_final' => Carbon::now()->addWeeks(5)->toDateString(),
         ], $attributes));

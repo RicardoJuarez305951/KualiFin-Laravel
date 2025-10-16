@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PeriodicidadCreditos;
 use App\Enums\ClienteEstado;
 use App\Enums\CreditoEstado;
 use App\Models\Aval;
@@ -534,15 +535,7 @@ class FiltrosController extends Controller
 
     private function resolverSemanasPeriodicidad(?string $periodicidad): ?int
     {
-        if (!$periodicidad) {
-            return null;
-        }
-
-        if (preg_match('/(\d+)/', $periodicidad, $coincidencias)) {
-            return (int) $coincidencias[1];
-        }
-
-        return null;
+        return PeriodicidadCreditos::resolveWeeks($periodicidad);
     }
 
     private function resultado(string $filtro, bool $aprobado, ?string $mensaje = null, array $meta = []): array
