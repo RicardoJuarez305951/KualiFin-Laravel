@@ -268,17 +268,33 @@ class PromotorController extends Controller
             $registrosDeudaCliente = $nombreCompleto !== ''
                 ? $excel->searchDebtors($nombreCompleto)
                 : [];
+            $estadoClienteMigracion = $this->obtenerEstadoClientePorCurp($data['CURP']);
+            $clienteMarcadoMoroso = $estadoClienteMigracion !== null
+                && $this->esEstadoMoroso($estadoClienteMigracion);
             $registrosDeudaAval = $avalNombreCompleto !== ''
                 ? $excel->searchDebtors($avalNombreCompleto)
                 : [];
 
-            $clienteTieneDeuda = !empty($registrosDeudaCliente);
+            $clienteTieneDeuda = !empty($registrosDeudaCliente) || $clienteMarcadoMoroso;
             $avalTieneDeuda = !empty($registrosDeudaAval);
 
             $estadoCredito = CreditoEstado::PROSPECTADO->value;
             $mensajeResultado = 'Cliente creado con exito.';
             $tipoRiesgo = null;
             $decisionRiesgo = $request->input('decision_riesgo');
+
+            $fuentesRiesgoCliente = [];
+            if (!empty($registrosDeudaCliente)) {
+                $fuentesRiesgoCliente[] = 'la lista de deudores';
+            }
+            if ($clienteMarcadoMoroso) {
+                $fuentesRiesgoCliente[] = 'la base de clientes morosos';
+            }
+            $mensajeRiesgoCliente = $this->construirMensajeRiesgo('cliente', $fuentesRiesgoCliente);
+            $fuentesRiesgoAval = !empty($registrosDeudaAval)
+                ? ['la lista de deudores']
+                : [];
+            $mensajeRiesgoAval = $this->construirMensajeRiesgo('aval', $fuentesRiesgoAval);
 
             if (!$clienteTieneDeuda && !$avalTieneDeuda) {
                 $decisionRiesgo = null;
@@ -291,8 +307,8 @@ class PromotorController extends Controller
             } elseif ($clienteTieneDeuda || $avalTieneDeuda) {
                 $tipoRiesgo = $clienteTieneDeuda ? 'ClienteRiesgo' : 'AvalRiesgo';
                 $mensajeBase = $clienteTieneDeuda
-                    ? 'Se detecto deuda registrada para el cliente.'
-                    : 'Se detecto deuda registrada para el aval.';
+                    ? $mensajeRiesgoCliente
+                    : $mensajeRiesgoAval;
 
                 if ($decisionRiesgo === null) {
                     $mensajeConfirmacion = $mensajeBase . ' ¿Deseas continuar y registrar el credito como ' . $tipoRiesgo . '?';
@@ -304,6 +320,8 @@ class PromotorController extends Controller
                         'risk_type' => $tipoRiesgo,
                         'estado_credito' => $tipoRiesgo,
                         'deuda_cliente' => $registrosDeudaCliente,
+                        'cliente_moroso_bd' => $clienteMarcadoMoroso,
+                        'cliente_estado_bd' => $estadoClienteMigracion,
                         'deuda_aval' => $registrosDeudaAval,
                         'cliente_tiene_deuda' => $clienteTieneDeuda,
                         'aval_tiene_deuda' => $avalTieneDeuda,
@@ -415,6 +433,8 @@ class PromotorController extends Controller
                 'message' => $mensajeResultado,
                 'estado_credito' => $estadoCredito,
                 'cliente_tiene_deuda' => $clienteTieneDeuda,
+                'cliente_moroso_bd' => $clienteMarcadoMoroso,
+                'cliente_estado_bd' => $estadoClienteMigracion,
                 'aval_tiene_deuda' => $avalTieneDeuda,
                 'deuda_cliente' => $registrosDeudaCliente,
                 'deuda_aval' => $registrosDeudaAval,
@@ -489,6 +509,12 @@ class PromotorController extends Controller
                 ->first();
 
             if ($clienteRegistro) {
+                if ($this->esEstadoMoroso($clienteRegistro->cliente_estado ?? null)) {
+                    throw ValidationException::withMessages([
+                        'CURP' => 'El cliente se encuentra marcado como moroso en la base de clientes y no puede solicitar un recredito.',
+                    ]);
+                }
+
                 $nombreCompleto = $this->formatFullName(
                     $clienteRegistro->nombre,
                     $clienteRegistro->apellido_p,
@@ -1030,6 +1056,62 @@ class PromotorController extends Controller
             ->map(fn ($telefono) => $telefono ? trim($telefono) : null)
             ->filter()
             ->first() ?? '';
+    }
+
+    private function obtenerEstadoClientePorCurp(?string $curp): ?string
+    {
+        if (!$curp) {
+            return null;
+        }
+
+        return DB::table('clientes')
+            ->whereRaw('LOWER(CURP) = ?', [strtolower($curp)])
+            ->value('cliente_estado');
+    }
+
+    private function esEstadoMoroso(?string $estado): bool
+    {
+        if ($estado === null) {
+            return false;
+        }
+
+        return strtolower($estado) === ClienteEstado::MOROSO->value;
+    }
+
+    /**
+     * @param array<int, string> $fuentes
+     */
+    private function construirMensajeRiesgo(string $tipo, array $fuentes): string
+    {
+        $tipo = strtolower($tipo);
+
+        if (empty($fuentes)) {
+            return "Se detecto riesgo registrado para el {$tipo}.";
+        }
+
+        $fuentes = array_values(array_filter($fuentes));
+
+        return 'Se detecto riesgo para el ' . $tipo . ' en ' . $this->formatearFuentesRiesgo($fuentes) . '.';
+    }
+
+    /**
+     * @param array<int, string> $fuentes
+     */
+    private function formatearFuentesRiesgo(array $fuentes): string
+    {
+        $total = count($fuentes);
+
+        if ($total === 0) {
+            return '';
+        }
+
+        if ($total === 1) {
+            return $fuentes[0];
+        }
+
+        $ultimo = array_pop($fuentes);
+
+        return implode(', ', $fuentes) . ' y ' . $ultimo;
     }
 
     private function formatFullName(...$parts): string

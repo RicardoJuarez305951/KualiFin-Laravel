@@ -112,14 +112,29 @@
 
             if (datos?.requires_confirmation) {
               const mensajes = [];
+              const clienteMensajes = [];
+              const avalMensajes = [];
 
               if (datos.cliente_tiene_deuda && Array.isArray(datos.deuda_cliente) && datos.deuda_cliente.length) {
-                mensajes.push('Cliente:');
-                formatearDeudas(datos.deuda_cliente).forEach(linea => mensajes.push(`  • ${linea}`));
+                formatearDeudas(datos.deuda_cliente).forEach(linea => clienteMensajes.push(linea));
               }
+
+              if (datos.cliente_moroso_bd) {
+                clienteMensajes.push('Registrado como moroso en la base de clientes.');
+              }
+
               if (datos.aval_tiene_deuda && Array.isArray(datos.deuda_aval) && datos.deuda_aval.length) {
+                formatearDeudas(datos.deuda_aval).forEach(linea => avalMensajes.push(linea));
+              }
+
+              if (clienteMensajes.length) {
+                mensajes.push('Cliente:');
+                clienteMensajes.forEach(linea => mensajes.push(`  • ${linea}`));
+              }
+
+              if (avalMensajes.length) {
                 mensajes.push('Aval:');
-                formatearDeudas(datos.deuda_aval).forEach(linea => mensajes.push(`  • ${linea}`));
+                avalMensajes.forEach(linea => mensajes.push(`  • ${linea}`));
               }
 
               if (mensajes.length === 0) {
