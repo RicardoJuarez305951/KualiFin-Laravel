@@ -163,6 +163,10 @@
         </div>
       </div>
 
+      <input type="hidden" name="firma_supervisor" id="firma_supervisor">
+      <input type="hidden" name="firma_promotor" id="firma_promotor">
+      <input type="hidden" name="firma_validador" id="firma_validador">
+
       <div class="flex items-center justify-end">
         <button type="submit"
                 class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition">
@@ -451,8 +455,6 @@
         @endif
       </section>
 
-      
-
       @if(!empty($debeProyectadoSemanal))
         <section class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-3">
           <div class="flex items-center justify-between">
@@ -598,18 +600,18 @@
       <section class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-4">
         <h3 class="text-sm font-semibold text-gray-800">Firmas</h3>
         <div class="grid grid-cols-1 gap-6 text-center">
-          <div>
-            <div class="h-12 border-b border-gray-300"></div>
-            <p class="mt-1 text-[11px] text-gray-500 uppercase">Nombre y firma supervisor</p>
-          </div>
-          <div>
-            <div class="h-12 border-b border-gray-300"></div>
-            <p class="mt-1 text-[11px] text-gray-500 uppercase">Nombre y firma promotora</p>
-          </div>
-          <div>
-            <div class="h-12 border-b border-gray-300"></div>
-            <p class="mt-1 text-[11px] text-gray-500 uppercase">Nombre y firma del validador</p>
-          </div>
+            <div @click="openSignatureModal('Firma del Supervisor', 'firma_supervisor')" class="cursor-pointer">
+                <div data-target="firma_supervisor" class="h-12 border-b border-gray-300"></div>
+                <p class="mt-1 text-[11px] text-gray-500 uppercase">Nombre y firma supervisor</p>
+            </div>
+            <div @click="openSignatureModal('Firma de la Promotora', 'firma_promotor')" class="cursor-pointer">
+                <div data-target="firma_promotor" class="h-12 border-b border-gray-300"></div>
+                <p class="mt-1 text-[11px] text-gray-500 uppercase">Nombre y firma promotora</p>
+            </div>
+            <div @click="openSignatureModal('Firma del Validador', 'firma_validador')" class="cursor-pointer">
+                <div data-target="firma_validador" class="h-12 border-b border-gray-300"></div>
+                <p class="mt-1 text-[11px] text-gray-500 uppercase">Nombre y firma del validador</p>
+            </div>
         </div>
       </section>
     @endif
@@ -636,8 +638,10 @@
       @endif
     </section>
     @include('mobile.modals.calculadora')
+    <x-mobile.signature-modal/>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
   {{-- Comentario: este script define la lógica interactiva para pagos y selección temporal de clientes. --}}
   <script>
     document.addEventListener('alpine:init', () => {
@@ -661,6 +665,10 @@
             if (this.promotorId) {
                 this.checkPromotorFailureRate(this.promotorId);
             }
+        },
+
+        openSignatureModal(title, target) {
+            window.dispatchEvent(new CustomEvent('open-signature-modal', { detail: { title, target } }));
         },
 
         checkPromotorFailureRate(promotorId) {
@@ -931,6 +939,20 @@
             target.searchParams.set('aceptados', this.acceptedIds.join(','));
           } else {
             target.searchParams.delete('aceptados');
+          }
+
+          const firmaSupervisor = document.getElementById('firma_supervisor').value;
+          const firmaPromotor = document.getElementById('firma_promotor').value;
+          const firmaValidador = document.getElementById('firma_validador').value;
+
+          if (firmaSupervisor) {
+            target.searchParams.set('firma_supervisor', firmaSupervisor);
+          }
+          if (firmaPromotor) {
+            target.searchParams.set('firma_promotor', firmaPromotor);
+          }
+          if (firmaValidador) {
+            target.searchParams.set('firma_validador', firmaValidador);
           }
 
           window.location.href = target.toString();
