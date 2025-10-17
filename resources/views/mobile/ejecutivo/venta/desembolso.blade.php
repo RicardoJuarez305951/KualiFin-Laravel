@@ -129,18 +129,18 @@
           <label for="promotor" class="block text-xs font-semibold text-gray-600 uppercase mb-1">
             Promotora
           </label>
-          @if($promotoresDisponibles->isNotEmpty())
-            <select id="promotor"
-                    name="promotor"
-                    @change="checkPromotorFailureRate($event.target.value)"
-                    class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
-              @foreach($promotoresDisponibles as $promotor)
-                <option value="{{ $promotor['id'] }}"
-                        @selected($promotorSeleccionado && $promotorSeleccionado->id === $promotor['id'])>
-                  {{ $promotor['nombre'] }}
-                </option>
-              @endforeach
-            </select>
+          @if($promotorSeleccionado)
+            <input type="hidden" id="promotor" name="promotor" value="{{ $promotorSeleccionado->id }}">
+            <p class="text-sm font-semibold text-gray-800">
+              {{ $promotorNombre ?: $promotorSeleccionado->nombre }}
+            </p>
+            <p class="text-[11px] text-gray-500 mt-1">
+              La promotora se elige desde la vista de venta.
+            </p>
+          @elseif($promotoresDisponibles->isNotEmpty())
+            <p class="text-sm text-gray-500">
+              Selecciona la promotora desde la vista de venta para generar el reporte de desembolso.
+            </p>
           @else
             <p class="text-sm text-gray-500">No hay promotoras disponibles para el supervisor seleccionado.</p>
           @endif
@@ -179,7 +179,7 @@
       <section class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 text-center space-y-3">
         <h3 class="text-sm font-semibold text-gray-800">Reporte sin datos</h3>
         <p class="text-sm text-gray-600">
-          Selecciona una promotora y, si aplica, ajusta el rango de fechas para mostrar la información de desembolso.
+          La promotora se define desde la vista de venta. Regresa y elige un desembolso para consultar la información.
         </p>
       </section>
     @else
@@ -259,7 +259,6 @@
                       type="button"
                       class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white font-semibold text-lg hover:bg-emerald-700 transition disabled:opacity-60"
                       title="Registrar pago recuperado"
-                      :disabled="promotorFailureRate > 10"
                       @click="openPaymentModal(
                         { id: {{ $falloId }}, nombre: '{{ addslashes($item['cliente'] ?? 'Sin nombre') }}' },
                         { type: 'fallo', falloId: {{ $falloId }}, pendingAmount: @js($faltante) }
@@ -376,7 +375,6 @@
                       type="button"
                       class="w-8 h-8 rounded-full border-2 border-green-500 text-green-600 flex items-center justify-center"
                       title="Aceptar cliente"
-                      :disabled="promotorFailureRate > 10"
                       @click="setDecision({{ $item['id'] ?? 'null' }}, 'accepted')"
                     >
                       ✅
@@ -385,7 +383,6 @@
                       type="button"
                       class="w-8 h-8 rounded-full border-2 border-red-500 text-red-600 flex items-center justify-center"
                       title="Rechazar cliente"
-                      :disabled="promotorFailureRate > 10"
                       @click="setDecision({{ $item['id'] ?? 'null' }}, 'rejected')"
                     >
                       ❌
@@ -627,7 +624,6 @@
            type="button"
            class="text-center px-4 py-3 rounded-2xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
            @click="exportPdf"
-           :disabled="promotorFailureRate > 10"
         >
           Exportar PDF
         </button>
@@ -671,6 +667,20 @@
             window.dispatchEvent(new CustomEvent('open-signature-modal', { detail: { title, target } }));
         },
 
+        resolveHttpClient() {
+          if (typeof window === 'undefined') {
+            return null;
+          }
+
+          const client = window.axios ?? window.Axios ?? null;
+
+          if (!client) {
+            console.warn('[desembolso] Cliente HTTP (axios) no disponible en la ventana actual.');
+          }
+
+          return client;
+        },
+
         checkPromotorFailureRate(promotorId) {
             if (!promotorId) {
                 this.promotorFailureRate = null;
@@ -679,8 +689,16 @@
             }
 
             const url = this.failureRateUrl.replace(':promotorId', promotorId);
+            const httpClient = this.resolveHttpClient();
 
-            window.axios.get(url)
+            if (!httpClient) {
+                // Sin cliente HTTP no podemos obtener la tasa, pero evitamos romper la UI.
+                this.promotorFailureRate = null;
+                this.promotorFailureMessage = '';
+                return;
+            }
+
+            httpClient.get(url)
                 .then(response => {
                     this.promotorFailureRate = response.data.failure_rate;
                     if (this.promotorFailureRate > 10) {
@@ -718,11 +736,6 @@
           return '';
         },
         setDecision(id, value) {
-          if (this.promotorFailureRate > 10) {
-            this.feedbackType = 'error';
-            this.feedbackMessage = this.promotorFailureMessage;
-            return;
-          }
           if (id === null || id === undefined) {
             return;
           }
@@ -746,12 +759,6 @@
           return null;
         },
         openPaymentModal(cliente, options = {}) {
-          if (this.promotorFailureRate > 10) {
-            this.feedbackType = 'error';
-            this.feedbackMessage = this.promotorFailureMessage;
-            return;
-          }
-
           if (!this.promotorId) {
             this.feedbackType = 'error';
             this.feedbackMessage = 'Selecciona una promotora antes de registrar pagos.';
@@ -809,7 +816,16 @@
           this.processingPayment = true;
           this.feedbackMessage = null;
 
-          window.axios.post(this.registerUrl, {
+          const httpClient = this.resolveHttpClient();
+          if (!httpClient) {
+            this.processingPayment = false;
+            this.feedbackType = 'error';
+            this.feedbackMessage = 'No se pudo iniciar la petición al servidor. Recarga la página e intenta nuevamente.';
+            this.currentPaymentContext = null;
+            return;
+          }
+
+          httpClient.post(this.registerUrl, {
             promotor_id: this.promotorId,
             credito_id: cliente.id,
             tipo,
@@ -888,7 +904,16 @@
           this.processingPayment = true;
           this.feedbackMessage = null;
 
-          window.axios.post(this.falloRegisterUrl, {
+          const httpClient = this.resolveHttpClient();
+          if (!httpClient) {
+            this.processingPayment = false;
+            this.feedbackType = 'error';
+            this.feedbackMessage = 'No se pudo iniciar la petición al servidor. Recarga la página e intenta nuevamente.';
+            this.currentPaymentContext = null;
+            return;
+          }
+
+          httpClient.post(this.falloRegisterUrl, {
             promotor_id: this.promotorId,
             accion: 'registrar_pago',
             fallo_id: falloId,
