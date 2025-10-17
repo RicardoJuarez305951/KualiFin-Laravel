@@ -46,7 +46,7 @@
     $inversion = $comisionPromotor + $comisionSupervisor + $totalPrestamoSolicitado - $carteraActual;
 
     // Evita caracteres raros al generar el PDF
-    $receiptIssuer = 'MARCO ANTONIO GOMEZ ABUD';
+    $receiptIssuer = 'MARCO ANTONIO GÜEMES ABUD';
 @endphp
 <!DOCTYPE html>
 <html lang="es">
