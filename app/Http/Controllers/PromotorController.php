@@ -269,12 +269,14 @@ class PromotorController extends Controller
                 $data['aval_apellido_m'] ?? ''
             );
 
+            // El Excel usado por searchDebtors es una lista historica externa; nunca se altera via migraciones ni Eloquent.
             $registrosDeudaCliente = $nombreCompleto !== ''
                 ? $excel->searchDebtors($nombreCompleto)
                 : [];
             $estadoClienteMigracion = $this->obtenerEstadoClientePorCurp($data['CURP']);
             $clienteMarcadoMoroso = $estadoClienteMigracion !== null
                 && $this->esEstadoMoroso($estadoClienteMigracion);
+            // Recordatorio: fuente Excel y base MySQL son independientes, asi que esta consulta no refleja cambios hechos por seeders ni factories.
             $registrosDeudaAval = $avalNombreCompleto !== ''
                 ? $excel->searchDebtors($avalNombreCompleto)
                 : [];
@@ -550,6 +552,7 @@ class PromotorController extends Controller
                 );
 
                 if ($nombreCompleto !== '') {
+                    // searchDebtors consulta un Excel historico independiente de la base MySQL.
                     $registrosDeudaCliente = $excel->searchDebtors($nombreCompleto);
                 }
 
@@ -604,6 +607,7 @@ class PromotorController extends Controller
             }
 
             if ($avalNombreCompleto !== '') {
+                // Igual que antes, la verificacion de deuda del aval viene unicamente del Excel historico.
                 $registrosDeudaAval = $excel->searchDebtors($avalNombreCompleto);
             }
 
