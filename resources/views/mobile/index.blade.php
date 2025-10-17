@@ -95,6 +95,20 @@
         </a>
         @endrole
 
+        <div class="space-y-4">
+            <a href="{{ route('mobile.misdesembolsos') }}"
+               class="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-blue-800 text-white font-semibold hover:bg-blue-900 shadow-sm hover:shadow transition ring-1 ring-blue-900/10">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
+                     viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M3 5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25v13.5A2.25 2.25 0 0118.75 21H5.25A2.25 2.25 0 013 18.75V5.25z" />
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M8.25 9h7.5m-7.5 3.75h7.5m-7.5 3.75h4.5" />
+                </svg>
+                <span>Mis Desembolsos</span>
+            </a>
+        </div>
+
       </div>
 
       {{-- Divider --}}

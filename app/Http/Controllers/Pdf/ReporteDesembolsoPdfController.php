@@ -32,6 +32,13 @@ class ReporteDesembolsoPdfController extends Controller
         [$start, $end] = $this->resolveRange($request);
         $acceptedCredits = $this->parseAcceptedCredits($request);
         $payload = $this->dataService->build($promotor, $start, $end, $acceptedCredits);
+
+        $payload['firmas'] = [
+            'supervisor' => $request->input('firma_supervisor'),
+            'promotor' => $request->input('firma_promotor'),
+            'validador' => $request->input('firma_validador'),
+        ];
+
         $pdf = $this->pdfService->generate($payload);
 
         $promotorNombre = data_get($payload, 'contexto.promotor.nombre')

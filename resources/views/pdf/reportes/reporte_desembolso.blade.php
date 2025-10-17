@@ -11,6 +11,7 @@
     $promotorNombre = Arr::get($contexto, 'promotor.nombre', Arr::get($base, 'promotorNombre', ''));
     $supervisorNombre = Arr::get($contexto, 'supervisor.nombre', Arr::get($base, 'supervisorNombre', ''));
     $ejecutivoNombre = Arr::get($contexto, 'ejecutivo.nombre', Arr::get($base, 'ejecutivoNombre', ''));
+    $validadorNombre = Arr::get($contexto, 'validador.nombre', Arr::get($base, 'validadorNombre', ''));
     $fechaReporte = Arr::get($contexto, 'fecha_reporte');
     $semanaVenta = Arr::get($contexto, 'semana_venta');
     $rango = Arr::get($contexto, 'rango', []);
@@ -22,6 +23,10 @@
     $adelantos   = Arr::get($listas, 'adelantos', []);
     $recuperacion = Arr::get($listas, 'recuperacion', []);
     $cobranzaDias = Arr::get($cobranza, 'dias', []);
+    $firmas = $firmas ?? [];
+    $firmaSupervisor = trim((string) Arr::get($firmas, 'supervisor', ''));
+    $firmaPromotor = trim((string) Arr::get($firmas, 'promotor', ''));
+    $firmaValidador = trim((string) Arr::get($firmas, 'validador', ''));
 
     $formatCurrency = static function ($value): string {
         $number = is_numeric($value) ? (float) $value : 0.0; return '$' . number_format($number, 2, '.', ',');
@@ -62,6 +67,13 @@
     .inner th,.inner td{ border:0.4px solid #000; padding:2px 3px; }
     .summary-table td.label{ width:65%; }
     .summary-table td.value{ width:35%; text-align:right; font-weight:700; }
+    .signature-table{ width:100%; border-collapse:collapse; }
+    .signature-table td{ border:0.4px solid #000; padding:6px 5px; text-align:center; width:33.33%; vertical-align:top; }
+    .signature-wrapper{ min-height:38px; display:block; margin-bottom:6px; }
+    .signature-wrapper img{ max-width:100%; max-height:38px; }
+    .signature-placeholder{ width:100%; border-bottom:0.4px solid #000; height:38px; }
+    .signature-name{ font-weight:700; font-size:9px; margin-bottom:2px; }
+    .signature-role{ font-size:8px; text-transform:uppercase; color:#444; }
 </style>
 </head>
 <body>
@@ -319,5 +331,53 @@
             </td>
         </tr>
     </table>
+
+    @php
+        $supervisorNombreImp = $supervisorNombre !== '' ? $supervisorNombre : '---';
+        $promotorNombreImp = $promotorNombre !== '' ? $promotorNombre : '---';
+        $validadorNombreImp = $validadorNombre !== '' ? $validadorNombre : ($ejecutivoNombre !== '' ? $ejecutivoNombre : '---');
+    @endphp
+    <div class="card">
+        <div class="ttl">Firmas</div>
+        <table class="signature-table">
+            <tbody>
+            <tr>
+                <td>
+                    <div class="signature-wrapper">
+                        @if($firmaSupervisor !== '')
+                            <img src="{{ $firmaSupervisor }}" alt="Firma supervisor">
+                        @else
+                            <div class="signature-placeholder"></div>
+                        @endif
+                    </div>
+                    <div class="signature-name">{{ $supervisorNombreImp }}</div>
+                    <div class="signature-role">Supervisor</div>
+                </td>
+                <td>
+                    <div class="signature-wrapper">
+                        @if($firmaPromotor !== '')
+                            <img src="{{ $firmaPromotor }}" alt="Firma promotora">
+                        @else
+                            <div class="signature-placeholder"></div>
+                        @endif
+                    </div>
+                    <div class="signature-name">{{ $promotorNombreImp }}</div>
+                    <div class="signature-role">Promotora</div>
+                </td>
+                <td>
+                    <div class="signature-wrapper">
+                        @if($firmaValidador !== '')
+                            <img src="{{ $firmaValidador }}" alt="Firma validador">
+                        @else
+                            <div class="signature-placeholder"></div>
+                        @endif
+                    </div>
+                    <div class="signature-name">{{ $validadorNombreImp }}</div>
+                    <div class="signature-role">Validador</div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
 </body>
 </html>

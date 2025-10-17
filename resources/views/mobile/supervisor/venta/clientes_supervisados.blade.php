@@ -28,7 +28,7 @@
                   <div class="flex items-center justify-between gap-3">
                     <div class="min-w-0">
                       <p class="truncate text-[14px] font-medium text-gray-800">{{ $cliente['nombre'] }}</p>
-                      <p class="text-[11px] text-gray-500 uppercase">{{ $cliente['cartera_estado'] ?? 'Sin estado' }}</p>
+                      <p class="text-[11px] text-gray-500 uppercase">{{ $cliente['cliente_estado'] ?? 'Sin estado' }}</p>
                     </div>
                     <button
                       type="button"
@@ -103,7 +103,7 @@
           </template>
 
           <div class="grid grid-cols-1 gap-2 text-sm">
-            <p><span class="font-semibold">Estatus:</span> <span x-text="selected.cartera_estado || 'Sin definir'"></span></p>
+            <p><span class="font-semibold">Estatus:</span> <span x-text="selected.cliente_estado || 'Sin definir'"></span></p>
             <p x-show="selected.fecha_nacimiento"><span class="font-semibold">Fecha nacimiento:</span> <span x-text="selected.fecha_nacimiento"></span></p>
             <p x-show="selected.telefono"><span class="font-semibold">Teléfono:</span> <span x-text="selected.telefono"></span></p>
             <p x-show="selected.direccion"><span class="font-semibold">Dirección:</span> <span x-text="selected.direccion"></span></p>
@@ -291,7 +291,7 @@
             apellido_p: '',
             apellido_m: '',
             curp: '',
-            cartera_estado: '',
+            cliente_estado: '',
             fecha_nacimiento: '',
             telefono: '',
             direccion: '',
@@ -708,15 +708,15 @@
               throw new Error(message);
             }
             if (data?.cliente) {
-              this.selected.cartera_estado = data.cliente.cartera_estado || this.selected.cartera_estado;
+              this.selected.cliente_estado = data.cliente.cliente_estado || this.selected.cliente_estado;
               this.selected.credito = this.selected.credito || {};
               this.selected.credito.estado = data.cliente.credito_estado || this.selected.credito.estado;
             } else if (type === 'approve') {
-              this.selected.cartera_estado = 'activo';
+              this.selected.cliente_estado = 'activo';
               this.selected.credito = this.selected.credito || {};
               this.selected.credito.estado = 'Supervisado';
             } else if (type === 'reject') {
-              this.selected.cartera_estado = 'inactivo';
+              this.selected.cliente_estado = 'inactivo';
               this.selected.credito = this.selected.credito || {};
               this.selected.credito.estado = 'Rechazado';
             }

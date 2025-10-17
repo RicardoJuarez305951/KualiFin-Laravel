@@ -223,7 +223,7 @@ class NuevoClienteController extends Controller
 
         $ultimoCredito = $clienteContexto->creditos->first();
 
-        $tipoSolicitud = $form['credito']['tipo_solicitud'] ?? ($clienteContexto->cartera_estado === 'moroso' ? 'recredito' : 'nuevo');
+        $tipoSolicitud = $form['credito']['tipo_solicitud'] ?? ($clienteContexto->cliente_estado === 'moroso' ? 'recredito' : 'nuevo');
 
         $contextoFiltros = [
             'tipo_solicitud' => $tipoSolicitud,
@@ -408,11 +408,11 @@ class NuevoClienteController extends Controller
         DB::transaction(function () use ($accion, $cliente, $credito) {
             if ($accion === 'aprobar') {
                 $credito->estado = 'supervisado';
-                $cliente->cartera_estado = 'activo';
+                $cliente->cliente_estado = 'activo';
                 $cliente->activo = true;
             } else {
                 $credito->estado = 'rechazado';
-                $cliente->cartera_estado = 'inactivo';
+                $cliente->cliente_estado = 'inactivo';
                 $cliente->activo = false;
             }
 
@@ -431,7 +431,7 @@ class NuevoClienteController extends Controller
             'message' => $message,
             'cliente' => [
                 'id' => $cliente->id,
-                'cartera_estado' => $cliente->cartera_estado,
+                'cliente_estado' => $cliente->cliente_estado,
                 'credito_estado' => $credito->estado,
             ],
         ]);

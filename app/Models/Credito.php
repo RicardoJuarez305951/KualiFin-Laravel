@@ -13,6 +13,9 @@ class Credito extends Model
         'cliente_id',
         'monto_total',
         'estado',
+        'motivo_cancelacion',
+        'cancelado_en',
+        'cancelado_por_id',
         'interes',
         'periodicidad',
         'fecha_inicio',
@@ -26,6 +29,7 @@ class Credito extends Model
         'interes' => 'decimal:2',
         'fecha_inicio' => 'date',
         'fecha_final' => 'date',
+        'cancelado_en' => 'datetime',
     ];
 
     public function cliente()
@@ -71,5 +75,11 @@ class Credito extends Model
     public function contratos()
     {
         return $this->hasMany(Contrato::class);
+    }
+
+    public function canceladoPor()
+    {
+        // Relacion para rastrear quien ejecuta la cancelacion.
+        return $this->belongsTo(User::class, 'cancelado_por_id');
     }
 }

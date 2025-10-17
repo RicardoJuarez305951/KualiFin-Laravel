@@ -123,7 +123,7 @@ it('habilita detalles sin seleccionar supervisor para todos los clientes de sus 
         'apellido_m' => 'Lopez',
         'fecha_nacimiento' => '1992-03-10',
         'tiene_credito_activo' => true,
-        'cartera_estado' => 'activo',
+        'cliente_estado' => 'activo',
         'monto_maximo' => 18000,
         'creado_en' => now(),
         'actualizado_en' => now(),

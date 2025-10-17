@@ -45,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
             if ($event->command === 'serve') {
                 Cache::lock('excel-sync-on-serve', 60)->get(function () {
                     Log::channel('excel')->info('Detectado php artisan serve, iniciando descarga Excel...');
+                    // ExcelReaderService usa un Excel historico independiente de MySQL; aqui solo se sincroniza su version local.
                     app(ExcelReaderService::class)->refreshIfStale(60);
                 });
             }
@@ -54,6 +55,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(MaintenanceModeDisabled::class, function () {
             Cache::lock('excel-sync-on-up', 60)->get(function () {
                 Log::channel('excel')->info('Detectado php artisan up, iniciando descarga Excel...');
+                // Recordatorio: la sincronizacion solo lee el Excel historico, sin relacion con migraciones o seeders.
                 app(ExcelReaderService::class)->refreshIfStale(60);
             });
         });

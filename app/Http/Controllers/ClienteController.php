@@ -27,7 +27,7 @@ class ClienteController extends Controller
             'apellido_m'          => 'nullable|string',
             'fecha_nacimiento'    => 'required|date',
             'tiene_credito_activo'=> 'required|boolean',
-            'cartera_estado'      => 'required|string',
+            'cliente_estado'      => 'required|string',
             'monto_maximo'        => 'required|numeric',
             'activo'              => 'required|boolean',
         ]);
@@ -53,7 +53,7 @@ class ClienteController extends Controller
             'apellido_p'          => 'required|string',
             'apellido_m'          => 'nullable|string',
             'tiene_credito_activo'=> 'required|boolean',
-            'cartera_estado'      => 'required|string',
+            'cliente_estado'      => 'required|string',
             'monto_maximo'        => 'required|numeric',
             'activo'              => 'required|boolean',
         ]);

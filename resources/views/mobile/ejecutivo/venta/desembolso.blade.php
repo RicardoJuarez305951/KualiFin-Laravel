@@ -33,6 +33,7 @@
 
     $cobranzaDias = \Illuminate\Support\Arr::get($cobranza, 'dias', []);
     $cobranzaTotal = \Illuminate\Support\Arr::get($cobranza, 'total', \Illuminate\Support\Arr::get($totales, 'cobranza', 0));
+    $debeProyectadoSemanal = $payload['debe_proyectado_semanal'] ?? [];
 
     $promotoresDisponibles = collect($promotoresDisponibles ?? []);
     $supervisorContextQuery = $supervisorContextQuery ?? [];
@@ -86,6 +87,7 @@
         supervisorQuery: @js($supervisorContextQuery ?? []),
         pdfUrl: @js($pdfUrl),
         ejecutivoId: {{ request()->has('ejecutivo_id') ? (int) request('ejecutivo_id') : 'null' }},
+        failureRateUrl: '{{ route('mobile.ejecutivo.promotor.failure_rate', ['promotor' => ':promotorId']) }}',
     })"
     class="p-4 w-full max-w-md mx-auto space-y-5"
   >
@@ -130,6 +132,7 @@
           @if($promotoresDisponibles->isNotEmpty())
             <select id="promotor"
                     name="promotor"
+                    @change="checkPromotorFailureRate($event.target.value)"
                     class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
               @foreach($promotoresDisponibles as $promotor)
                 <option value="{{ $promotor['id'] }}"
@@ -143,6 +146,10 @@
           @endif
         </div>
 
+        <template x-if="promotorFailureMessage">
+            <div class="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-800" x-text="promotorFailureMessage"></div>
+        </template>
+
         <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-600">
           <p class="uppercase font-semibold text-[10px] text-gray-500 mb-1">Periodo de reporte</p>
           <p class="font-medium text-gray-800">
@@ -155,6 +162,10 @@
           </p>
         </div>
       </div>
+
+      <input type="hidden" name="firma_supervisor" id="firma_supervisor">
+      <input type="hidden" name="firma_promotor" id="firma_promotor">
+      <input type="hidden" name="firma_validador" id="firma_validador">
 
       <div class="flex items-center justify-end">
         <button type="submit"
@@ -248,7 +259,7 @@
                       type="button"
                       class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white font-semibold text-lg hover:bg-emerald-700 transition disabled:opacity-60"
                       title="Registrar pago recuperado"
-                      :disabled="processingPayment"
+                      :disabled="promotorFailureRate > 10"
                       @click="openPaymentModal(
                         { id: {{ $falloId }}, nombre: '{{ addslashes($item['cliente'] ?? 'Sin nombre') }}' },
                         { type: 'fallo', falloId: {{ $falloId }}, pendingAmount: @js($faltante) }
@@ -365,6 +376,7 @@
                       type="button"
                       class="w-8 h-8 rounded-full border-2 border-green-500 text-green-600 flex items-center justify-center"
                       title="Aceptar cliente"
+                      :disabled="promotorFailureRate > 10"
                       @click="setDecision({{ $item['id'] ?? 'null' }}, 'accepted')"
                     >
                       ✅
@@ -373,6 +385,7 @@
                       type="button"
                       class="w-8 h-8 rounded-full border-2 border-red-500 text-red-600 flex items-center justify-center"
                       title="Rechazar cliente"
+                      :disabled="promotorFailureRate > 10"
                       @click="setDecision({{ $item['id'] ?? 'null' }}, 'rejected')"
                     >
                       ❌
@@ -442,28 +455,23 @@
         @endif
       </section>
 
-      <section class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-3">
-        <div class="flex items-center justify-between">
-          <h3 class="text-sm font-semibold text-gray-800">Cobranza semanal</h3>
-          <span class="text-xs font-semibold text-gray-700">{{ $formatCurrency($cobranzaTotal) }}</span>
-        </div>
-
-        @if(empty($cobranzaDias))
-          <p class="text-sm text-gray-600">Sin pagos registrados en la semana.</p>
-        @else
+      @if(!empty($debeProyectadoSemanal))
+        <section class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-800">Cobranza Semanal</h3>
+          </div>
           <div class="divide-y divide-gray-200 text-sm">
-            @foreach($cobranzaDias as $dia)
+            @foreach($debeProyectadoSemanal as $semana)
               <div class="flex items-center justify-between py-2">
                 <div>
-                  <p class="text-xs uppercase text-gray-500">{{ $dia['dia'] ?? 'Dia' }}</p>
-                  <p class="text-sm text-gray-700">{{ $dia['fecha_texto'] ?? '---' }}</p>
+                  <p class="text-xs uppercase text-gray-500">Semana {{ $semana['semana'] }}</p>
                 </div>
-                <p class="text-sm font-semibold text-gray-800">{{ $formatCurrency($dia['total'] ?? 0) }}</p>
+                <p class="text-sm font-semibold text-gray-800">{{ $formatCurrency($semana['monto']) }}</p>
               </div>
             @endforeach
           </div>
-        @endif
-      </section>
+        </section>
+      @endif
 
       <section class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-3">
@@ -592,18 +600,18 @@
       <section class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-4">
         <h3 class="text-sm font-semibold text-gray-800">Firmas</h3>
         <div class="grid grid-cols-1 gap-6 text-center">
-          <div>
-            <div class="h-12 border-b border-gray-300"></div>
-            <p class="mt-1 text-[11px] text-gray-500 uppercase">Nombre y firma supervisor</p>
-          </div>
-          <div>
-            <div class="h-12 border-b border-gray-300"></div>
-            <p class="mt-1 text-[11px] text-gray-500 uppercase">Nombre y firma promotora</p>
-          </div>
-          <div>
-            <div class="h-12 border-b border-gray-300"></div>
-            <p class="mt-1 text-[11px] text-gray-500 uppercase">Nombre y firma del validador</p>
-          </div>
+            <div @click="openSignatureModal('Firma del Supervisor', 'firma_supervisor')" class="cursor-pointer">
+                <div data-target="firma_supervisor" class="h-12 border-b border-gray-300"></div>
+                <p class="mt-1 text-[11px] text-gray-500 uppercase">Nombre y firma supervisor</p>
+            </div>
+            <div @click="openSignatureModal('Firma de la Promotora', 'firma_promotor')" class="cursor-pointer">
+                <div data-target="firma_promotor" class="h-12 border-b border-gray-300"></div>
+                <p class="mt-1 text-[11px] text-gray-500 uppercase">Nombre y firma promotora</p>
+            </div>
+            <div @click="openSignatureModal('Firma del Validador', 'firma_validador')" class="cursor-pointer">
+                <div data-target="firma_validador" class="h-12 border-b border-gray-300"></div>
+                <p class="mt-1 text-[11px] text-gray-500 uppercase">Nombre y firma del validador</p>
+            </div>
         </div>
       </section>
     @endif
@@ -617,8 +625,9 @@
       @if($pdfUrl)
         <button
            type="button"
-           class="text-center px-4 py-3 rounded-2xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition"
+           class="text-center px-4 py-3 rounded-2xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
            @click="exportPdf"
+           :disabled="promotorFailureRate > 10"
         >
           Exportar PDF
         </button>
@@ -629,8 +638,10 @@
       @endif
     </section>
     @include('mobile.modals.calculadora')
+    <x-mobile.signature-modal/>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
   {{-- Comentario: este script define la lógica interactiva para pagos y selección temporal de clientes. --}}
   <script>
     document.addEventListener('alpine:init', () => {
@@ -641,11 +652,50 @@
         supervisorQuery: config.supervisorQuery ?? {},
         pdfUrl: config.pdfUrl ?? null,
         ejecutivoId: config.ejecutivoId ?? null,
+        failureRateUrl: config.failureRateUrl,
         decisions: {},
         feedbackMessage: null,
         feedbackType: 'success',
         processingPayment: false,
         currentPaymentContext: null,
+        promotorFailureRate: null,
+        promotorFailureMessage: '',
+
+        init() {
+            if (this.promotorId) {
+                this.checkPromotorFailureRate(this.promotorId);
+            }
+        },
+
+        openSignatureModal(title, target) {
+            window.dispatchEvent(new CustomEvent('open-signature-modal', { detail: { title, target } }));
+        },
+
+        checkPromotorFailureRate(promotorId) {
+            if (!promotorId) {
+                this.promotorFailureRate = null;
+                this.promotorFailureMessage = '';
+                return;
+            }
+
+            const url = this.failureRateUrl.replace(':promotorId', promotorId);
+
+            window.axios.get(url)
+                .then(response => {
+                    this.promotorFailureRate = response.data.failure_rate;
+                    if (this.promotorFailureRate > 10) {
+                        this.promotorFailureMessage = `Promotor alcanzo falla de ${this.promotorFailureRate}%`;
+                    } else {
+                        this.promotorFailureMessage = '';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching promotor failure rate:', error);
+                    this.promotorFailureRate = null;
+                    this.promotorFailureMessage = 'Error al verificar la falla del promotor.';
+                });
+        },
+
         get acceptedIds() {
           return Object.keys(this.decisions).filter((id) => this.decisions[id] === 'accepted');
         },
@@ -668,6 +718,11 @@
           return '';
         },
         setDecision(id, value) {
+          if (this.promotorFailureRate > 10) {
+            this.feedbackType = 'error';
+            this.feedbackMessage = this.promotorFailureMessage;
+            return;
+          }
           if (id === null || id === undefined) {
             return;
           }
@@ -691,6 +746,12 @@
           return null;
         },
         openPaymentModal(cliente, options = {}) {
+          if (this.promotorFailureRate > 10) {
+            this.feedbackType = 'error';
+            this.feedbackMessage = this.promotorFailureMessage;
+            return;
+          }
+
           if (!this.promotorId) {
             this.feedbackType = 'error';
             this.feedbackMessage = 'Selecciona una promotora antes de registrar pagos.';
@@ -878,6 +939,20 @@
             target.searchParams.set('aceptados', this.acceptedIds.join(','));
           } else {
             target.searchParams.delete('aceptados');
+          }
+
+          const firmaSupervisor = document.getElementById('firma_supervisor').value;
+          const firmaPromotor = document.getElementById('firma_promotor').value;
+          const firmaValidador = document.getElementById('firma_validador').value;
+
+          if (firmaSupervisor) {
+            target.searchParams.set('firma_supervisor', firmaSupervisor);
+          }
+          if (firmaPromotor) {
+            target.searchParams.set('firma_promotor', firmaPromotor);
+          }
+          if (firmaValidador) {
+            target.searchParams.set('firma_validador', firmaValidador);
           }
 
           window.location.href = target.toString();

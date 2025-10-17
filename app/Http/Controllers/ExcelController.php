@@ -10,14 +10,15 @@ class ExcelController extends Controller
 {
     public function index(Request $request, ExcelReaderService $excel)
     {
-        // Parámetros de búsqueda
+        // Nota: ExcelReaderService consulta un Excel historico independiente de MySQL; aqui solo se lee.
+        // Parametros de busqueda
         $sheet = $request->input('sheet');
         $filters = $request->only(['q', 'date_from', 'date_to', 'monto_min', 'monto_max']);
         $limit = (int) $request->input('limit', 50);
         $offset = (int) $request->input('offset', 0);
         $context = (int) $request->input('context', 3);
 
-        // Listar hojas solo si se solicita explícitamente
+        // Listar hojas solo si se solicita explicitamente
         $sheets = [];
         if ($request->boolean('list_sheets')) {
             $sheets = $excel->listSheets();
@@ -71,6 +72,7 @@ class ExcelController extends Controller
 
     public function deudores(Request $request, ExcelReaderService $excel)
     {
+        // La lista de deudores vive unicamente en el Excel historico; las migraciones o seeders de MySQL no alteran estos datos.
         $cliente = $request->input('cliente');
         $filters = $request->only(['cliente']);
         $limit = (int) $request->input('limit', 50);
@@ -127,6 +129,7 @@ class ExcelController extends Controller
 
     public function historial(Request $request, ExcelReaderService $excel)
     {
+        // Igual que en los otros metodos, solo se consulta la fuente historica del Excel sin modificar datos relacionales.
         $cliente = $request->input('cliente');
         $filters = $request->only(['cliente']);
         $limit = (int) $request->input('limit', 50);

@@ -60,6 +60,10 @@ Route::middleware(['auth','verified'])->group(function () {
                  return redirect()->route("mobile.{$section}.index");
             })->middleware('share_role')->name('index');
 
+             Route::get('/mis-desembolsos', fn () => view('mobile.MisDesembolsos'))
+                  ->middleware('share_role')
+                  ->name('misdesembolsos');
+
              Route::prefix('promotor')
                   ->name('promotor.')
                   ->middleware(['role_hierarchy:promotor', 'share_role'])
@@ -104,6 +108,7 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('busqueda',  'busqueda')  ->name('busqueda');
                       Route::get('informes',  'informes')  ->name('informes');
                       Route::get('reportes',  'reportes')  ->name('reportes');
+                      Route::get('promotor/{promotor}/failure-rate', 'getPromotorFailureRate')->name('promotor.failure_rate');
                     });
 
              Route::prefix('supervisor')
@@ -132,6 +137,7 @@ Route::middleware(['auth','verified'])->group(function () {
                       Route::get('clientes-supervisados',    'clientes_supervisados')    ->name('clientes_supervisados');
                       Route::get('venta/desembolso/{promotor}', 'reciboDesembolso')->name('venta.recibo_desembolso');
                       Route::get('venta/desembolso/{promotor}/pdf', [ReciboDesembolsoPdfController::class, '__invoke'])->name('venta.recibo_desembolso.pdf');
+                      Route::post('venta/desembolso/{promotor}/creditos/{credito}/rechazar', 'rechazarCredito')->name('venta.creditos.rechazar');
                       Route::get('busqueda',          'busqueda')          ->name('busqueda');
                       Route::get('apertura',          'apertura')          ->name('apertura');
                       Route::get('venta/horarios', 'horarios')                   ->name('horarios');

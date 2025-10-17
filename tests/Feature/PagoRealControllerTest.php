@@ -15,6 +15,7 @@ class PagoRealControllerTest extends TestCase
 
         config(['app.key' => 'base64:'.base64_encode(random_bytes(32))]);
 
+        Schema::dropIfExists('pagos_anticipo');
         Schema::dropIfExists('pagos_diferidos');
         Schema::dropIfExists('pagos_completos');
         Schema::dropIfExists('pagos_reales');
@@ -47,6 +48,13 @@ class PagoRealControllerTest extends TestCase
             $table->id();
             $table->unsignedBigInteger('pago_real_id');
             $table->decimal('monto_diferido', 12, 2);
+            $table->timestamps();
+        });
+
+        Schema::create('pagos_anticipo', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('pago_real_id');
+            $table->decimal('monto_anticipo', 12, 2);
             $table->timestamps();
         });
     }
@@ -108,6 +116,44 @@ class PagoRealControllerTest extends TestCase
 
         $this->assertDatabaseHas('pagos_diferidos', [
             'monto_diferido' => 55.75,
+        ]);
+    }
+
+    public function test_store_multiple_accepts_anticipos()
+    {
+        $pago = PagoProyectado::create([
+            'monto_proyectado' => 500,
+            'deuda_total' => 500,
+        ]);
+
+        $this->withoutMiddleware();
+
+        $response = $this->postJson('/mobile/promotor/pagos-multiples', [
+            'pagos' => [
+                [
+                    'pago_proyectado_id' => $pago->id,
+                    'tipo' => 'anticipo',
+                    'monto' => 250,
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(201);
+        $response->assertJsonCount(1);
+
+        $payload = $response->json();
+
+        $this->assertEquals('anticipo', $payload[0]['tipo']);
+        $this->assertEquals($pago->id, $payload[0]['pago_proyectado_id']);
+        $this->assertEquals(250.0, (float) ($payload[0]['pago_anticipo']['monto_anticipo'] ?? 0));
+
+        $this->assertDatabaseHas('pagos_reales', [
+            'pago_proyectado_id' => $pago->id,
+            'tipo' => 'anticipo',
+        ]);
+
+        $this->assertDatabaseHas('pagos_anticipo', [
+            'monto_anticipo' => 250.0,
         ]);
     }
 }

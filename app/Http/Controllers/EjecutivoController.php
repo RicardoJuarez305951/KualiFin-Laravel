@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Enums\ClienteEstado;
 use App\Http\Controllers\Concerns\HandlesSupervisorContext;
 use App\Models\Cliente;
 use App\Models\Credito;
@@ -450,7 +451,9 @@ class EjecutivoController extends Controller
         $blocks = collect($promotoresPaginator->items())->map(function (Promotor $promotor) {
             $clientes = Cliente::where('promotor_id', $promotor->id)
                 ->where(function ($query) {
-                    $query->where('activo', false)->orWhereNull('activo');
+                    $query->where('activo', false)
+                        ->orWhereNull('activo')
+                        ->orWhereIn('cliente_estado', $this->inactiveClientStates());
                 })
                 ->with([
                     'credito.pagosProyectados.pagosReales.pagoCompleto',
@@ -744,7 +747,9 @@ class EjecutivoController extends Controller
         $totalClientes = $clienteIds->count();
         $inactivos = Cliente::whereIn('id', $clienteIds)
             ->where(function ($query) {
-                $query->where('activo', false)->orWhereNull('activo');
+                $query->where('activo', false)
+                    ->orWhereNull('activo')
+                    ->orWhereIn('cliente_estado', $this->inactiveClientStates());
             })
             ->count();
         $cartera_inactivaP = $totalClientes > 0
@@ -849,6 +854,7 @@ class EjecutivoController extends Controller
 
         $creditos = $clienteIds->isNotEmpty()
             ? Credito::whereIn('cliente_id', $clienteIds)
+                ->whereIn('estado', FiltrosController::CREDIT_ACTIVE_STATES)
                 ->with([
                     'pagosProyectados' => function ($query) use ($now) {
                         $query->where('fecha_limite', '<=', $now)
@@ -1278,6 +1284,55 @@ public function venta_supervisor()
                 'fin' => $fechaFin,
             ],
         ]);
+    }
+
+    public function getPromotorFailureRate(Request $request, Promotor $promotor)
+    {
+        $failureRate = $this->calculatePromotorFailure($promotor);
+        return response()->json(['failure_rate' => $failureRate]);
+    }
+
+    private function calculatePromotorFailure(Promotor $promotor)
+    {
+        $clientes = Cliente::where('promotor_id', $promotor->id)
+            ->with([
+                'credito.pagosProyectados.pagosReales',
+            ])
+            ->get();
+
+        $dineroFalla = 0.0;
+        $baseCreditos = 0.0;
+
+        foreach ($clientes as $cliente) {
+            $credito = $cliente->credito;
+
+            if (!$credito) {
+                continue;
+            }
+
+            $pagos = $credito->pagosProyectados instanceof \Illuminate\Support\Collection
+                ? $credito->pagosProyectados
+                : collect($credito->pagosProyectados);
+
+            $pagado = (float) $pagos->flatMap(function ($pago) {
+                return $pago->pagosReales instanceof \Illuminate\Support\Collection
+                    ? $pago->pagosReales
+                    : collect($pago->pagosReales);
+            })->sum(fn ($pagoReal) => (float) ($pagoReal->monto ?? 0));
+
+            $proyectado = (float) $pagos->sum('monto_proyectado');
+
+            $baseCreditos += (float) ($credito->monto_total ?? 0);
+            $deficit = max(0.0, $proyectado - $pagado);
+
+            if ($deficit > 0) {
+                $dineroFalla += $deficit;
+            }
+        }
+
+        return $baseCreditos > 0
+            ? round(($dineroFalla / max(1e-6, $baseCreditos)) * 100)
+            : 0;
     }
 
     public function registrarFallosRecuperados(Request $request)
@@ -1787,5 +1842,15 @@ public function venta_supervisor()
      * Faltan metodos para Cartera Activa, Falla Actual, Cartera Vencida, Cartera Inactiva
      * -----------------------------------------------------------------
      */
-    
+
+    /**
+     * @return array<int, string>
+     */
+    private function inactiveClientStates(): array
+    {
+        return [
+            ClienteEstado::INACTIVO->value,
+            ClienteEstado::CANCELADO->value,
+        ];
+    }
 }
