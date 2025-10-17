@@ -60,6 +60,10 @@ Route::middleware(['auth','verified'])->group(function () {
                  return redirect()->route("mobile.{$section}.index");
             })->middleware('share_role')->name('index');
 
+             Route::get('/mis-desembolsos', fn () => view('mobile.MisDesembolsos'))
+                  ->middleware('share_role')
+                  ->name('misdesembolsos');
+
              Route::prefix('promotor')
                   ->name('promotor.')
                   ->middleware(['role_hierarchy:promotor', 'share_role'])
