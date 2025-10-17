@@ -58,8 +58,8 @@ class ReporteDesembolsoPdfController extends Controller
      */
     private function resolveRange(Request $request): array
     {
-        $start = $this->parseDate($request->query('inicio'));
-        $end = $this->parseDate($request->query('fin'));
+        $start = $this->parseDate($request->input('inicio'));
+        $end = $this->parseDate($request->input('fin'));
 
         if (!$start || !$end) {
             $today = CarbonImmutable::now()->endOfDay();
@@ -94,7 +94,7 @@ class ReporteDesembolsoPdfController extends Controller
      */
     private function parseAcceptedCredits(Request $request): array
     {
-        $raw = $request->query('aceptados');
+        $raw = $request->input('aceptados');
 
         if ($raw === null || $raw === '') {
             return [];

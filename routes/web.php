@@ -104,7 +104,7 @@ Route::middleware(['auth','verified'])->group(function () {
                           ->name('desembolso.registrar_fallos_recuperados');
                       Route::post('desembolso/registrar-pago', 'registrarPagoDesembolso')
                           ->name('desembolso.registrar_pago');
-                      Route::get('desembolso/{promotor}/pdf', [ReporteDesembolsoPdfController::class, '__invoke'])->name('desembolso.pdf');
+                      Route::match(['GET', 'POST'], 'desembolso/{promotor}/pdf', [ReporteDesembolsoPdfController::class, '__invoke'])->name('desembolso.pdf');
                       Route::get('busqueda',  'busqueda')  ->name('busqueda');
                       Route::get('informes',  'informes')  ->name('informes');
                       Route::get('reportes',  'reportes')  ->name('reportes');

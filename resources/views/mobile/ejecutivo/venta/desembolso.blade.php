@@ -959,28 +959,76 @@
             return;
           }
 
-          const target = new URL(this.pdfUrl, window.location.origin);
-          if (this.acceptedIds.length) {
-            target.searchParams.set('aceptados', this.acceptedIds.join(','));
+          const url = new URL(this.pdfUrl, window.location.origin);
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.target = '_self';
+          form.action = `${url.origin}${url.pathname}`;
+
+          const seenKeys = new Set();
+          const appendField = (name, value) => {
+            if (value === undefined || value === null) {
+              return;
+            }
+            const stringValue = String(value);
+            if (!stringValue.length) {
+              return;
+            }
+
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = stringValue;
+            form.appendChild(input);
+            seenKeys.add(name);
+          };
+
+          const csrfToken = document
+            .querySelector('meta[name="csrf-token"]')
+            ?.getAttribute('content') ?? @json(csrf_token());
+          if (csrfToken) {
+            appendField('_token', csrfToken);
           } else {
-            target.searchParams.delete('aceptados');
+            console.warn('[desembolso] No CSRF token found; PDF export may fail.');
           }
 
-          const firmaSupervisor = document.getElementById('firma_supervisor').value;
-          const firmaPromotor = document.getElementById('firma_promotor').value;
-          const firmaValidador = document.getElementById('firma_validador').value;
+          url.searchParams.forEach((value, key) => {
+            if (!seenKeys.has(key)) {
+              appendField(key, value);
+            }
+          });
+
+          Object.entries(this.supervisorQuery ?? {}).forEach(([key, value]) => {
+            if (!seenKeys.has(key)) {
+              appendField(key, value);
+            }
+          });
+
+          if (this.ejecutivoId && !seenKeys.has('ejecutivo_id')) {
+            appendField('ejecutivo_id', this.ejecutivoId);
+          }
+
+          if (this.acceptedIds.length) {
+            appendField('aceptados', this.acceptedIds.join(','));
+          }
+
+          const firmaSupervisor = document.getElementById('firma_supervisor')?.value ?? '';
+          const firmaPromotor = document.getElementById('firma_promotor')?.value ?? '';
+          const firmaValidador = document.getElementById('firma_validador')?.value ?? '';
 
           if (firmaSupervisor) {
-            target.searchParams.set('firma_supervisor', firmaSupervisor);
+            appendField('firma_supervisor', firmaSupervisor);
           }
           if (firmaPromotor) {
-            target.searchParams.set('firma_promotor', firmaPromotor);
+            appendField('firma_promotor', firmaPromotor);
           }
           if (firmaValidador) {
-            target.searchParams.set('firma_validador', firmaValidador);
+            appendField('firma_validador', firmaValidador);
           }
 
-          window.location.href = target.toString();
+          document.body.appendChild(form);
+          form.submit();
+          document.body.removeChild(form);
         },
       }));
     });
