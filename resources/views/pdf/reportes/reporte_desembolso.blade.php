@@ -87,7 +87,7 @@
         </div>
         <div class="grid-row">
             <div class="grid-cell"><b>Semana:</b> {{ $semanaVenta ?: '---' }}</div>
-            <div class="grid-cell"><b>Rango:</b> {{ $formatDate(Arr::get($rango,'inicio')) }}–{{ $formatDate(Arr::get($rango,'fin')) }}</div>
+            <div class="grid-cell"><b>Rango:</b> {{ $formatDate(Arr::get($rango,'inicio')) }} - {{ $formatDate(Arr::get($rango,'fin')) }}</div>
             <div class="grid-cell"><b>Cartera real:</b> {{ $formatCurrency(Arr::get($totales,'cartera_real',0)) }}</div>
             <div class="grid-cell"><b>Total final:</b> {{ $formatCurrency(Arr::get($totales,'total_final',0)) }}</div>
         </div>
@@ -325,7 +325,7 @@
                         </tbody>
                     </table>
                     <div class="muted" style="margin-top:2px;">
-                        <b>Nota:</b> Total final = desembolsos + recréditos + fondos − comisiones + otros + inversión.
+                        <b>Nota:</b> Total final = desembolsos + recréditos + fondos - comisiones + otros + inversión.
                     </div>
                 </div>
             </td>
