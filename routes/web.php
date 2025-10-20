@@ -16,6 +16,7 @@ use App\Http\Controllers\Pdf\ReporteDesembolsoPdfController;
 use Illuminate\Support\Facades\Auth;
 use App\Support\RoleHierarchy;
 use App\Http\Controllers\ExcelController;
+use App\Http\Controllers\AdministrativoController;
 
 // Test
 use App\Http\Controllers\KanbanController;
@@ -174,10 +175,34 @@ Route::middleware(['auth','verified'])->group(function () {
          });
 
     // Otras páginas Blade
-    Route::get('/recreditoCliente', fn() => view('recreditoClientes'))->name('recreditoClientes');
-    Route::get('/reportes',         fn() => view('reportes'))         ->name('reportes');
-    Route::get('/panelRevision',    fn() => view('PanelRevision'))     ->name('panelRevision');
-    Route::get('/preAprobacion',    fn() => view('preaprobacion.index'))->name('preAprobacion');
+    Route::controller(AdministrativoController::class)->group(function () {
+        Route::get('/recreditoCliente', 'recreditoClientes')->name('recreditoClientes');
+        Route::get('/reportes', 'reportes')->name('reportes');
+        Route::get('/panelRevision', 'panelRevision')->name('panelRevision');
+    });
+    Route::get('/preAprobacion', fn() => view('preaprobacion.index'))->name('preAprobacion');
+
+    Route::prefix('administrativo')
+        ->name('administrativo.')
+        ->controller(AdministrativoController::class)
+        ->group(function () {
+            Route::get('/clientes', 'clientesIndex')->name('clientes.index');
+            Route::get('/clientes/crear', 'clientesCreate')->name('clientes.create');
+            Route::get('/clientes/{cliente}', 'clientesShow')->name('clientes.show');
+            Route::get('/clientes/{cliente}/editar', 'clientesEdit')->name('clientes.edit');
+
+            Route::get('/documentos', 'documentosIndex')->name('documentos.index');
+            Route::get('/documentos/crear', 'documentosCreate')->name('documentos.create');
+            Route::get('/documentos/{documento}', 'documentosShow')->name('documentos.show');
+            Route::get('/documentos/{documento}/editar', 'documentosEdit')->name('documentos.edit');
+
+            Route::get('/parametros', 'parametros')->name('parametros');
+            Route::get('/asignaciones', 'asignaciones')->name('asignaciones');
+            Route::get('/cartera-global', 'carteraGlobal')->name('cartera_global');
+            Route::get('/ventas-desembolsos', 'ventasDesembolsos')->name('ventas_desembolsos');
+            Route::get('/inversiones', 'inversiones')->name('inversiones');
+            Route::get('/auditoria-seguridad', 'auditoriaSeguridad')->name('auditoria_seguridad');
+        });
 
     // Panel Administrativo
     Route::prefix('admin')
