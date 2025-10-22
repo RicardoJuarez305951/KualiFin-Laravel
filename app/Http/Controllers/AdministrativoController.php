@@ -2,8 +2,14 @@
 
 namespace App\Http\Controllers;
 
+/**
+ * Controlador temporal que expone las vistas del escritorio administrativo.
+ * Usa datos mock para permitir maquetado/UI sin depender del backend real.
+ */
 class AdministrativoController extends Controller
 {
+    // --- Paneles con datos de muestra para prototipos ---
+    /** Panel de reportes con metricas dummy. */
     public function reportes()
     {
         $summary = [
@@ -46,6 +52,7 @@ class AdministrativoController extends Controller
         return view('reportes', compact('summary', 'recentReports', 'scheduled'));
     }
 
+    /** Consola de revision documental (placeholder). */
     public function panelRevision()
     {
         $checklist = [
@@ -80,6 +87,7 @@ class AdministrativoController extends Controller
         return view('PanelRevision', compact('checklist', 'alerts'));
     }
 
+    /** Tabla con solicitudes de recredito simuladas. */
     public function recreditoClientes()
     {
         $applications = [
@@ -112,6 +120,7 @@ class AdministrativoController extends Controller
         return view('recreditoClientes', compact('applications'));
     }
 
+    /** Catalogo general de clientes (sin filtros reales). */
     public function clientesIndex()
     {
         $clientes = [
@@ -141,6 +150,7 @@ class AdministrativoController extends Controller
         return view('clientes.index', compact('clientes'));
     }
 
+    /** Formulario de alta rapida para clientes. */
     public function clientesCreate()
     {
         $promotores = [
@@ -152,6 +162,7 @@ class AdministrativoController extends Controller
         return view('clientes.create', compact('promotores'));
     }
 
+    /** Ficha detalle de cliente con historial mock. */
     public function clientesShow(string $clienteId)
     {
         $cliente = [
@@ -175,6 +186,7 @@ class AdministrativoController extends Controller
         return view('clientes.show', compact('cliente', 'historial'));
     }
 
+    /** Formulario de edicion de cliente con valores precargados. */
     public function clientesEdit(string $clienteId)
     {
         $cliente = [
@@ -196,6 +208,7 @@ class AdministrativoController extends Controller
         return view('clientes.edit', compact('cliente', 'promotores'));
     }
 
+    /** Lista de documentos por cliente para revision administrativa. */
     public function documentosIndex()
     {
         $documentos = [
@@ -225,6 +238,7 @@ class AdministrativoController extends Controller
         return view('documentos_clientes.index', compact('documentos'));
     }
 
+    /** Formulario dummy para adjuntar documentos. */
     public function documentosCreate()
     {
         $clientes = [
@@ -244,6 +258,7 @@ class AdministrativoController extends Controller
         return view('documentos_clientes.create', compact('clientes', 'creditos', 'tipos'));
     }
 
+    /** Vista detalle de un documento con bitacora de acciones. */
     public function documentosShow(string $documentoId)
     {
         $documento = [
@@ -265,6 +280,7 @@ class AdministrativoController extends Controller
         return view('documentos_clientes.show', compact('documento', 'historial'));
     }
 
+    /** Formulario para actualizar metadatos del documento. */
     public function documentosEdit(string $documentoId)
     {
         $documento = [
@@ -293,31 +309,39 @@ class AdministrativoController extends Controller
         return view('documentos_clientes.edit', compact('documento', 'clientes', 'creditos', 'tipos'));
     }
 
+    // --- Placeholders sin logica de negocio ---
+
+    /** Placeholder de configuracion general del sistema. */
     public function parametros()
     {
         return view('administrativo.parametros');
     }
 
+    /** Placeholder para reasignar jerarquias y zonas. */
     public function asignaciones()
     {
         return view('administrativo.asignaciones');
     }
 
+    /** Placeholder para la vista consolidada de cartera. */
     public function carteraGlobal()
     {
         return view('administrativo.cartera_global');
     }
 
+    /** Placeholder para seguimiento de ventas y desembolsos. */
     public function ventasDesembolsos()
     {
         return view('administrativo.ventas_desembolsos');
     }
 
+    /** Placeholder para las solicitudes y aprobaciones de inversion. */
     public function inversiones()
     {
         return view('administrativo.inversiones');
     }
 
+    /** Placeholder para auditoria y eventos de seguridad. */
     public function auditoriaSeguridad()
     {
         return view('administrativo.auditoria_seguridad');
