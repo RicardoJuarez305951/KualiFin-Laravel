@@ -315,6 +315,186 @@ class AdministrativoController extends Controller
     private function getDashboardData(): array
     {
         return [
+            'autorizaciones' => [
+                'summary' => [
+                    ['label' => 'Filtros activos', 'value' => 12, 'badge' => '3 nuevos'],
+                    ['label' => 'Solicitudes pendientes', 'value' => 7, 'badge' => 'Responder hoy'],
+                    ['label' => 'Cambios autorizados', 'value' => 18, 'badge' => 'Semana 03'],
+                    ['label' => 'Alertas clientes', 'value' => 5, 'badge' => 'Revisar'],
+                ],
+                'filters' => [
+                    [
+                        'name' => 'Evaluacion integral',
+                        'description' => 'Clientes con score >= 650 y ventas vigentes.',
+                        'fields' => ['Zona', 'Segmento', 'Score', 'Promotor'],
+                        'owner' => 'Equipo riesgos',
+                        'status' => 'Publicado',
+                        'updated_at' => '2025-01-18',
+                    ],
+                    [
+                        'name' => 'Clientes en seguimiento',
+                        'description' => 'Casos con observaciones activas y mora < 15 dias.',
+                        'fields' => ['Plaza', 'Mora', 'Tipo alerta'],
+                        'owner' => 'Mesa control',
+                        'status' => 'En revision',
+                        'updated_at' => '2025-01-17',
+                    ],
+                    [
+                        'name' => 'Promotoras con limites flexibles',
+                        'description' => 'Promotoras con ampliacion temporal de montos.',
+                        'fields' => ['Promotora', 'Limite', 'Fecha fin'],
+                        'owner' => 'Direccion comercial',
+                        'status' => 'Borrador',
+                        'updated_at' => '2025-01-16',
+                    ],
+                ],
+                'creditCaps' => [
+                    [
+                        'segment' => 'Microcredito',
+                        'limit' => '$65,000',
+                        'status' => 'Propuesto',
+                        'owner' => 'Ana Lopez',
+                        'effective' => '01 feb 2025',
+                    ],
+                    [
+                        'segment' => 'Credito nomina',
+                        'limit' => '$120,000',
+                        'status' => 'Publicado',
+                        'owner' => 'Rogelio Nunez',
+                        'effective' => '15 ene 2025',
+                    ],
+                    [
+                        'segment' => 'Reestructura',
+                        'limit' => '$90,000',
+                        'status' => 'En revision',
+                        'owner' => 'Brenda Martinez',
+                        'effective' => 'Por definir',
+                    ],
+                ],
+                'salesLimits' => [
+                    [
+                        'zone' => 'CDMX Centro',
+                        'daily_limit' => '$320,000',
+                        'time_window' => '08:00 - 19:00',
+                        'exceptions' => 'Viernes extension 21:00',
+                    ],
+                    [
+                        'zone' => 'Toluca',
+                        'daily_limit' => '$210,000',
+                        'time_window' => '09:00 - 18:30',
+                        'exceptions' => 'Venta extra sabado 13:00',
+                    ],
+                    [
+                        'zone' => 'Puebla',
+                        'daily_limit' => '$250,000',
+                        'time_window' => '08:30 - 18:00',
+                        'exceptions' => 'Bloqueo mora > 30 dias',
+                    ],
+                ],
+                'clientFlags' => [
+                    [
+                        'client' => 'Veronica Solis',
+                        'flag' => 'Mas de 2 familiares',
+                        'promoter' => 'Ana Beltran',
+                        'status' => 'En validacion',
+                        'next_step' => 'Visita domiciliaria 22 ene',
+                    ],
+                    [
+                        'client' => 'Carlos y Laura Cruz',
+                        'flag' => 'Esposo es promotor (espera 7 semanas)',
+                        'promoter' => 'Carlos Cruz',
+                        'status' => 'Pausa obligatoria',
+                        'next_step' => 'Revisar el 10 feb',
+                    ],
+                    [
+                        'client' => 'Grupo Mujeres Avance',
+                        'flag' => 'Clientes extra solicitados',
+                        'promoter' => 'Erika Flores',
+                        'status' => 'Autorizacion pendiente',
+                        'next_step' => 'Revisar cupo viernes',
+                    ],
+                ],
+                'changeRequests' => [
+                    [
+                        'folio' => 'AUT-554',
+                        'type' => 'Cambio de plaza',
+                        'requested_by' => 'Supervisor Toluca',
+                        'status' => 'Pendiente confirmacion',
+                        'deadline' => '21 ene 09:00',
+                    ],
+                    [
+                        'folio' => 'AUT-559',
+                        'type' => 'Cambiar falla crediticia',
+                        'requested_by' => 'Promotor J. Ramirez',
+                        'status' => 'En revision',
+                        'deadline' => '21 ene 16:00',
+                    ],
+                    [
+                        'folio' => 'AUT-561',
+                        'type' => 'Clientes extra',
+                        'requested_by' => 'Ejecutivo Vega',
+                        'status' => 'Validacion documental',
+                        'deadline' => '22 ene 12:00',
+                    ],
+                ],
+                'workerChanges' => [
+                    [
+                        'employee' => 'Carlos Mendoza',
+                        'change' => 'Comision 3.5% -> 4.0%',
+                        'status' => 'En analisis',
+                        'requested_at' => '20 ene 2025',
+                    ],
+                    [
+                        'employee' => 'Marisol Ortega',
+                        'change' => 'Cambio de plaza Toluca -> Queretaro',
+                        'status' => 'Aprobado',
+                        'requested_at' => '19 ene 2025',
+                    ],
+                ],
+                'weeklyActions' => [
+                    [
+                        'role' => 'Promotor',
+                        'actions' => 58,
+                        'detail' => 'Reforzamientos de limites y solicitud de horarios adicionales.',
+                    ],
+                    [
+                        'role' => 'Supervisor',
+                        'actions' => 24,
+                        'detail' => 'Validaciones y seguimiento a clientes con parentesco.',
+                    ],
+                    [
+                        'role' => 'Ejecutivo',
+                        'actions' => 12,
+                        'detail' => 'Solicitudes de cupo extra y confirmacion de cambios.',
+                    ],
+                ],
+                'executiveRequests' => [
+                    [
+                        'executive' => 'Mariana Torres',
+                        'request' => 'Aumentar limite de venta para promotora Centro',
+                        'status' => 'Pendiente',
+                        'created_at' => '21 ene 2025 08:40',
+                    ],
+                    [
+                        'executive' => 'Selene Vega',
+                        'request' => 'Autorizar horario extendido viernes',
+                        'status' => 'En revision',
+                        'created_at' => '20 ene 2025 17:25',
+                    ],
+                ],
+                'observations' => [
+                    [
+                        'author' => 'Mesa de control',
+                        'note' => 'Recordar validacion manual de clientes con parentesco de primer grado.',
+                        'timestamp' => '21 ene 2025 09:10',
+                    ],
+                    [
+                        'author' => 'Auditoria interna',
+                        'note' => 'Cruzar limite de venta extendido con resultados de mora semanal.',
+                        'timestamp' => '20 ene 2025 18:45',
+                    ],
+                ],
+            ],
             'parametros' => [
                 'modules' => [
                     [
@@ -535,6 +715,148 @@ class AdministrativoController extends Controller
                     ],
                 ],
             ],
+            'desembolsos_inversion' => [
+                'metrics' => [
+                    ['label' => 'Total programado hoy', 'value' => '$ 1.9 M', 'trend' => '26 operaciones'],
+                    ['label' => 'Pendientes de firma', 'value' => 8, 'trend' => '4 requieren pagare'],
+                    ['label' => 'Tiempo promedio liberacion', 'value' => '5h 10m', 'trend' => '-30m vs semana pasada'],
+                    ['label' => 'Caja conciliada', 'value' => '$ 980 K', 'trend' => 'Ultimo corte 20 ene'],
+                ],
+                'filters' => [
+                    'executives' => ['Todos', 'Mariana Torres', 'Eduardo Nunez', 'Selene Vega'],
+                    'supervisors' => ['Todos', 'Luis Hernandez', 'Cecilia Ramos', 'Patricio Luna'],
+                ],
+                'disbursements' => [
+                    [
+                        'folio' => 'DES-9021',
+                        'cliente' => 'Cooperativa Semilla',
+                        'monto' => '$420,000',
+                        'fecha' => '21 ene 2025',
+                        'ejecutivo' => 'Mariana Torres',
+                        'supervisor' => 'Luis Hernandez',
+                        'estado' => 'Programado',
+                        'ventanilla' => 'Sucursal Centro',
+                        'documentos' => ['Desembolso', 'Recibo', 'Pagare grupal'],
+                    ],
+                    [
+                        'folio' => 'DES-9025',
+                        'cliente' => 'Grupo Amanecer',
+                        'monto' => '$280,000',
+                        'fecha' => '21 ene 2025',
+                        'ejecutivo' => 'Selene Vega',
+                        'supervisor' => 'Cecilia Ramos',
+                        'estado' => 'Liberado',
+                        'ventanilla' => 'Tesoreria Matriz',
+                        'documentos' => ['Desembolso', 'Recibo'],
+                    ],
+                    [
+                        'folio' => 'DES-9016',
+                        'cliente' => 'Inversion Social Norte',
+                        'monto' => '$360,000',
+                        'fecha' => '20 ene 2025',
+                        'ejecutivo' => 'Eduardo Nunez',
+                        'supervisor' => 'Patricio Luna',
+                        'estado' => 'Por recibir',
+                        'ventanilla' => 'Sucursal Puebla',
+                        'documentos' => ['Desembolso', 'Pagare grupal'],
+                    ],
+                ],
+                'documentTemplates' => [
+                    ['name' => 'Formato Desembolso Inversion', 'owner' => 'Tesoreria', 'status' => 'Listo', 'updated_at' => '2025-01-19'],
+                    ['name' => 'Recibo de entrega', 'owner' => 'Caja Matriz', 'status' => 'En revision', 'updated_at' => '2025-01-20'],
+                    ['name' => 'Pagare grupal', 'owner' => 'Juridico', 'status' => 'Requiere firma', 'updated_at' => '2025-01-18'],
+                ],
+                'cashMovements' => [
+                    'recepcion' => [
+                        ['hora' => '08:30', 'referencia' => 'Deposito ejecutivo MT-02', 'responsable' => 'Caja Matriz', 'monto' => '$250,000', 'recibo' => 'REC-7812'],
+                        ['hora' => '10:45', 'referencia' => 'Recaudo promotoras zona norte', 'responsable' => 'Tesoreria', 'monto' => '$190,000', 'recibo' => 'REC-7819'],
+                    ],
+                    'entrega' => [
+                        ['hora' => '09:15', 'referencia' => 'Entrega grupo Amanecer', 'responsable' => 'Sucursal Centro', 'monto' => '$280,000', 'recibo' => 'ENT-4451'],
+                        ['hora' => '12:10', 'referencia' => 'Programacion Cooperativa Semilla', 'responsable' => 'Tesoreria', 'monto' => '$420,000', 'recibo' => 'ENT-4454'],
+                    ],
+                ],
+                'receiptHistory' => [
+                    ['folio' => 'REC-7798', 'entregado_a' => 'Equipo Puebla', 'monto' => '$180,000', 'fecha' => '20 ene 2025', 'firmado' => 'Si'],
+                    ['folio' => 'REC-7802', 'entregado_a' => 'Grupo Amanecer', 'monto' => '$280,000', 'fecha' => '20 ene 2025', 'firmado' => 'Si'],
+                    ['folio' => 'REC-7807', 'entregado_a' => 'Cooperativa Semilla', 'monto' => '$420,000', 'fecha' => '21 ene 2025', 'firmado' => 'Pendiente'],
+                ],
+            ],
+            'cierre_semanal' => [
+                'summary' => [
+                    ['label' => 'Ventas netas', 'value' => '$ 3.8 M', 'trend' => '+8% vs semana 02'],
+                    ['label' => 'Desembolsos', 'value' => '$ 3.2 M', 'trend' => '85% efectividad'],
+                    ['label' => 'Nuevos clientes', 'value' => 112, 'trend' => '+14 contra meta'],
+                    ['label' => 'Cartera en riesgo 8-30', 'value' => '$ 640 K', 'trend' => '+1.2%'],
+                ],
+                'filters' => [
+                    'periods' => ['Semana 03 2025', 'Semana 02 2025', 'Semana 01 2025', 'Semana 52 2024'],
+                    'supervisors' => ['Todos', 'Claudia Trevino', 'Jorge Ramirez', 'Erika Flores', 'Luis Tellez'],
+                    'executives' => ['Todos', 'Mariana Torres', 'Selene Vega', 'Eduardo Nunez'],
+                ],
+                'teamBreakdown' => [
+                    [
+                        'promotora' => 'Equipo Centro',
+                        'ventas' => '$1,280,000',
+                        'desembolsos' => '$1,150,000',
+                        'nuevos' => 28,
+                        'recreditos' => 14,
+                        'mora7' => '3.2%',
+                        'supervisor' => 'Claudia Trevino',
+                        'ejecutivo' => 'Mariana Torres',
+                    ],
+                    [
+                        'promotora' => 'Equipo Toluca',
+                        'ventas' => '$980,000',
+                        'desembolsos' => '$860,000',
+                        'nuevos' => 22,
+                        'recreditos' => 11,
+                        'mora7' => '4.6%',
+                        'supervisor' => 'Jorge Ramirez',
+                        'ejecutivo' => 'Selene Vega',
+                    ],
+                    [
+                        'promotora' => 'Equipo Puebla',
+                        'ventas' => '$920,000',
+                        'desembolsos' => '$780,000',
+                        'nuevos' => 24,
+                        'recreditos' => 13,
+                        'mora7' => '5.1%',
+                        'supervisor' => 'Erika Flores',
+                        'ejecutivo' => 'Eduardo Nunez',
+                    ],
+                    [
+                        'promotora' => 'Equipo Queretaro',
+                        'ventas' => '$620,000',
+                        'desembolsos' => '$510,000',
+                        'nuevos' => 18,
+                        'recreditos' => 9,
+                        'mora7' => '3.7%',
+                        'supervisor' => 'Luis Tellez',
+                        'ejecutivo' => 'Selene Vega',
+                    ],
+                ],
+                'topPerformers' => [
+                    ['promoter' => 'Ana Beltran', 'ventas' => '$180,000', 'colocaciones' => 9],
+                    ['promoter' => 'Sergio Ortega', 'ventas' => '$165,000', 'colocaciones' => 8],
+                    ['promoter' => 'Maria Villalobos', 'ventas' => '$158,000', 'colocaciones' => 8],
+                ],
+                'alerts' => [
+                    ['type' => 'warning', 'title' => 'Mora 8-30 dias', 'detail' => 'Zona Toluca incremento 1.2 pts, revisar promotoras Alexis y Diana.'],
+                    ['type' => 'info', 'title' => 'Bonificacion semanal', 'detail' => 'Equipo Centro alcanzo 105% de meta, liberar bono.'],
+                    ['type' => 'critical', 'title' => 'Entrega atrasada', 'detail' => 'Pagare grupal Las Flores sin firma al corte.'],
+                ],
+                'weeklyActions' => [
+                    ['area' => 'Supervision', 'item' => 'Visitas campo', 'value' => '12 completadas', 'note' => '2 reagendadas por clima'],
+                    ['area' => 'Ejecutivo', 'item' => 'Reunion seguimiento', 'value' => '4 sesiones', 'note' => 'Foco reestructuras'],
+                    ['area' => 'Promotoras', 'item' => 'Capacitacion producto', 'value' => '3 talleres', 'note' => 'Material actualizado'],
+                ],
+                'pendingFollowUps' => [
+                    ['concepto' => 'Pagare grupal Las Flores', 'responsable' => 'Ejecutivo Vega', 'fecha' => '23 ene 2025', 'estatus' => 'En firma'],
+                    ['concepto' => 'Reasignacion clientes extra', 'responsable' => 'Supervisor Toluca', 'fecha' => '22 ene 2025', 'estatus' => 'Pendiente aprobacion'],
+                    ['concepto' => 'Reporte mora semanal', 'responsable' => 'Auditoria', 'fecha' => '21 ene 2025', 'estatus' => 'Publicado'],
+                ],
+            ],
             'auditoria_seguridad' => [
                 'securityAlerts' => [
                     [
@@ -585,6 +907,12 @@ class AdministrativoController extends Controller
         ]);
     }
 
+    /** Placeholder para el panel de autorizaciones y controles. */
+    public function autorizaciones()
+    {
+        return $this->renderDashboard('autorizaciones');
+    }
+
     /** Placeholder de configuracion general del sistema. */
     public function parametros()
     {
@@ -607,6 +935,18 @@ class AdministrativoController extends Controller
     public function ventasDesembolsos()
     {
         return $this->renderDashboard('ventas_desembolsos');
+    }
+
+    /** Placeholder para seguimiento de desembolsos orientados a inversion. */
+    public function desembolsosInversion()
+    {
+        return $this->renderDashboard('desembolsos_inversion');
+    }
+
+    /** Placeholder para resumen operativo semanal. */
+    public function cierreSemanal()
+    {
+        return $this->renderDashboard('cierre_semanal');
     }
 
     /** Placeholder para las solicitudes y aprobaciones de inversion. */

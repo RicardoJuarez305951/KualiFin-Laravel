@@ -196,6 +196,9 @@ Route::middleware(['auth','verified'])->group(function () {
             Route::get('/documentos/{documento}', 'documentosShow')->name('documentos.show');
             Route::get('/documentos/{documento}/editar', 'documentosEdit')->name('documentos.edit');
 
+            Route::get('/autorizaciones', 'autorizaciones')->name('autorizaciones');
+            Route::get('/desembolsos-inversion', 'desembolsosInversion')->name('desembolsos_inversion');
+            Route::get('/cierre-semanal', 'cierreSemanal')->name('cierre_semanal');
             Route::get('/parametros', 'parametros')->name('parametros');
             Route::get('/asignaciones', 'asignaciones')->name('asignaciones');
             Route::get('/cartera-global', 'carteraGlobal')->name('cartera_global');
