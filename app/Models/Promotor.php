@@ -5,6 +5,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 class Promotor extends Model
@@ -129,5 +130,10 @@ class Promotor extends Model
     public function comisiones()
     {
         return $this->morphMany(Comision::class, 'comisionable');
+    }
+
+    public function failureStreak(): HasOne
+    {
+        return $this->hasOne(PromotorFailureStreak::class);
     }
 }

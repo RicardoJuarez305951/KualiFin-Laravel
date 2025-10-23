@@ -31,3 +31,5 @@ auth.json
 composer.lock
 IMAGENES-REQUERIMIENTOS/Requerimentos venta nuevo.txt
 IMAGENES-REQUERIMIENTOS
+
+database\Kualifin.sql

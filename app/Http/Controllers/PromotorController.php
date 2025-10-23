@@ -8,6 +8,7 @@ use App\Http\Controllers\FiltrosController;
 use App\Models\Aval;
 use App\Models\Cliente;
 use App\Models\Credito;
+use App\Models\DatoContacto;
 use App\Models\Ejecutivo;
 use App\Models\Promotor;
 use App\Models\PagoProyectado;
@@ -20,6 +21,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class PromotorController extends Controller
@@ -40,6 +42,7 @@ class PromotorController extends Controller
         CreditoEstado::CLIENTE_AVAL_RIESGO->value,
         CreditoEstado::VENCIDO->value,
         CreditoEstado::CANCELADO->value,
+        CreditoEstado::REQUIERE_AUTORIZACION->value,
     ];
 
     private const AVAL_CARTERA_STATUS_BLOCKLIST = [
@@ -47,6 +50,8 @@ class PromotorController extends Controller
         ClienteEstado::MOROSO->value,
         ClienteEstado::DESEMBOLSADO->value,
     ];
+
+    private ?string $clienteEstadoColumnCache = null;
 
     public function index(Request $request)
     {
@@ -183,11 +188,14 @@ class PromotorController extends Controller
                 ->get();
 
             foreach ($clientes as $cliente) {
-                $cliente->update([
+                $cliente->update($this->withClienteEstado([
                     'tiene_credito_activo' => false,
-                    'cliente_estado' => ClienteEstado::INACTIVO->value,
                     'activo' => false,
-                ]);
+                ], ClienteEstado::INACTIVO->value));
+
+                if ($this->clienteEstadoColumn() === 'estatus') {
+                    $cliente->setAttribute('cliente_estado', ClienteEstado::INACTIVO->value);
+                }
 
                 $credito = $cliente->credito;
                 if ($credito) {
@@ -361,6 +369,32 @@ class PromotorController extends Controller
                 }
             }
 
+            $contactoSolicitud = $request->input('contacto');
+            $contactoSolicitud = is_array($contactoSolicitud) ? $contactoSolicitud : [];
+
+            $evaluacionDireccion = $this->evaluarRestriccionDireccion($contactoSolicitud);
+            if ($evaluacionDireccion['status'] === 'blocked') {
+                $mensajeBloqueo = $evaluacionDireccion['message'] ?? 'La direccion proporcionada ya se encuentra asociada a un credito reciente.';
+
+                return $request->expectsJson()
+                    ? response()->json(['success' => false, 'message' => $mensajeBloqueo], 422)
+                    : back()->with('error', $mensajeBloqueo)->withInput();
+            }
+
+            if ($evaluacionDireccion['status'] === 'requires_authorization'
+                && $estadoCredito !== CreditoEstado::RECHAZADO->value) {
+                $estadoCredito = CreditoEstado::REQUIERE_AUTORIZACION->value;
+                $tipoRiesgo = CreditoEstado::REQUIERE_AUTORIZACION->value;
+                $mensajeAutorizacion = $evaluacionDireccion['message']
+                    ?? 'Solicitud registrada con estado Requiere autorizacion por coincidencia de domicilio.';
+
+                if ($mensajeResultado !== '' && $mensajeResultado !== 'Cliente creado con exito.') {
+                    $mensajeResultado = $mensajeAutorizacion . ' Detalle previo: ' . $mensajeResultado;
+                } else {
+                    $mensajeResultado = $mensajeAutorizacion;
+                }
+            }
+
             $clienteEvaluado = new Cliente([
                 'id' => 0,
                 'promotor_id' => $promotor->id,
@@ -371,6 +405,7 @@ class PromotorController extends Controller
                 'tiene_credito_activo' => false,
                 'cliente_estado' => ClienteEstado::INACTIVO->value,
             ]);
+            $clienteEvaluado->setAttribute('estatus', ClienteEstado::INACTIVO->value);
             $clienteEvaluado->setRelation('promotor', $promotor);
             $clienteEvaluado->setRelation('creditos', collect());
 
@@ -410,7 +445,7 @@ class PromotorController extends Controller
             }
 
             DB::transaction(function () use ($data, $promotor, $estadoCredito) {
-                $cliente = Cliente::create([
+                $cliente = Cliente::create($this->withClienteEstado([
                     'promotor_id' => $promotor->id,
                     'CURP' => $data['CURP'],
                     'nombre' => $data['nombre'],
@@ -418,10 +453,13 @@ class PromotorController extends Controller
                     'apellido_m' => $data['apellido_m'] ?? '',
                     'fecha_nacimiento' => now()->subYears(18),
                     'tiene_credito_activo' => false,
-                    'cliente_estado' => ClienteEstado::INACTIVO->value,
                     'monto_maximo' => $data['monto'],
                     'activo' => false,
-                ]);
+                ], ClienteEstado::INACTIVO->value));
+
+                if ($this->clienteEstadoColumn() === 'estatus') {
+                    $cliente->setAttribute('cliente_estado', ClienteEstado::INACTIVO->value);
+                }
 
                 $credito = Credito::create([
                     'cliente_id' => $cliente->id,
@@ -543,7 +581,7 @@ class PromotorController extends Controller
                 ->first();
 
             if ($clienteRegistro) {
-                $clienteMarcadoMoroso = $this->esEstadoMoroso($clienteRegistro->cliente_estado ?? null);
+                $clienteMarcadoMoroso = $this->esEstadoMoroso($this->obtenerEstadoCliente($clienteRegistro));
 
                 $nombreCompleto = $this->formatFullName(
                     $clienteRegistro->nombre,
@@ -651,7 +689,7 @@ class PromotorController extends Controller
                             'estado_credito' => $tipoRiesgo,
                             'cliente_tiene_deuda' => $clienteTieneDeuda,
                             'cliente_moroso_bd' => $clienteMarcadoMoroso,
-                            'cliente_estado_bd' => $clienteRegistro?->cliente_estado,
+                            'cliente_estado_bd' => $this->obtenerEstadoCliente($clienteRegistro),
                             'deuda_cliente' => $registrosDeudaCliente,
                             'aval_tiene_deuda' => $avalTieneDeuda,
                             'deuda_aval' => $registrosDeudaAval,
@@ -688,6 +726,41 @@ class PromotorController extends Controller
                     }
 
                     $ultimoCredito = $clienteRegistro->creditos->first();
+
+                    $contactoSolicitud = $data['contacto'] ?? [];
+                    $contactoSolicitud = is_array($contactoSolicitud) ? $contactoSolicitud : [];
+                    $direccionNormalizada = $this->normalizarDireccion($contactoSolicitud);
+                    $contactoVacio = empty(array_filter($contactoSolicitud, function ($valor) {
+                        return $valor !== null && $valor !== '';
+                    }));
+
+                    if ($contactoVacio && !$direccionNormalizada['valida'] && $ultimoCredito) {
+                        $ultimoCredito->loadMissing('datoContacto');
+                        $contactoSolicitud = $this->extraerDireccionDesdeDatoContacto($ultimoCredito->datoContacto ?? null);
+                    }
+
+                    $evaluacionDireccion = $this->evaluarRestriccionDireccion($contactoSolicitud, $clienteRegistro?->id);
+                    if ($evaluacionDireccion['status'] === 'blocked') {
+                        $mensajeBloqueo = $evaluacionDireccion['message'] ?? 'La direccion proporcionada ya se encuentra asociada a un credito reciente.';
+
+                        return $request->expectsJson()
+                            ? response()->json(['success' => false, 'message' => $mensajeBloqueo], 422)
+                            : back()->with('error', $mensajeBloqueo)->withInput();
+                    }
+
+                    if ($evaluacionDireccion['status'] === 'requires_authorization'
+                        && $estadoCreditoRecredito !== CreditoEstado::RECHAZADO->value) {
+                        $estadoCreditoRecredito = CreditoEstado::REQUIERE_AUTORIZACION->value;
+                        $tipoRiesgo = CreditoEstado::REQUIERE_AUTORIZACION->value;
+                        $mensajeAutorizacion = $evaluacionDireccion['message']
+                            ?? 'Solicitud registrada con estado Requiere autorizacion por coincidencia de domicilio.';
+
+                        if ($mensajeRecredito !== '' && $mensajeRecredito !== 'Recredito solicitado con exito.') {
+                            $mensajeRecredito = $mensajeAutorizacion . ' Detalle previo: ' . $mensajeRecredito;
+                        } else {
+                            $mensajeRecredito = $mensajeAutorizacion;
+                        }
+                    }
 
                     $formulario = [
                         'cliente' => [
@@ -790,11 +863,14 @@ class PromotorController extends Controller
 
                 Aval::create(array_merge($avalDataForCreation, ['credito_id' => $credito->id]));
 
-                $cliente->update([
+                $cliente->update($this->withClienteEstado([
                     'tiene_credito_activo' => false,
-                    'cliente_estado' => ClienteEstado::INACTIVO->value,
                     'activo' => false,
-                ]);
+                ], ClienteEstado::INACTIVO->value));
+
+                if ($this->clienteEstadoColumn() === 'estatus') {
+                    $cliente->setAttribute('cliente_estado', ClienteEstado::INACTIVO->value);
+                }
             });
 
             $payload = [
@@ -804,7 +880,7 @@ class PromotorController extends Controller
                 'risk_type' => $tipoRiesgo,
                 'cliente_tiene_deuda' => $clienteTieneDeuda,
                 'cliente_moroso_bd' => $clienteMarcadoMoroso,
-                'cliente_estado_bd' => $clienteRegistro?->cliente_estado,
+                'cliente_estado_bd' => $this->obtenerEstadoCliente($clienteRegistro),
                 'deuda_cliente' => $registrosDeudaCliente,
                 'aval_tiene_deuda' => $avalTieneDeuda,
                 'deuda_aval' => $registrosDeudaAval,
@@ -876,7 +952,7 @@ class PromotorController extends Controller
 
         foreach ($clientes as $cliente) {
             $credito = $cliente->credito;
-            $estadoCartera = $cliente->cliente_estado
+            $estadoCartera = $this->obtenerEstadoCliente($cliente)
                 ?? $this->mapCreditoEstadoACartera($credito)
                 ?? ClienteEstado::INACTIVO->value;
 
@@ -1197,15 +1273,206 @@ class PromotorController extends Controller
             ->first() ?? '';
     }
 
+    /**
+     * @param array<string, mixed>|null $contacto
+     * @param int|null $clienteActualId Cliente al que pertenece la solicitud actual para excluirlo de la verificación
+     * @return array{status: 'ok'|'blocked'|'requires_authorization', message: ?string, last_match_at: ?string}
+     */
+    private function evaluarRestriccionDireccion(?array $contacto, ?int $clienteActualId = null): array
+    {
+        $direccion = $this->normalizarDireccion($contacto);
+
+        if (!$direccion['valida']) {
+            return [
+                'status' => 'ok',
+                'message' => null,
+                'last_match_at' => null,
+            ];
+        }
+
+        $timestampColumn = Schema::hasColumn('datos_contacto', 'updated_at') ? 'updated_at' : 'creado_en';
+
+        $contactoCoincidente = DatoContacto::query()
+            ->select('datos_contacto.*')
+            ->join('creditos', 'creditos.id', '=', 'datos_contacto.credito_id')
+            ->whereNotNull('creditos.cliente_id')
+            ->when($clienteActualId !== null, function ($query) use ($clienteActualId) {
+                $query->where('creditos.cliente_id', '!=', $clienteActualId);
+            })
+            ->when($direccion['numero_int'] !== null, function ($query) use ($direccion) {
+                $query->whereRaw('LOWER(TRIM(COALESCE(datos_contacto.numero_int, ""))) = ?', [$direccion['numero_int']]);
+            })
+            ->whereRaw('LOWER(TRIM(datos_contacto.calle)) = ?', [$direccion['calle']])
+            ->whereRaw('LOWER(TRIM(datos_contacto.numero_ext)) = ?', [$direccion['numero_ext']])
+            ->whereRaw('LOWER(TRIM(datos_contacto.colonia)) = ?', [$direccion['colonia']])
+            ->whereRaw('LOWER(TRIM(datos_contacto.municipio)) = ?', [$direccion['municipio']])
+            ->where('datos_contacto.cp', $direccion['cp'])
+            ->orderByDesc('datos_contacto.' . $timestampColumn)
+            ->first();
+
+        if (!$contactoCoincidente) {
+            return [
+                'status' => 'ok',
+                'message' => null,
+                'last_match_at' => null,
+            ];
+        }
+
+        $ultimaActualizacionRaw = $contactoCoincidente->{$timestampColumn};
+        $ultimaActualizacion = $ultimaActualizacionRaw ? Carbon::parse($ultimaActualizacionRaw) : null;
+
+        if (!$ultimaActualizacion) {
+            return [
+                'status' => 'blocked',
+                'message' => 'No fue posible determinar la fecha de la última actualización del domicilio coincidente. Solicite autorización antes de continuar.',
+                'last_match_at' => null,
+            ];
+        }
+
+        $diasTranscurridos = $ultimaActualizacion->diffInDays(now());
+
+        if ($diasTranscurridos < 42) {
+            $diasEnteros = floor($diasTranscurridos);
+            $mensajeDias = $diasEnteros === 1
+                ? '1 día'
+                : $diasEnteros . ' días';
+
+            return [
+                'status' => 'blocked',
+                'message' => 'La dirección coincide con un crédito de otro cliente registrado hace ' . $mensajeDias . '. Deben transcurrir al menos 6 semanas desde la última actualización para registrar un nuevo crédito en este domicilio.',
+                'last_match_at' => $ultimaActualizacion->toDateTimeString(),
+            ];
+        }
+
+        return [
+            'status' => 'requires_authorization',
+            'message' => 'La dirección coincide con un crédito previo de otro cliente cuya última actualización fue hace más de 6 semanas (' . $ultimaActualizacion->toDateString() . '). Se registrará con estado Requiere autorización.',
+            'last_match_at' => $ultimaActualizacion->toDateTimeString(),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed>|null $contacto
+     * @return array{valida: bool, calle: string, numero_ext: string, numero_int: ?string, colonia: string, municipio: string, cp: string}
+     */
+    private function normalizarDireccion(?array $contacto): array
+    {
+        $calle = $this->normalizarValorDireccion($contacto['calle'] ?? null);
+        $numeroExt = $this->normalizarValorDireccion($contacto['numero_ext'] ?? null);
+        $colonia = $this->normalizarValorDireccion($contacto['colonia'] ?? null);
+        $municipio = $this->normalizarValorDireccion($contacto['municipio'] ?? null);
+        $cp = isset($contacto['cp']) ? trim((string) $contacto['cp']) : '';
+        $numeroInt = $this->normalizarValorDireccion($contacto['numero_int'] ?? null);
+
+        $valida = $calle !== ''
+            && $numeroExt !== ''
+            && $colonia !== ''
+            && $municipio !== ''
+            && $cp !== '';
+
+        return [
+            'valida' => $valida,
+            'calle' => $calle,
+            'numero_ext' => $numeroExt,
+            'numero_int' => $numeroInt !== '' ? $numeroInt : null,
+            'colonia' => $colonia,
+            'municipio' => $municipio,
+            'cp' => $cp,
+        ];
+    }
+
+    private function normalizarValorDireccion(mixed $valor): string
+    {
+        if (!is_string($valor)) {
+            $valor = is_numeric($valor) ? (string) $valor : '';
+        }
+
+        return Str::of($valor)
+            ->lower()
+            ->squish()
+            ->value();
+    }
+
+    private function extraerDireccionDesdeDatoContacto(?DatoContacto $datoContacto): array
+    {
+        if (!$datoContacto) {
+            return [];
+        }
+
+        return [
+            'calle' => $datoContacto->calle,
+            'numero_ext' => $datoContacto->numero_ext,
+            'numero_int' => $datoContacto->numero_int,
+            'colonia' => $datoContacto->colonia,
+            'municipio' => $datoContacto->municipio,
+            'cp' => $datoContacto->cp,
+        ];
+    }
+
+    private function clienteEstadoColumn(): ?string
+    {
+        if ($this->clienteEstadoColumnCache === null) {
+            if (Schema::hasColumn('clientes', 'cliente_estado')) {
+                $this->clienteEstadoColumnCache = 'cliente_estado';
+            } elseif (Schema::hasColumn('clientes', 'estatus')) {
+                $this->clienteEstadoColumnCache = 'estatus';
+            } else {
+                $this->clienteEstadoColumnCache = '';
+            }
+        }
+
+        return $this->clienteEstadoColumnCache !== ''
+            ? $this->clienteEstadoColumnCache
+            : null;
+    }
+
+    private function withClienteEstado(array $attributes, string $estado): array
+    {
+        $column = $this->clienteEstadoColumn();
+
+        if ($column) {
+            $attributes[$column] = $estado;
+        }
+
+        return $attributes;
+    }
+
+    private function obtenerEstadoCliente(?Cliente $cliente): ?string
+    {
+        if (!$cliente) {
+            return null;
+        }
+
+        $column = $this->clienteEstadoColumn();
+
+        if (!$column) {
+            return null;
+        }
+
+        $estado = $cliente->{$column} ?? null;
+
+        if ($column === 'estatus' && $estado !== null) {
+            $cliente->setAttribute('cliente_estado', $estado);
+        }
+
+        return $estado;
+    }
+
     private function obtenerEstadoClientePorCurp(?string $curp): ?string
     {
         if (!$curp) {
             return null;
         }
 
+        $column = $this->clienteEstadoColumn();
+
+        if (!$column) {
+            return null;
+        }
+
         return DB::table('clientes')
             ->whereRaw('LOWER(CURP) = ?', [strtolower($curp)])
-            ->value('cliente_estado');
+            ->value($column);
     }
 
     private function esEstadoMoroso(?string $estado): bool
@@ -1482,7 +1749,8 @@ class PromotorController extends Controller
             return true;
         }
 
-        if ($cliente->cliente_estado && in_array($cliente->cliente_estado, self::AVAL_CARTERA_STATUS_BLOCKLIST, true)) {
+        $estadoCartera = $this->obtenerEstadoCliente($cliente);
+        if ($estadoCartera && in_array($estadoCartera, self::AVAL_CARTERA_STATUS_BLOCKLIST, true)) {
             return true;
         }
 

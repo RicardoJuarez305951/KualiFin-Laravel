@@ -3,6 +3,9 @@
 use App\Models\Cliente;
 use App\Models\Credito;
 use App\Models\Ejecutivo;
+use App\Models\PagoCompleto;
+use App\Models\PagoProyectado;
+use App\Models\PagoReal;
 use App\Models\Promotor;
 use App\Models\Supervisor;
 use App\Models\User;
@@ -127,6 +130,102 @@ it('muestra progreso en cero cuando el promotor no tiene ventas en la semana', f
     Carbon::setTestNow();
 });
 
+it('muestra una alerta cuando la promotora supera 8% de falla durante tres semanas consecutivas', function () {
+    $baseWeek = Carbon::create(2024, 6, 3, 11); // Lunes
+    Carbon::setTestNow($baseWeek);
+
+    [$user, $supervisor] = createSupervisorCarteraContext();
+    $promotor = createPromotorParaSupervisorCartera($supervisor, [
+        'nombre' => 'Rocio',
+        'apellido_p' => 'Campos',
+    ]);
+    $cliente = createClienteParaSupervisorCartera($promotor, 'CURPFAIL0001', 'Lucia');
+
+    $credito = Credito::create([
+        'cliente_id' => $cliente->id,
+        'monto_total' => 5000,
+        'estado' => 'activo',
+        'interes' => 1.5,
+        'periodicidad' => 'Semanal',
+        'fecha_inicio' => $baseWeek->copy()->subWeeks(1),
+        'fecha_final' => $baseWeek->copy()->addWeeks(12),
+    ]);
+
+    $montoProyectado = 1000;
+    $montoPagado = 920; // 8% de falla
+
+    for ($i = 0; $i < 3; $i++) {
+        $weekStart = $baseWeek->copy()->addWeeks($i)->startOfWeek();
+        crearPagoProyectadoConPago($credito, $weekStart->copy()->addDays(2), $i + 1, $montoProyectado, $montoPagado);
+    }
+
+    $response = null;
+    for ($i = 0; $i < 3; $i++) {
+        $currentWeek = $baseWeek->copy()->addWeeks($i)->addDays(1);
+        Carbon::setTestNow($currentWeek);
+        $response = $this->actingAs($user)->get(route('mobile.supervisor.cartera'));
+        $response->assertOk();
+    }
+
+    $response
+        ->assertSeeText('Falla de 8.00% por 3 semanas consecutivas.')
+        ->assertSeeText('acumula una falla del 8.00% durante 3 semanas consecutivas.');
+
+    $this->assertDatabaseHas('promotor_failure_streaks', [
+        'promotor_id' => $promotor->id,
+        'streak_count' => 3,
+        'alert_active' => true,
+    ]);
+
+    Carbon::setTestNow();
+});
+
+it('reinicia la racha de fallas cuando la promotora se recupera por debajo del umbral', function () {
+    $baseWeek = Carbon::create(2024, 6, 3, 11);
+    Carbon::setTestNow($baseWeek);
+
+    [$user, $supervisor] = createSupervisorCarteraContext();
+    $promotor = createPromotorParaSupervisorCartera($supervisor, [
+        'nombre' => 'Sara',
+        'apellido_p' => 'Nuñez',
+    ]);
+    $cliente = createClienteParaSupervisorCartera($promotor, 'CURPFAIL0002', 'Marcela');
+
+    $credito = Credito::create([
+        'cliente_id' => $cliente->id,
+        'monto_total' => 4000,
+        'estado' => 'activo',
+        'interes' => 1.3,
+        'periodicidad' => 'Semanal',
+        'fecha_inicio' => $baseWeek->copy()->subWeeks(1),
+        'fecha_final' => $baseWeek->copy()->addWeeks(12),
+    ]);
+
+    crearPagoProyectadoConPago($credito, $baseWeek->copy()->addDays(2), 1, 1000, 920);
+    crearPagoProyectadoConPago($credito, $baseWeek->copy()->addWeek()->addDays(2), 2, 1000, 920);
+    crearPagoProyectadoConPago($credito, $baseWeek->copy()->addWeeks(2)->addDays(2), 3, 1000, 1000);
+
+    $response = null;
+    for ($i = 0; $i < 3; $i++) {
+        $currentWeek = $baseWeek->copy()->addWeeks($i)->addDays(1);
+        Carbon::setTestNow($currentWeek);
+        $response = $this->actingAs($user)->get(route('mobile.supervisor.cartera'));
+        $response->assertOk();
+    }
+
+    $response
+        ->assertDontSeeText('Falla de 8.00% por 3 semanas consecutivas.')
+        ->assertDontSeeText('acumula una falla del 8.00% durante 3 semanas consecutivas.');
+
+    $this->assertDatabaseHas('promotor_failure_streaks', [
+        'promotor_id' => $promotor->id,
+        'streak_count' => 0,
+        'alert_active' => false,
+    ]);
+
+    Carbon::setTestNow();
+});
+
 /**
  * @return array{0: User, 1: Supervisor}
  */
@@ -194,4 +293,29 @@ function createClienteParaSupervisorCartera(Promotor $promotor, string $curp, st
         'actualizado_en' => now(),
         'activo' => true,
     ]);
+}
+
+function crearPagoProyectadoConPago(Credito $credito, Carbon $fechaLimite, int $semana, float $montoProyectado, float $montoPagado): PagoProyectado
+{
+    $pago = PagoProyectado::create([
+        'credito_id' => $credito->id,
+        'semana' => $semana,
+        'monto_proyectado' => $montoProyectado,
+        'fecha_limite' => $fechaLimite->toDateString(),
+        'estado' => 'pendiente',
+    ]);
+
+    $pagoReal = PagoReal::create([
+        'pago_proyectado_id' => $pago->id,
+        'tipo' => 'pago_completo',
+        'fecha_pago' => $fechaLimite->toDateString(),
+        'comentario' => null,
+    ]);
+
+    PagoCompleto::create([
+        'pago_real_id' => $pagoReal->id,
+        'monto_completo' => $montoPagado,
+    ]);
+
+    return $pago;
 }
