@@ -43,10 +43,40 @@
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Cartera Supervisor">
+  @php
+    $alertasPromotores = collect($alertasPromotores ?? [])->filter(fn ($alerta) => !empty($alerta));
+  @endphp
+
   <div class="mx-auto w-[22rem] sm:w-[26rem] p-4 sm:p-6 space-y-6">
 
     {{-- ===================== Resumen ===================== --}}
     @include('mobile.supervisor.cartera.cartera_resumen')
+
+    @if($alertasPromotores->isNotEmpty())
+      <section class="bg-red-50 border border-red-200 rounded-2xl shadow-inner">
+        <div class="p-4 space-y-2">
+          <div class="flex items-center gap-2 text-red-800">
+            <span class="text-lg" aria-hidden="true">⚠️</span>
+            <h2 class="text-sm font-semibold">Alertas por fallas consecutivas</h2>
+          </div>
+          <ul class="space-y-2 text-sm text-red-900">
+            @foreach($alertasPromotores as $alerta)
+              <li class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                <span>
+                  <strong>{{ $alerta['nombre'] ?? '' }}</strong> acumula una falla del {{ number_format((float) ($alerta['failure_rate'] ?? 0), 2) }}% durante {{ $alerta['streak'] ?? 0 }} semanas consecutivas.
+                </span>
+                <a
+                  href="{{ route('mobile.promotor.cartera', array_merge($supervisorContextQuery ?? [], ['promotor' => $alerta['id'] ?? null])) }}"
+                  class="inline-flex items-center gap-1 text-xs font-semibold text-red-700 hover:text-red-800"
+                >
+                  Ver promotora &rarr;
+                </a>
+              </li>
+            @endforeach
+          </ul>
+        </div>
+      </section>
+    @endif
 
     {{-- ===================== Promotores ===================== --}}
     <section class="bg-white rounded-2xl shadow-lg ring-1 ring-gray-900/5 overflow-hidden">
@@ -55,8 +85,11 @@
 
         <div class="space-y-3">
           @forelse($promotores as $p)
+            @php
+              $alertaFalla = (bool) ($p->alerta_falla_semana ?? false);
+            @endphp
             <a href="{{ route('mobile.promotor.cartera', array_merge($supervisorContextQuery ?? [], ['promotor' => $p->id])) }}"
-               class="block rounded-xl border border-gray-100 p-3 shadow-md hover:shadow transition">
+               class="block rounded-xl p-3 shadow-md hover:shadow transition {{ $alertaFalla ? 'border border-red-200 bg-red-50' : 'border border-gray-100' }}">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <span class="inline-flex items-center justify-center w-6 h-6 text-[11px] font-bold rounded-full bg-indigo-100 text-indigo-700">
@@ -80,7 +113,23 @@
                   $width = min(100, (float) ($p->porcentaje_semana ?? 0));
                 @endphp
 
-                <div class="pt-1">
+                <div class="space-y-2">
+                  <div class="grid grid-cols-1 gap-1 text-xs text-gray-600">
+                    <div class="flex items-center justify-between">
+                      <span>Objetivo semanal</span>
+                      <span class="font-semibold text-gray-900">{{ money_mx($p->venta_maxima ?? 0) }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span>Venta semanal</span>
+                      <span class="font-semibold text-gray-900">{{ money_mx($p->venta_real_semana ?? 0) }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span>Objetivo ejercicio</span>
+                      <span class="font-semibold text-gray-900">{{ money_mx($p->venta_proyectada_objetivo ?? 0) }}</span>
+                    </div>
+                  </div>
+
+                  <div class="pt-1">
                   <div class="flex items-center justify-between">
                     <span class="text-xs text-gray-600">Avance semanal</span>
                     <span class="text-xs font-semibold text-gray-900">{{ $porcentaje }}%</span>
@@ -91,6 +140,11 @@
                   <p class="mt-1 text-xs text-gray-500">
                     Faltan {{ money_mx($p->faltante_semana ?? 0) }} para alcanzar el objetivo semanal.
                   </p>
+                  @if($alertaFalla)
+                    <p class="mt-2 text-xs font-semibold text-red-700">
+                      ⚠️ Falla de {{ number_format((float) ($p->failure_rate_semana ?? 0), 2) }}% por {{ $p->failure_streak_semana ?? 0 }} semanas consecutivas.
+                    </p>
+                  @endif
                 </div>
 
               </div>

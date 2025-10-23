@@ -19,6 +19,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Concerns\HandlesSupervisorContext;
 use App\Services\BusquedaClientesService;
+use App\Services\PromotorFailureTracker;
 use App\Support\RoleHierarchy;
 use App\Services\Recibos\ReciboDesembolsoDataService;
 
@@ -806,6 +807,8 @@ class SupervisorController extends Controller
             abort_if(!$supervisor, 403, 'Perfil de supervisor no configurado.');
         }
 
+        $failureTracker = app(PromotorFailureTracker::class);
+
         $promotores = $supervisor?->promotores ?? collect();
         $promotores = $promotores instanceof \Illuminate\Support\Collection ? $promotores : collect($promotores);
         $promotores = $promotores->values();
@@ -841,7 +844,16 @@ class SupervisorController extends Controller
                 ->pluck('total', 'promotor_id')
             : collect();
 
-        $promotores = $promotores->map(function (Promotor $promotor) use ($ventasSemanales, $objetivosPromotores) {
+        $alertasPromotores = collect();
+
+        $promotores = $promotores->map(function (Promotor $promotor) use (
+            $ventasSemanales,
+            $objetivosPromotores,
+            $failureTracker,
+            $weekStart,
+            $weekEnd,
+            $alertasPromotores
+        ) {
             $objetivoDatos = $objetivosPromotores->get($promotor->id);
             $objetivoSemanal = (float) ($objetivoDatos->venta_maxima ?? $promotor->venta_maxima ?? 0);
             $objetivoEjercicio = (float) ($objetivoDatos->venta_proyectada_objetivo ?? $promotor->venta_proyectada_objetivo ?? 0);
@@ -856,6 +868,24 @@ class SupervisorController extends Controller
             $promotor->setAttribute('venta_real_semana', $ventaSemanal);
             $promotor->setAttribute('faltante_semana', $faltanteSemanal);
             $promotor->setAttribute('porcentaje_semana', $porcentajeSemanal);
+
+            $failureReport = $failureTracker->recordWeek($promotor, $weekStart, $weekEnd);
+            $promotor->setAttribute('failure_rate_semana', $failureReport['failure_rate']);
+            $promotor->setAttribute('failure_streak_semana', $failureReport['streak']);
+            $promotor->setAttribute('alerta_falla_semana', $failureReport['alert']);
+
+            if ($failureReport['alert']) {
+                $alertasPromotores->push([
+                    'id' => $promotor->id,
+                    'nombre' => collect([
+                        $promotor->nombre,
+                        $promotor->apellido_p,
+                        $promotor->apellido_m,
+                    ])->filter()->implode(' '),
+                    'failure_rate' => $failureReport['failure_rate'],
+                    'streak' => $failureReport['streak'],
+                ]);
+            }
 
             return $promotor;
         });
@@ -924,7 +954,8 @@ class SupervisorController extends Controller
             'cartera_vencida',
             'cartera_falla',
             'cartera_inactivaP',
-            'nombre_supervisor'
+            'nombre_supervisor',
+            'alertasPromotores'
         ));
     }
 
