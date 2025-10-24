@@ -18,11 +18,11 @@
 
   /** Helpers inline (reemplazo sencillo de X-Components) */
   $statRow = function(string $label, $value = null, $slotHtml = null) {
-      $left  = '<span class="text-sm text-gray-600">'.e($label).'</span>';
+      $left  = '<span class="text-sm font-semibold text-slate-600">'.e($label).'</span>';
       $right = !is_null($value)
-          ? '<span class="text-sm font-semibold text-gray-900">'.e($value).'</span>'
+          ? '<span class="text-sm font-semibold text-slate-900">'.e($value).'</span>'
           : ($slotHtml ?? '');
-      return '<div class="flex items-center justify-between">'.$left.$right.'</div>';
+      return '<div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 shadow-sm">'.$left.$right.'</div>';
   };
 
   $pillLink = function(string $href, string $text = 'D') {

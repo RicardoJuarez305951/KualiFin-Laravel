@@ -1,4 +1,4 @@
-﻿{{-- resources/views/mobile/supervisor/venta/venta.blade.php --}}
+{{-- resources/views/mobile/supervisor/venta/venta.blade.php --}}
 @php
     /** @var string $role */
     $role = isset($role) && $role ? $role : 'supervisor';
@@ -7,57 +7,58 @@
         return '$' . number_format($v, 2, '.', ',');
     }
 
-    // Fecha limite obtenida del dia de final de semana
     use Carbon\Carbon;
-     if (empty($fechaLimite ?? null)) {
+    if (empty($fechaLimite ?? null)) {
         $fechaLimite = Carbon::now()->endOfWeek(Carbon::FRIDAY)->format('d/m/Y');
     }
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Venta - Supervisor">
-  <div class="max-w-sm mx-auto space-y-6">
+  <div class="w-[22rem] sm:w-[26rem] mx-auto space-y-6 px-5 py-8">
     
     {{-- Objetivos del supervisor --}}
-    <div class="bg-white rounded-2xl shadow-md p-6 grid grid-cols-2 gap-4 text-center">
-        <div>
-            <p class="text-gray-500 text-sm">
-                Venta Registrada
-            </p>
-            <p class="font-bold text-blue-600">
-                {{ formatCurrency($moneyWeeklyNow) }}
-            </p>
-            
-        </div>
-        <div>
-            <p class="text-gray-500 text-sm">
-                Fecha Limite
-            </p>
-            <p class="font-semibold text-yellow-600">
-                {{ $fechaLimite }}
-            </p>
-            <div class="w-full bg-gray-200 rounded-full h-3 mt-4">
-                <div
-                    class="bg-green-500 h-3 rounded-full"
-                    style="width: {{ $moneyProgress }}%;">
-                </div>
+    <section class="space-y-4 rounded-3xl border border-slate-200 bg-white px-5 py-5 shadow">
+        <h2 class="text-lg font-semibold text-slate-900 text-center">Objetivos del supervisor</h2>
+        <div class="grid grid-cols-1 gap-4 text-center sm:grid-cols-2">
+            <div class="space-y-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4 shadow-sm">
+                <p class="text-gray-500 text-sm">
+                    Venta Registrada
+                </p>
+                <p class="text-xl font-bold text-blue-600">
+                    {{ formatCurrency($moneyWeeklyNow) }}
+                </p>
             </div>
-            <p class="text-xs mt-1 font-semibold">
-                {{ number_format($moneyProgress, 0) }}% completado
-            </p>
+            <div class="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 shadow-sm">
+                <div>
+                    <p class="text-gray-500 text-sm">
+                        Fecha Limite
+                    </p>
+                    <p class="font-semibold text-yellow-600">
+                        {{ $fechaLimite }}
+                    </p>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div class="bg-green-500 h-3 rounded-full" style="width: {{ $moneyProgress }}%;"></div>
+                </div>
+                <p class="text-xs font-semibold text-slate-600">
+                    {{ number_format($moneyProgress, 0) }}% completado
+                </p>
+            </div>
         </div>
-    </div>
+    </section>
 
     {{-- Datos generales --}}
-    <div class="bg-white rounded-2xl shadow-md p-6">
-        <ul class="divide-y divide-gray-200">
-            <li class="flex items-center justify-between py-2">
+    <section class="space-y-3 rounded-3xl border border-slate-200 bg-white px-5 py-5 shadow">
+        <h2 class="text-lg font-semibold text-slate-900 text-center">Datos generales</h2>
+        <ul class="space-y-3">
+            <li class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm">
                 <div>
                     <p class="text-gray-500 text-sm">Prospectados</p>
                     <p class="text-xl font-bold">{{ $clientesProspectados }}</p>
                 </div>
                 <a href="{{ route("mobile.$role.clientes_prospectados", array_merge($supervisorContextQuery ?? [], [])) }}" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
             </li>
-            <li class="flex items-center justify-between py-2">
+            <li class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm">
                 <div>
                     <p class="text-gray-500 text-sm">Por Supervisar</p>
                     <p class="text-xl font-bold">{{ $clientesPorSupervisar }}</p>
@@ -65,14 +66,17 @@
                 <a href="{{ route("mobile.$role.clientes_supervisados", array_merge($supervisorContextQuery ?? [], [])) }}" class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded">D</a>
             </li>
         </ul>
-    </div>
+    </section>
 
-    {{-- Promotores bajo supervisiÃ³n --}}
-    <div class="bg-white rounded-2xl shadow-md p-6 space-y-4">
+    {{-- Promotores bajo supervisión --}}
+    <section class="space-y-4 rounded-3xl border border-slate-200 bg-white px-5 py-5 shadow">
         <h2 class="text-lg font-semibold mb-2">Promotores Supervisados</h2>
         @foreach($promotoresSupervisados as $p)
-            <div class="border rounded-lg p-4 space-y-3">
-                <p class="font-semibold">{{ $p['nombre'] }}</p>
+            <div class="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <p class="font-semibold text-slate-900">{{ $p['nombre'] }}</p>
+                    <span class="text-xs text-slate-500">Venta Registrada: <span class="font-bold text-slate-900">{{ formatCurrency($p['ventaRegistrada']) }}</span></span>
+                </div>
                 <div class="text-sm flex justify-between">
                     <span>Debe: <span class="font-bold text-red-600">{{ formatCurrency($p['debe']) }}</span></span>
                     <span>Falla: <span class="font-bold text-yellow-600">{{ formatCurrency($p['falla']) }}</span></span>
@@ -121,16 +125,18 @@
                 </div>
             </div>
         @endforeach
-    </div>
+    </section>
 
-    {{-- BotÃ³n regresar --}}
-    <a href="{{ route("mobile.$role.horarios", array_merge($supervisorContextQuery ?? [], [])) }}"
-       class="block text-center py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
-      Horarios
-    </a>
-    <a href="{{ route("mobile.$role.index", array_merge($supervisorContextQuery ?? [], [])) }}"
-       class="block text-center py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
-      Regresar
-    </a>
+    {{-- Botón regresar --}}
+    <div class="space-y-3">
+        <a href="{{ route("mobile.$role.horarios", array_merge($supervisorContextQuery ?? [], [])) }}"
+           class="block text-center py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
+          Horarios
+        </a>
+        <a href="{{ route("mobile.$role.index", array_merge($supervisorContextQuery ?? [], [])) }}"
+           class="block text-center py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-blue-600 transition">
+          Regresar
+        </a>
+    </div>
   </div>
 </x-layouts.mobile.mobile-layout>

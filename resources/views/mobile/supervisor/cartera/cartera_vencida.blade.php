@@ -1,19 +1,21 @@
 {{-- resources/views/mobile/supervisor/cartera/cartera_vencida.blade.php --}}
 
 <x-layouts.mobile.mobile-layout>
-    <div x-data class="p-4 space-y-5">
+    <div x-data class="w-[22rem] sm:w-[26rem] mx-auto space-y-6 px-5 py-8">
         {{-- Incluimos el modal calculadora --}}
         @include('mobile.modals.calculadora')
         @include('mobile.modals.detalle')
 
-        <h1 class="text-xl font-bold text-gray-900">Cartera Vencida</h1>
+        <section class="rounded-3xl border border-amber-200 bg-amber-50 px-5 py-4 text-center shadow">
+            <h1 class="text-xl font-bold text-amber-700">Cartera Vencida</h1>
+        </section>
 
         @foreach($blocks as $promotor)
-            <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <section class="space-y-3 rounded-3xl border border-amber-200 bg-white shadow">
                 {{-- Header Promotor --}}
-                <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <div class="flex items-center justify-between gap-3 border-b border-amber-100 px-4 py-4">
                     <div class="flex items-center gap-2">
-                        <span class="inline-flex items-center justify-center w-7 h-7 text-[12px] font-bold rounded-full bg-orange-100 text-orange-700">
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-orange-100 text-[12px] font-bold text-orange-700">
                             {{ $loop->iteration }}
                         </span>
                         @php $horarioPago = trim((string) data_get($promotor, 'horario_pago', '')); @endphp
@@ -25,7 +27,7 @@
                             @endif
                         </div>
                     </div>
-                    <div class="text-right">
+                    <div class="rounded-2xl bg-amber-50 px-3 py-2 text-right shadow-inner">
                         <span class="block text-sm font-semibold text-orange-600">
                             ${{ number_format($promotor['dinero'], 2) }}
                         </span>
@@ -34,47 +36,47 @@
                 </div>
 
                 {{-- Lista de clientes --}}
-                <div class="px-3 py-2">
+                <div class="space-y-2 px-3 pb-4">
                     @foreach($promotor['clientes'] as $cliente)
-                        <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                            {{-- Datos cliente --}}
-                            <div>
-                                <p class="text-[14px] font-medium text-gray-800">{{ $cliente['nombre'] }}</p>
-                                <p class="text-[12px] text-gray-500">
-                                    Monto vencido: ${{ number_format($cliente['monto'], 2) }}
-                                </p>
-                            </div>
+                        <div class="space-y-3 rounded-2xl border border-amber-100 bg-amber-50/60 px-3 py-3 shadow-sm">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-[14px] font-medium text-gray-800">{{ $cliente['nombre'] }}</p>
+                                    <p class="text-[12px] text-gray-500">
+                                        Monto vencido: ${{ number_format($cliente['monto'], 2) }}
+                                    </p>
+                                </div>
 
-                            {{-- Botones --}}
-                            <div class="flex gap-2">
-                                {{-- Botón Cobrar --}}
-                                <button @click="$store.calc.open(@js($cliente['nombre']))"
-                                    class="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 shadow-sm"
-                                    title="Cobrar">
-                                    $
-                                </button>
+                                <div class="flex gap-2">
+                                    <button @click="$store.calc.open(@js($cliente['nombre']))"
+                                        class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white font-bold shadow-sm transition hover:bg-emerald-700"
+                                        title="Cobrar">
+                                        $
+                                    </button>
 
-                                {{-- Botón Historial --}}
-                                <a href='{{ route("mobile.$role.cliente_historial", array_merge($supervisorContextQuery ?? [], ['cliente' => $cliente["id"]])) }}'
-                                   class="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500 text-white font-bold hover:bg-amber-600 shadow-sm"
-                                   title="Historial">
-                                    H
-                                </a>
+                                    <a href='{{ route("mobile.$role.cliente_historial", array_merge($supervisorContextQuery ?? [], ['cliente' => $cliente["id"]])) }}'
+                                       class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500 text-white font-bold shadow-sm transition hover:bg-amber-600"
+                                       title="Historial">
+                                        H
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     @endforeach
                 </div>
-            </div>
+            </section>
         @endforeach
 
-        <div class="mt-4">
-            {{ $promotoresPaginator->withQueryString()->links() }}
-        </div>
+        <div class="space-y-3">
+            <div>
+                {{ $promotoresPaginator->withQueryString()->links() }}
+            </div>
 
-        {{-- Botón Regresar --}}
-        <a href="{{ route("mobile.$role.cartera", array_merge($supervisorContextQuery ?? [], [])) }}"
-          class="flex items-center justify-center rounded-xl border border-gray-300 text-white text-sm font-semibold px-3 py-2 bg-blue-600 hover:bg-blue-700 shadow-sm">
-          Regresar
-        </a>
+            {{-- Botón Regresar --}}
+            <a href="{{ route("mobile.$role.cartera", array_merge($supervisorContextQuery ?? [], [])) }}"
+               class="inline-flex w-full items-center justify-center rounded-xl border border-gray-300 bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">
+                Regresar
+            </a>
+        </div>
     </div>
 </x-layouts.mobile.mobile-layout>
