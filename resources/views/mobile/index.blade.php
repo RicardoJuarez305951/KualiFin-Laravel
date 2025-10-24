@@ -26,27 +26,12 @@
                 <h1 class="text-3xl font-bold text-black leading-tight">Hola {{ $userName }}</h1>
                 <p class="text-sm text-slate-600">{{ $mensajeDelDia }}</p>
             </header>
-            <div class="grid grid-cols-2 gap-3 text-sm">
-                <div class="rounded-2xl border border-gray-300 bg-white p-3">
-                    <p class="text-[11px] uppercase tracking-[0.25em] text-slate-700">Tu rol</p>
-                    <p class="mt-1 font-semibold text-slate-700">{{ $roleLabel }}</p>
-                </div>
-                <div class="rounded-2xl border border-gray-300 bg-white p-3">
-                    <p class="text-[11px] uppercase tracking-[0.25em] text-slate-700">Hoy</p>
-                    <p class="mt-1 font-semibold text-slate-700">{{ $dateLabel }}</p>
-                </div>
-            </div>
+            
         </section>
 
         {{-- Acciones principales --}}
         <section class="space-y-4">
-            <header class="flex items-center justify-between">
-                <h2 class="text-xs font-semibold uppercase tracking-[0.35em] text-black">Panel de acci&oacute;n</h2>
-                <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
-                      style="background-color: {{ $accentSoft }}; color: {{ $accentStrong }};">
-                    Prioridad diaria
-                </span>
-            </header>
+            
 
             <div class="grid grid-cols-1 gap-3">
                 @unlessrole('ejecutivo|administrativo|superadmin')
@@ -115,13 +100,6 @@
 
         {{-- Acciones extendidas por rol --}}
         <section class="space-y-3">
-            <header class="flex items-center justify-between">
-                <h2 class="text-xs font-semibold uppercase tracking-[0.35em] text-black">Herramientas</h2>
-                <span class="inline-flex items-center rounded-full bg-slate-900 text-white px-3 py-1 text-xs font-semibold shadow">
-                    Rol: {{ $roleLabel }}
-                </span>
-            </header>
-
             <div class="grid grid-cols-1 gap-3">
                 @role('supervisor|ejecutivo|administrativo|superadmin')
                     <a href="{{ route("mobile.supervisor.busqueda") }}"
@@ -212,7 +190,6 @@
         <footer class="rounded-2xl border border-gray-300 bg-white p-4 text-center shadow">
             <form method="POST" action="{{ route('logout') }}" class="space-y-3">
                 @csrf
-                <p class="text-xs uppercase tracking-[0.3em] text-slate-700">Sesión activa</p>
                 <button type="submit"
                         class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-white">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">

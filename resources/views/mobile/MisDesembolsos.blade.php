@@ -112,26 +112,26 @@
         })->all();
     @endphp
 
-    <div class="bg-gray-200 rounded-2xl shadow-lg p-6 w-full max-w-md space-y-6">
-        <header class="text-center space-y-1">
+    <div class="w-[22rem] sm:w-[26rem] mx-auto space-y-6 px-5 py-8">
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 text-center shadow space-y-2">
             <h1 class="text-2xl font-bold text-gray-900 uppercase">Mis Desembolsos</h1>
-            <p class="text-gray-600 text-sm">Lista cronologica compacta por semana</p>
-        </header>
+            <p class="text-sm text-gray-600">Lista cronologica compacta por semana</p>
+        </section>
 
         @unless ($canGeneratePdf)
-            <div class="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-700">
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700 shadow-sm">
                 Genera PDF reales iniciando sesion con un perfil autorizado y promotora asignada. Mientras tanto, puedes descargar un PDF vacio para mostrar al cliente.
             </div>
         @endunless
 
-        <section class="bg-white rounded-2xl shadow-inner p-4 space-y-3">
+        <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow space-y-4">
             <div class="flex items-center justify-between">
                 <h2 class="text-lg font-semibold text-gray-900">Registro semanal</h2>
-                <span class="text-xs uppercase tracking-wide text-gray-500">Cronologico</span>
+                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">Cronologico</span>
             </div>
-            <ul class="divide-y divide-gray-200">
+            <ul class="space-y-3">
                 @foreach ($desembolsosDemo as $desembolso)
-                    <li class="py-3 flex items-center justify-between">
+                    <li class="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm">
                         <div class="space-y-1">
                             <p class="text-sm font-semibold text-gray-900">{{ $desembolso['semana'] }}</p>
                             <p class="text-xs text-gray-500">
@@ -141,10 +141,10 @@
                                 <p class="text-[11px] text-gray-400">{{ $desembolso['range_display'] }}</p>
                             @endif
                         </div>
-                        <div class="text-right space-y-1">
-                            <span class="block text-sm font-semibold text-gray-900">{{ $desembolso['monto_display'] }}</span>
+                        <div class="flex flex-col items-end gap-2 text-right">
+                            <span class="text-sm font-semibold text-gray-900">{{ $desembolso['monto_display'] }}</span>
                             <a href="{{ $desembolso['pdf_url'] }}"
-                               class="inline-flex items-center text-xs font-medium text-blue-700 hover:text-blue-900"
+                               class="inline-flex items-center justify-center rounded-xl border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:border-blue-300 hover:text-blue-900"
                                target="_blank" rel="noopener"
                                @if(!empty($desembolso['download'])) download="{{ $desembolso['download'] }}" @endif>
                                 {{ $desembolso['pdf_label'] }}

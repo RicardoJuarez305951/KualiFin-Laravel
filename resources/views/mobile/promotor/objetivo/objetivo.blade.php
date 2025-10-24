@@ -14,7 +14,7 @@
                 <h1 class="text-2xl font-bold text-slate-900 leading-tight">Mi objetivo semanal</h1>
                 <p class="text-sm text-slate-600">Revisa tus metas y monitorea tus ventas en tiempo real.</p>
             </header>
-            <div class="grid grid-cols-3 gap-3 text-center text-sm">
+            <div class="grid grid-rows-3 gap-3 text-center text-sm">
                 <div class="rounded-2xl border border-gray-200 bg-slate-50 p-3 shadow-sm">
                     <p class="text-[11px] uppercase tracking-[0.25em] text-slate-700">Objetivo</p>
                     <p class="mt-1 text-base font-semibold text-slate-900">{{ $formatCurrency($objetivoSemanal ?? 0) }}</p>

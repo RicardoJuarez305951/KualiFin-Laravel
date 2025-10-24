@@ -1,6 +1,5 @@
-<section class="bg-white rounded-2xl shadow-lg ring-1 ring-gray-900/5 overflow-hidden">
-    <div class="p-5 space-y-4">
-    <h2 class="text-base font-bold text-gray-900">Resumen</h2>
+<section class="rounded-3xl border border-slate-200 bg-white p-6 shadow space-y-4">
+    <h2 class="text-2xl font-bold text-slate-900 leading-tight">Resumen</h2>
 
     <div class="space-y-3">
         {!! $statRow('Supervisor:', $nombre_supervisor) !!}
@@ -35,6 +34,5 @@
             $pillLink(route('mobile.'.$role.'.cartera_inactiva', array_merge($supervisorContextQuery ?? [], [])), 'D').'
         </div>
         ') !!}
-    </div>
     </div>
 </section>
