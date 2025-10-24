@@ -1,81 +1,77 @@
-{{-- resources/views/mobile/supervisor/cartera/cartera_falla.blade.php --}}
-
+{{-- resources/views/mobile/ejecutivo/cartera/cartera_falla.blade.php --}}
 @php
     $role = $role ?? 'ejecutivo';
     $supervisorContextQuery = $supervisorContextQuery ?? [];
 @endphp
 
 <x-layouts.mobile.mobile-layout>
-    
-    <div x-data class="p-4 space-y-5">
+    <div x-data class="mx-auto w-full max-w-md space-y-8 px-5 py-10">
         @include('mobile.modals.calculadora')
         @include('mobile.modals.detalle')
-        <h1 class="text-xl font-bold text-gray-900">Cartera Falla</h1>
-        @foreach($blocks as $promotor)
-            <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
-                {{-- Header Promotor --}}
-                <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                    <div class="flex items-center gap-2">
-                        <span class="inline-flex items-center justify-center w-7 h-7 text-[12px] font-bold rounded-full bg-red-100 text-red-700">
-                            {{ $loop->iteration }}
-                        </span>
-                        @php $horarioPago = trim((string) data_get($promotor, 'horario_pago', '')); @endphp
-                        <div>
-                            <span class="block text-[15px] font-semibold text-gray-900">{{ $promotor['nombre'] }}</span>
-                            <span class="text-xs text-gray-500">Promotor</span>
-                            @if($horarioPago !== '')
-                                <span class="text-[11px] text-gray-500">Horario de pago: {{ $horarioPago }}</span>
-                            @endif
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <span class="block text-sm font-semibold text-rose-600">
-                            ${{ number_format($promotor['dinero'], 2) }}
-                        </span>
-                        <span class="block text-[11px] text-gray-500">Falla total ({{ $promotor['falla'] }}%)</span>
-                    </div>
-                </div>
 
-                {{-- Lista de clientes --}}
-                <div class="px-3 py-2">
-                    @foreach($promotor['clientes'] as $cliente)
-                        <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                            {{-- Datos cliente --}}
-                            <div>
-                                <p class="text-[14px] font-medium text-gray-800">{{ $cliente['nombre'] }}</p>
-                                <p class="text-[12px] text-gray-500">
-                                    Monto fallado: ${{ number_format($cliente['monto'], 2) }}
-                                </p>
-                            </div>
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/10">
+            <h1 class="text-2xl font-semibold leading-tight text-slate-900">Cartera Falla</h1>
+        </section>
 
-                            {{-- Botones --}}
-                            <div class="flex gap-2">
-                                {{-- Botón Cobrar --}}
-                                <button @click="$store.calc.open(@js($cliente['nombre']))"
-                                    class="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 shadow-sm">
-                                    $
-                                </button>
-
-                                {{-- Botón Historial --}}
-                                <a href='{{ route("mobile.$role.cliente_historial", array_merge($supervisorContextQuery, ['cliente' => $cliente["id"]])) }}'
-                                   class="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500 text-white font-bold hover:bg-amber-600 shadow-sm">
-                                    H
-                                </a>
+        <section class="space-y-6">
+            @foreach($blocks as $promotor)
+                @php $horarioPago = trim((string) data_get($promotor, 'horario_pago', '')); @endphp
+                <article class="rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
+                    <header class="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+                        <div class="flex items-start gap-3">
+                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-rose-100 text-xs font-bold text-rose-700">
+                                {{ $loop->iteration }}
+                            </span>
+                            <div class="space-y-1">
+                                <p class="text-sm font-semibold text-slate-900">{{ $promotor['nombre'] }}</p>
+                                <p class="text-xs text-slate-500">Promotor</p>
+                                @if($horarioPago !== '')
+                                    <p class="text-[11px] text-slate-500">Horario de pago: {{ $horarioPago }}</p>
+                                @endif
                             </div>
                         </div>
-                    @endforeach
-                </div>
+                        <div class="text-right">
+                            <p class="text-sm font-semibold text-rose-600">${{ number_format($promotor['dinero'], 2) }}</p>
+                            <p class="text-[11px] text-slate-500">Falla total ({{ $promotor['falla'] }}%)</p>
+                        </div>
+                    </header>
+
+                    <div class="px-5 py-3">
+                        <div class="space-y-3">
+                            @foreach($promotor['clientes'] as $cliente)
+                                <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                                    <div>
+                                        <p class="text-[14px] font-medium text-slate-900">{{ $cliente['nombre'] }}</p>
+                                        <p class="text-[12px] text-slate-500">
+                                            Monto fallado: ${{ number_format($cliente['monto'], 2) }}
+                                        </p>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button @click="$store.calc.open(@js($cliente['nombre']))"
+                                            class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-500">
+                                            $
+                                        </button>
+                                        <a href='{{ route("mobile.$role.cliente_historial", array_merge($supervisorContextQuery, ['cliente' => $cliente["id"]])) }}'
+                                           class="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-sm font-bold text-white shadow-sm transition hover:bg-amber-400">
+                                            H
+                                        </a>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </article>
+            @endforeach
+        </section>
+
+        <div class="space-y-4">
+            <div>
+                {{ $promotoresPaginator->withQueryString()->links() }}
             </div>
-        @endforeach
-
-        <div class="mt-4">
-            {{ $promotoresPaginator->withQueryString()->links() }}
+            <a href="{{ route("mobile.$role.cartera", array_merge($supervisorContextQuery, [])) }}"
+               class="flex items-center justify-center rounded-2xl border border-slate-300 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-200">
+                Regresar
+            </a>
         </div>
-
-        <a href="{{ route("mobile.$role.cartera", array_merge($supervisorContextQuery, [])) }}"
-          class="flex items-center justify-center rounded-xl border border-gray-300 text-white text-sm font-semibold px-3 py-2 bg-blue-600 hover:bg-blue-700 shadow-sm">
-          Regresar
-        </a>
     </div>
-    
 </x-layouts.mobile.mobile-layout>
