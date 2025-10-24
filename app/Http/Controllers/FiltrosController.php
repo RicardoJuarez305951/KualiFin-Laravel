@@ -65,6 +65,7 @@ class FiltrosController extends Controller
         CreditoEstado::CLIENTE_RIESGO->value,
         CreditoEstado::AVAL_RIESGO->value,
         CreditoEstado::CLIENTE_AVAL_RIESGO->value,
+        CreditoEstado::REQUIERE_AUTORIZACION->value,
     ];
 
     public const CREDIT_FAILURE_STATES = [
@@ -250,7 +251,7 @@ class FiltrosController extends Controller
             return $this->resultado(
                 self::FILTER_CREDITO_EN_FALLA,
                 false,
-                'El cliente tiene historial de cr�ditos en falla y no puede solicitar uno nuevo.',
+                'El cliente tiene historial de creditos en falla y no puede solicitar uno nuevo.',
                 [
                     'creditos_en_falla' => $enFalla,
                     'cliente_estado' => $cliente->cliente_estado,

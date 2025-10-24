@@ -1,161 +1,139 @@
-{{-- resources/views/mobile/ejecutivo/cartera.blade.php --}}
+{{-- resources/views/mobile/ejecutivo/cartera/cartera.blade.php --}}
 @php
-  /** ================= Vars esperadas desde el controlador (con defaults seguros) ================= */
-  $role              = $role            ?? 'ejecutivo';
-  $ejecutivo         = $ejecutivo       ?? null;
-  $nombre            = $nombre          ?? ($ejecutivo->nombre      ?? auth()->user()->name ?? 'Ejecutivo');
-  $apellido_p        = $apellido_p      ?? ($ejecutivo->apellido_p  ?? '');
-  $apellido_m        = $apellido_m      ?? ($ejecutivo->apellido_m  ?? '');
-  $supervisores      = $supervisores    ?? collect();
+    $role              = $role            ?? 'ejecutivo';
+    $ejecutivo         = $ejecutivo       ?? null;
+    $nombre            = $nombre          ?? ($ejecutivo->nombre      ?? auth()->user()->name ?? 'Ejecutivo');
+    $apellido_p        = $apellido_p      ?? ($ejecutivo->apellido_p  ?? '');
+    $apellido_m        = $apellido_m      ?? ($ejecutivo->apellido_m  ?? '');
+    $supervisores      = $supervisores    ?? collect();
 
-  // Totales/contadores (si no vienen, caen a 0)
-  $cartera_activa    = $cartera_activa    ?? 0;
-  $cartera_falla     = $cartera_falla     ?? 0;  // "Falla Actual"
-  $cartera_vencida   = $cartera_vencida   ?? 0;
-  $cartera_inactivaP = $cartera_inactivaP ?? 0;
+    $cartera_activa    = $cartera_activa    ?? 0;
+    $cartera_falla     = $cartera_falla     ?? 0;
+    $cartera_vencida   = $cartera_vencida   ?? 0;
+    $cartera_inactivaP = $cartera_inactivaP ?? 0;
 
-  /** ================= Helpers inline (sustitutos simples de X-Components) ================= */
-  $formatMoney = fn($value) => '$' . number_format((float) $value, 2, '.', ',');
-  $formatPercentage = fn($value) => number_format((float) $value, 2, '.', ',') . '%';
-  $statRow = function(string $label, $value = null, $slotHtml = null) {
-      $left  = '<span class="text-sm text-gray-600">'.e($label).'</span>';
-      $right = !is_null($value)
-          ? '<span class="text-sm font-semibold text-gray-900">'.e($value).'</span>'
-          : ($slotHtml ?? '');
-      return '<div class="flex items-center justify-between">'.$left.$right.'</div>';
-  };
-
-  $pillLink = function(string $href, string $text = 'D') {
-      return '<a href="'.e($href).'"
-                class="inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded-full bg-blue-600 text-white hover:bg-blue-700 transition"
-                title="Detalles">'.$text.'</a>';
-  };
-
-  $btn = function(string $href, string $text, string $variant = 'primary') {
-      $base   = 'inline-flex items-center justify-center rounded-xl text-sm font-semibold px-3 py-2 shadow';
-      $styles = match($variant) {
-        'outline-primary' => 'border border-gray-300 text-white bg-blue-600 hover:bg-blue-700 shadow-sm',
-        'indigo'          => 'bg-indigo-600 text-white hover:bg-indigo-700',
-        default           => 'bg-blue-600 text-white hover:bg-blue-700',
-      };
-      return '<a href="'.e($href).'" class="'.$base.' '.$styles.'">'.$text.'</a>';
-  };
+    $formatMoney = fn($value) => '$' . number_format((float) $value, 2, '.', ',');
+    $formatPercentage = fn($value) => number_format((float) $value, 2, '.', ',') . '%';
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Cartera Ejecutivo">
-  <div class="mx-auto w-[22rem] sm:w-[26rem] p-4 sm:p-6 space-y-6">
+    <div class="mx-auto w-full max-w-md space-y-8 px-5 py-10">
+        {{-- Ejecutivo --}}
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/10">
+            <h1 class="text-2xl font-semibold leading-tight text-slate-900">Cartera Ejecutivo</h1>
 
-    {{-- ===================== div1: Ejecutivo ===================== --}}
-    <section class="bg-white rounded-2xl shadow-lg ring-1 ring-gray-900/5 overflow-hidden">
-      <div class="p-5 space-y-2">
-        <h2 class="text-base font-bold text-gray-900">Ejecutivo</h2>
-        <div class="grid grid-cols-1 gap-2">
-          {!! $statRow('Nombre', $nombre) !!}
-          {!! $statRow('Apellido Paterno', $apellido_p) !!}
-          {!! $statRow('Apellido Materno', $apellido_m) !!}
-        </div>
-      </div>
-
-      {{-- ===================== div1.2: Listado de opciones ===================== --}}
-      <div class="px-5 pb-5 space-y-3">
-        <h3 class="text-sm font-semibold text-gray-700">Opciones</h3>
-
-        <div class="space-y-2">
-          <div class="rounded-xl border border-gray-100 p-3 shadow-sm hover:shadow transition">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-700">Cartera Activa</span>
-              <div class="flex items-center gap-3">
-                <span class="text-sm font-semibold text-gray-900">{{ $formatMoney($cartera_activa) }}</span>
-                {!! $pillLink(route('mobile.'.$role.'.cartera_activa'), 'D') !!}
-              </div>
-            </div>
-          </div>
-
-          <div class="rounded-xl border border-gray-100 p-3 shadow-sm hover:shadow transition">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-700">Falla Actual</span>
-              <div class="flex items-center gap-3">
-                <span class="text-sm font-semibold text-gray-900">{{ $formatMoney($cartera_falla) }}</span>
-                {!! $pillLink(route('mobile.'.$role.'.cartera_falla'), 'D') !!}
-              </div>
-            </div>
-          </div>
-
-          <div class="rounded-xl border border-gray-100 p-3 shadow-sm hover:shadow transition">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-700">Cartera Vencida</span>
-              <div class="flex items-center gap-3">
-                <span class="text-sm font-semibold text-gray-900">{{ $formatMoney($cartera_vencida) }}</span>
-                {!! $pillLink(route('mobile.'.$role.'.cartera_vencida'), 'D') !!}
-              </div>
-            </div>
-          </div>
-
-          <div class="rounded-xl border border-gray-100 p-3 shadow-sm hover:shadow transition">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-700">Cartera Inactiva</span>
-              <div class="flex items-center gap-3">
-                <span class="text-sm font-semibold text-gray-900">{{ $formatPercentage($cartera_inactivaP) }}</span>
-                {!! $pillLink(route('mobile.'.$role.'.cartera_inactiva'), 'D') !!}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    {{-- ===================== div2: Supervisores ===================== --}}
-    <section class="bg-white rounded-2xl shadow-lg ring-1 ring-gray-900/5 overflow-hidden">
-      <div class="p-5">
-        <h2 class="text-base font-bold text-gray-900 mb-3">Supervisores</h2>
-
-        <div class="space-y-3">
-          @forelse($supervisores as $s)
-            <a href="{{ route('mobile.supervisor.cartera', ['supervisor' => $s->id ?? ($s['id'] ?? null)]) }}"
-               class="block rounded-xl border border-gray-100 p-3 shadow-md hover:shadow transition">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="inline-flex items-center justify-center w-6 h-6 text-[11px] font-bold rounded-full bg-indigo-100 text-indigo-700">
-                    {{ $loop->iteration }}
-                  </span>
-                  <span class="text-sm font-semibold text-gray-900">
-                    {{ $s->nombre ?? ($s['nombre'] ?? 'Sin nombre') }}
-                    {{ $s->apellido_p ?? ($s['apellido_p'] ?? '') }}
-                    {{ $s->apellido_m ?? ($s['apellido_m'] ?? '') }}
-                  </span>
+            <div class="mt-6 space-y-3 rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-800">Nombre</span>
+                    <span class="font-semibold text-black">{{ $nombre }}</span>
                 </div>
-              </div>
-              
-              {{-- Progreso de cumplimiento --}}
-              <div class="mt-3 space-y-2">
-                <div class="pt-2 border-t border-gray-100">
-                  <div class="flex items-center justify-between">
-                    <span class="text-xs text-gray-600">Progreso de supervisor</span>
-                    <span class="text-xs font-semibold text-gray-900">{{ $s->promotores_cumplidos ?? 0 }} / {{ $s->total_promotores ?? 0 }}</span>
-                  </div>
-                  <div class="mt-1 h-2 w-full rounded-full bg-gray-200 overflow-hidden">
-                    <div class="h-2 bg-emerald-500" style="width: {{ $s->porcentaje_cumplimiento ?? 0 }}%;"></div>
-                  </div>
-                  <p class="mt-1 text-xs text-gray-500">
-                    {{ number_format($s->porcentaje_cumplimiento ?? 0, 0) }}% de meta completada.
-                  </p>
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-800">Apellido Paterno</span>
+                    <span class="font-semibold text-black">{{ $apellido_p }}</span>
                 </div>
-              </div>
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-800">Apellido Materno</span>
+                    <span class="font-semibold text-black">{{ $apellido_m }}</span>
+                </div>
+            </div>
+        </section>
 
+        {{-- Opciones --}}
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/10">
+            <header class="flex items-center justify-between">
+                <h2 class="text-base font-semibold text-slate-900">Opciones</h2>
+            </header>
+
+            <div class="mt-4 space-y-3">
+                <a href="{{ route('mobile.'.$role.'.cartera_activa') }}"
+                   class="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-blue-200 hover:shadow-md">
+                    <p class="text-sm font-semibold text-slate-900">Cartera Activa</p>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-semibold text-slate-900">{{ $formatMoney($cartera_activa) }}</span>
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white transition group-hover:bg-blue-700">D</span>
+                    </div>
+                </a>
+
+                <a href="{{ route('mobile.'.$role.'.cartera_falla') }}"
+                   class="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-blue-200 hover:shadow-md">
+                    <p class="text-sm font-semibold text-slate-900">Falla Actual</p>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-semibold text-slate-900">{{ $formatMoney($cartera_falla) }}</span>
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white transition group-hover:bg-blue-700">D</span>
+                    </div>
+                </a>
+
+                <a href="{{ route('mobile.'.$role.'.cartera_vencida') }}"
+                   class="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-blue-200 hover:shadow-md">
+                    <p class="text-sm font-semibold text-slate-900">Cartera Vencida</p>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-semibold text-slate-900">{{ $formatMoney($cartera_vencida) }}</span>
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white transition group-hover:bg-blue-700">D</span>
+                    </div>
+                </a>
+
+                <a href="{{ route('mobile.'.$role.'.cartera_inactiva') }}"
+                   class="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-blue-200 hover:shadow-md">
+                    <p class="text-sm font-semibold text-slate-900">Cartera Inactiva</p>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-semibold text-slate-900">{{ $formatPercentage($cartera_inactivaP) }}</span>
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white transition group-hover:bg-blue-700">D</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        {{-- Supervisores --}}
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/10">
+            <h2 class="text-base font-semibold text-slate-900">Supervisores</h2>
+
+            <div class="mt-4 space-y-3">
+                @forelse($supervisores as $s)
+                    <a href="{{ route('mobile.supervisor.cartera', ['supervisor' => $s->id ?? ($s['id'] ?? null)]) }}"
+                       class="block rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm transition hover:border-indigo-200 hover:shadow-md">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-bold text-indigo-700">
+                                    {{ $loop->iteration }}
+                                </span>
+                                <p class="text-sm font-semibold text-slate-900">
+                                    {{ $s->nombre ?? ($s['nombre'] ?? 'Sin nombre') }}
+                                    {{ $s->apellido_p ?? ($s['apellido_p'] ?? '') }}
+                                    {{ $s->apellido_m ?? ($s['apellido_m'] ?? '') }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="mt-4 space-y-2 rounded-2xl bg-slate-50 p-3">
+                            <div class="flex items-center justify-between text-xs text-slate-600">
+                                <span>Progreso de supervisor</span>
+                                <span class="font-semibold text-slate-900">{{ $s->promotores_cumplidos ?? 0 }} / {{ $s->total_promotores ?? 0 }}</span>
+                            </div>
+                            <div class="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                                <div class="h-2 rounded-full bg-emerald-500" style="width: {{ $s->porcentaje_cumplimiento ?? 0 }}%;"></div>
+                            </div>
+                            <p class="text-xs text-slate-500">{{ number_format($s->porcentaje_cumplimiento ?? 0, 0) }}% de meta completada.</p>
+                        </div>
+                    </a>
+                @empty
+                    <p class="text-sm text-slate-500">No hay supervisores registrados.</p>
+                @endforelse
+            </div>
+        </section>
+
+        {{-- Acciones --}}
+        <section class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <a href="{{ route('mobile.index') }}"
+               class="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-200">
+                Regresar
             </a>
-          @empty
-            <p class="text-sm text-gray-500">No hay supervisores registrados.</p>
-          @endforelse
-        </div>
-      </div>
-    </section>
-
-    {{-- ===================== div3: Botón / Acciones ===================== --}}
-    <section class="grid grid-cols-3 gap-3">
-      {!! $btn(route('mobile.index'), 'Regresar', 'outline-primary') !!}
-      {!! $btn(url()->current(), 'Actualizar', 'primary') !!}
-      {!! $btn(url()->current(), 'Reporte', 'indigo') !!}
-    </section>
-
-  </div>
+            <a href="{{ url()->current() }}"
+               class="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-200">
+                Actualizar
+            </a>
+            <a href="{{ url()->current() }}"
+               class="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500">
+                Reporte
+            </a>
+        </section>
+    </div>
 </x-layouts.mobile.mobile-layout>

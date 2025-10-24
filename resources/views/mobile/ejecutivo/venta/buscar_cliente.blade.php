@@ -18,23 +18,38 @@
 @endphp
 
 <x-layouts.mobile.mobile-layout title="Buscar Cliente">
-    <div class="max-w-md mx-auto space-y-4">
-        <input type="text" placeholder="Buscar cliente" class="w-full border rounded-xl px-3 py-2"/>
-        <div class="space-y-3">
+    <div class="mx-auto w-full max-w-md space-y-6 px-5 py-10">
+        <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <input type="text"
+                   placeholder="Buscar cliente"
+                   class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-inner focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200"/>
+        </div>
+
+        <div class="space-y-4">
             @foreach($clientes as $c)
-                <div x-data="{ open: false }" class="bg-white rounded-lg shadow border">
-                    <div class="flex items-center justify-between p-3">
-                        <button @click="open = !open" class="text-left font-semibold flex-1">{{ $c['nombre'] }}</button>
-                        <a href="#" class="ml-3 px-2 py-1 text-xs font-bold text-white bg-blue-600 rounded">D</a>
+                <div x-data="{ open: false }" class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+                    <div class="flex items-center justify-between gap-3 px-4 py-3">
+                        <button @click="open = !open"
+                                type="button"
+                                class="flex-1 text-left text-sm font-semibold text-slate-900">
+                            {{ $c['nombre'] }}
+                        </button>
+                        <a href="#"
+                           class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white shadow-sm transition hover:bg-blue-500">
+                            D
+                        </a>
                     </div>
-                    <div x-show="open" x-collapse class="px-3 pb-3 text-sm">
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-1">
-                            <p class="col-span-2"><span class="font-semibold">Domicilio:</span> {{ $c['domicilio'] }}</p>
-                            <p><span class="font-semibold">Promotor:</span> {{ $c['promotor'] }}</p>
-                            <p><span class="font-semibold">Tipo de crédito:</span> {{ ucfirst($c['tipo']) }}</p>
-                            <p><span class="font-semibold">Crédito:</span> {{ formatCurrency($c['monto']) }}</p>
-                            <p><span class="font-semibold">Creado:</span> {{ $c['fecha'] }}</p>
+                    <div x-show="open" x-collapse class="px-4 pb-4 text-sm text-slate-700">
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                            <p class="col-span-2">
+                                <span class="font-semibold text-slate-900">Domicilio:</span> {{ $c['domicilio'] }}
+                            </p>
+                            <p><span class="font-semibold text-slate-900">Promotor:</span> {{ $c['promotor'] }}</p>
+                            <p><span class="font-semibold text-slate-900">Tipo de crédito:</span> {{ ucfirst($c['tipo']) }}</p>
+                            <p><span class="font-semibold text-slate-900">Crédito:</span> {{ formatCurrency($c['monto']) }}</p>
+                            <p><span class="font-semibold text-slate-900">Creado:</span> {{ $c['fecha'] }}</p>
                         </div>
+                    </div>
                 </div>
             @endforeach
         </div>

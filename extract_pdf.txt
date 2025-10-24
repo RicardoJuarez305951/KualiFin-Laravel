@@ -1,0 +1,657 @@
+Total pages: 15
+--- PAGE 1 ---
+KUALIFIN — Documento Maestro
+Ultra■Detallado
+ Especificaciones funcionales y técnicas para campo y oficina (Laravel 12 · Timezone America/Mexico_City)
+Versionado: v2 (con todas las aclaraciones integradas como proceso de origen).
+Ámbitos incluidos: Promotora · Supervisora · Ejecutivo · Cobrador · Administrativo/Gerencia/Contabilidad ·
+Dueño.
+0) Alcance y principios
+Este documento consolida los flujos, pantallas, reglas y fórmulas del sistema. Toda la operativa está pensada
+para una aplicación web móvil (Laravel 12, MVC) accesible desde internet, con almacenamiento de imágenes
+en Google Drive (la BDD SQL guarda el URL público/compartible).
+Zona horaria: America/Mexico_City. Auditado por usuario y fecha en todos los cambios (campos updated_at,
+updated_by). Soporte de exportes PDF, CSV y Excel para todos los reportes clave.
+La gerencia puede parametrizar la mayoría de reglas sin despliegues: horarios, días de venta, asignaciones,
+montos de comisión, montos de venta, semanas de ejercicio, topes, crecimiento, accesos/altas/bajas, etc.
+1) Roles y permisos (resumen)
+Roles: Promotora, Supervisora, Ejecutivo, Cobrador, Administrativo, Gerencia, Dueño.
+Principio de menor privilegio: cada rol ve únicamente la información de su árbol (promotora → supervisora →
+ejecutivo), salvo vistas agregadas para Administrativo/Gerencia/Dueño.
+Manejo de plazas: si en búsqueda aparece persona de otra plaza, se limita el detalle y se instruye a consultar a
+la responsable de la plaza.
+1.1 Matriz básica de permisos
+Rol
+Lectura
+Alta/Edición
+Cobranza
+Aprobaciones
+Parámetros
+Promotora
+Su cartera, sus ventas
+Prospectos propios
+Pagos de su cartera activa
+—
+—
+Supervisora
+Promotoras a cargo
+Doble check, Supervisión
+Pagos de su cartera y detalle
+Confirmación de supervisión
+—
+Ejecutivo
+Supervisoras a cargo
+Armar desembolso y confirmar venta
+Visión agregada
+Cierre de venta
+—
+Cobrador
+Cartera vencida (de su asignación)
+Registro de cobros y ‘resguardos’
+Cobranza vencida
+—
+—
+Administrativo
+Visión global
+Carga masiva/ajustes
+Conciliación
+—
+Parámetros operativos (limitado)
+Gerencia/Dueño
+Visión global
+Altas/bajas/asignaciones
+—
+Decisiones globales
+Todos los parámetros del sistema
+
+--- PAGE 2 ---
+2) Definiciones clave y fórmulas (base operativa)
+DEBE (siempre semanal): Monto total de pagos semanales esperados por todos los créditos activos de una
+promotora.
+DEBE operativo (real): Dinero real a entregar por la promotora, considera re-créditos, adelantos, fallas y
+recuperados.
+DEBE proyectado: No considera re-créditos. Si un cliente reacredita en semana 9, se siguen contando las
+semanas 10–13 del crédito antiguo como parte del debe (p.ej., $550), y además se suma el debe del nuevo
+crédito (p.ej., $605). Tras vencer la semana 13 del crédito antiguo, el proyectado cae a $605.
+Falla real: Todo pago no realizado en tiempo (tras sábado 18:00 o día pactado). Se usa para alertas
+semanales previas al cierre.
+Falla de sistema: Pagos no recuperados al cierre del viernes (12:00). Quedan registrados en BD como ‘falla’.
+Reglas por falla de sistema: a) Cada falla de sistema agrega semana extra; b) 2 fallas de sistema → solicitar
+garantías (liberación al final del crédito); c) 3 fallas de sistema → negar re-crédito.
+Reglas por fallas reales (que no llegaron a sistema): a) 3 fallas reales → no subir monto; b) siguientes 3 →
+convertir 1 falla de sistema; c) 9 fallas reales → bajar monto; d) 12 fallas reales → negar re-crédito.
+Semana de paro: 1 de cada ciclo de 7 semanas (6 de venta + 1 de paro).
+Bonos cero falla: Aplican cuando falla real = 0 y en semana de paro, según reglas del manual. (Se
+parametriza en catálogo de bonos; ver sección de Parámetros).
+Comisiones: Supervisora: 5% de la venta (se descuenta al cliente). Promotora: escala por DEBE: 5% base;
+6% al llegar a $5,000; 7% a $10,000; 8% a $15,000; 9% a $20,000; 10% a $25,000; 11% tras mantener
+$25,000 con baja falla por dos ejercicios (parametrizable). Fondo de ahorro de promotora: 10% de su comisión
+(entrega anual, duplicado si aplica).
+Escalera de montos al inicio y crecimiento: Todo crédito nuevo inicia en $3,000; puede empezar en $2,000 y
+luego subir a $3,000 → $4,000 → $5,000 → $5,500 → $6,000 → $6,500 → $7,000 → $7,500 y, a partir de
+$7,500, cada nuevo escalón debe tomarse dos veces y sube de $500 en $500, hasta ~$12,000
+(parametrizable). Clientes migrados con historial comprobable con la misma promotora pueden iniciar más alto.
+2.1 Conversión DEBE ■ Efectivo (por plazo)
+Plazo
+Pago por $1,000
+Conversión de DEBE a Venta (efectivo)
+13 semanas
+$110
+(DEBE ÷ 11) × 100
+14 semanas
+$100
+(DEBE ÷ 10) × 100
+22 semanas
+$80
+(DEBE ÷ 8) × 100
+2.2 Objetivo S.M.A.R.T. (Promotora)
+Objetivo del ejercicio (6 semanas de venta + 1 de paro): llegar al siguiente nivel de DEBE (escalera de $5,000),
+salvo tope de gerencia. Si arranca en $15,320, el objetivo es terminar con $20,000. Si inicia a ≤$500 del
+siguiente nivel (p.ej., $14,750), se puede fijar objetivo en $20,000.
+Cálculo: 1) DEBE inicial = p.ej. $14,520. 2) Sumar vencimientos de todo el ejercicio (pagos que salen del
+DEBE por créditos que concluyen); p.ej., $4,730. 3) Crecimiento de DEBE requerido: (DEBE objetivo − DEBE
+
+--- PAGE 3 ---
+inicial) = $5,480 (ejemplo genérico). 4) DEBE mínimo a vender en el ejercicio = vencimientos + crecimiento;
+p.ej., $4,730 + $5,480 = $10,210. 5) Convertir DEBE a efectivo según plazo dominante (o ponderado por
+mezcla): p.ej., 13 semanas → venta mínima ≈ ($10,210 ÷ 11)×100 = $92,818. 6) Venta mínima semanal =
+venta mínima ÷ 6 (semanas de venta). La meta se ajusta semana a semana: si una semana se queda corta, el
+faltante se prorratea sobre las restantes, y viceversa.
+2.3 Bloqueos por % de falla (semanal)
+≥ 10% de falla real sobre el DEBE total: no puede vender.
+5% a 9.9%: solo re-créditos.
+< 5%: puede vender sin restricción.
+3) Ciclo de vida del cliente (estados)
+1) Prospecto → 2) Doble check (supervisora) → 3) Por supervisar (si aplica) → 4) Venta registrada → 5)
+Cartera activa → 6) Cartera vencida (si termina ciclo con deuda) → 7) Inactivo/Cancelado.
+Regla de supervisión: todos los nuevos requieren supervisión. En re-créditos: ‘uno sí y uno no’.
+Cierre: Viernes 12:00. Primer pago: Sábado antes de 18:00; después hay multa (para promotora) y se
+considera falla real si no paga a tiempo.
+
+--- PAGE 4 ---
+4) Rutas por rol — PROMOTORA
+4.1 Menú Promotora
+Pantallas: Mi Objetivo, Mi Venta, Mi Cartera, Salir.
+Frase motivacional (backend). KPIs visibles a la promotora.
+4.2 Mi Objetivo (pantalla)
+Campos: Objetivo semanal (MXN), Venta registrada (MXN), Objetivo por ejercicio (MXN). Lista de ventas
+semanales con totales y frase de avance.
+Lógica: cálculo S.M.A.R.T. de meta semanal; actualización continua con ventas registradas.
+Eventos / Acciones
+●
+Entrar: recalcular metas y renderizar.
+●
+Consultar lista de semanas con montos; totalizador; feedback textual según % de avance.
+Endpoints sugeridos (Promotora · Objetivo)
+Método
+Ruta
+Descripción
+GET
+/api/v1/promotoras/{id}/objetivo
+Detalle de objetivo actual (meta semanal/ejercicio, avance, pendientes).
+GET
+/api/v1/promotoras/{id}/ventas-semanales
+Histórico de ventas registradas por semana.
+4.3 Mi Venta (pantalla)
+Lista de clientes agregados a la venta registrada de la semana: nuevos y re-créditos. Totalizador.
+Agregar cliente abre ‘Agregar cliente’ → Nuevo o Recrédito.
+Validaciones (Mi Venta)
+Regla
+Detalle
+Bloqueo por falla
+≥10% falla real: no permite ventas; 5–9.9%: solo re-créditos.
+Límites
+Tope de venta por monto y límite de tiempo configurados por gerencia.
+Cierre de captura
+Al cerrar periodo, el sistema arma desembolso automático (ver Ejecutivo).
+Endpoints (Mi Venta)
+Método
+Ruta
+Descripción
+
+--- PAGE 5 ---
+GET
+/api/v1/promotoras/{id}/venta-registrada
+Lista de clientes en venta registrada.
+POST
+/api/v1/ventas/clientes
+Alta de cliente en venta registrada (nuevo/rec).
+DELETE
+/api/v1/ventas/clientes/{id}
+Quitar cliente de la venta (con causa).
+4.4 Agregar cliente — Nuevo / Recrédito
+Nuevo: nombre, CURP (18), INE (foto), comprobante domicilio (foto). Aval: nombre, CURP (18), INE y
+comprobante.
+Recrédito: CURP del cliente, fotos INE/comprobante; opcional cambiar aval.
+Validaciones (Nuevo/Recrédito)
+Regla
+Detalle
+CURP
+18 caracteres obligatorios.
+Fotos
+Debe subir INE y comprobante (cliente y aval).
+Viabilidad
+Consulta BD (RENAPO manual según política). Si viable → pasa a Supervisora.
+Endpoints (Nuevo/Recrédito)
+Método
+Ruta
+Descripción
+POST
+/api/v1/prospectos
+Alta de prospecto (con URLs de fotos en Drive).
+GET
+/api/v1/prospectos/{id}/viabilidad
+Resultado de validación/viabilidad.
+POST
+/api/v1/prospectos/{id}/enviar-a-supervision
+Mueve a lista de ‘prospectos’ de la supervisora.
+4.5 Mi Cartera
+Listas: Activa, Vencida, Inactiva. Para cada registro: Pago (activa), Sem, acciones ($ pago completo/diferido, H
+historial, D detalle, ■ llamada). Vencida muestra deuda total.
+Modal Diferido: captura en pesos enteros; semáforo: < cuota = amarillo; == cuota = verde; > cuota = azul.
+Endpoints (Cartera)
+Método
+Ruta
+Descripción
+GET
+/api/v1/promotoras/{id}/cartera?tipo=activa
+Cartera activa (con cuotas, semanas).
+GET
+/api/v1/promotoras/{id}/cartera?tipo=vencida
+Cartera vencida (deudas).
+POST
+/api/v1/pagos
+Registrar pago (completo/diferido) — origen promotora.
+GET
+/api/v1/creditos/{id}/historial
+Historial de pagos del crédito.
+
+--- PAGE 6 ---
+5) Rutas por rol — SUPERVISORA
+5.1 Menú Supervisora
+Pantallas: Cartera, Objetivo, Venta, Supervisión, Búsqueda, Aperturas, Salir.
+5.2 Venta (supervisora)
+Encabezado: nombre de la supervisora. Subtítulo: ‘Venta registrada para el día: ’.
+Subtítulos con contadores: a) Clientes prospectados [D]; b) Clientes por supervisar [D]. Línea divisoria.
+Sección ‘Promotoras’: listado de tarjetas (una por promotora): hora de venta, debe, falla, % falla, venta
+registrada, # prospectados, # supervisados, botón Detalle (lleva a la venta de esa promotora con estilo
+supervisora).
+Botones: Regresar, Actualizar (auto al cargar y manual), Definir horarios.
+5.2.1 Prospectados / Por supervisar (listas)
+Prospectados: listado por promotora → clientes (nuevos primero, luego re-créditos). Cada cliente con ‘doble
+check’ o Cancelar (notifica a promotora).
+Por supervisar: mismo diseño; cada cliente con botón [SUP] que abre el formulario de supervisión (se quita del
+menú principal).
+5.2.2 Doble check
+Pantalla con bloques por cliente: nombre, CURP, foto INE, foto comprobante, botones Confirmar/Cancelar; lo
+mismo para el AVAL.
+5.2.3 Supervisión (Solicitud de crédito)
+Formulario completo (ya definido en prototipo) + botones: Fotografías, Ubicación (auto si es posible), Confirmar,
+Regresar.
+Regla de supervisión: todos los nuevos requieren supervisión; en re-créditos: uno sí y uno no (parametrizable).
+5.2.4 Definir horarios de venta
+Título: ‘Definir horarios para la venta del: ’. Listado de promotoras con botón [Definir] → modal para hora.
+Editable hasta el límite de corte configurado por gerencia.
+Endpoints (Venta supervisora)
+
+--- PAGE 7 ---
+Método
+Ruta
+Descripción
+GET
+/api/v1/supervisoras/{id}/venta
+Resumen venta (prospectados, por supervisar, tarjetas por promotora).
+POST
+/api/v1/prospectos/{id}/doble-check
+Confirmar o cancelar (con causa y notificación).
+POST
+/api/v1/supervisiones
+Crear/confirmar supervisión (con evidencias).
+POST
+/api/v1/ventana-venta/horarios
+Definir/actualizar horarios de venta por promotora.
+5.3 Cartera (supervisora)
+Igual concepto que ‘Objetivo’: totales agregados por promotora con botones de detalle [D] por ‘activa’, ‘falla
+actual %’, ‘vencida %’, ‘inactiva %’.
+Sección Promotoras: botón por promotora (accede a su Cartera con estilo supervisora) + barra ‘Cobranza vs
+falla’ donde 100% = DEBE semanal.
+5.4 Búsqueda
+Pantalla inicial: input para nombre/dirección/teléfono de cliente o aval. Buscar/Regresar.
+Pantalla de coincidencias: tarjetas con a) nombre y CURP; b) fecha y monto del último crédito; c) supervisora y
+promotora del último crédito; d) status (activo, activo con deuda, vencido con deuda, liquidado); e) botón
+‘Proceder’.
+‘Proceder’ → Historial del cliente: desplegables por créditos como cliente y como aval, con todos los datos y
+permisos: la supervisora solo ve clientes de sus promotoras; si es otra plaza, mostrar mensaje ‘Consultar con
+responsable de la plaza’. Alertas: deuda del cliente como aval; deuda del aval como aval; firmas del
+cliente/aval; deuda en domicilios; cruces de firmas.
+5.5 Aperturas
+Formulario de investigación detallado (ya en prototipo): datos del solicitante, vivienda, laborales, composición
+familiar, zona/servicios, inmueble, salud, investigador; acciones: fotos, firma, enviar, regresar.
+
+--- PAGE 8 ---
+6) Rutas por rol — EJECUTIVO
+6.1 Menú Ejecutivo
+Botones: Cartera, Venta, Búsqueda, Informes, Salir.
+6.2 Cartera (ejecutivo)
+Mismo concepto que la Cartera de supervisora pero agregada por supervisoras: a) cartera activa total; b) falla
+actual y %; c) cartera vencida total y %; d) cartera inactiva (# clientes y %).
+Sección Supervisoras: listado de botones + barra ‘Cobranza vs Falla’. Botones Regresar/Actualizar.
+En pantallas de detalle: después del título del concepto, cada supervisora es un botón que despliega listado
+igual al de la cartera de supervisora (promotoras → clientes con acciones $/H/D/■).
+6.3 Venta (ejecutivo)
+Encabezado: ‘Ejecutivo (nombre)’. Info general (sin botón de detalle): A) Venta registrada para [rango de
+semana] (suma de supervisoras); B) DEBE operativo y DEBE proyectado; C) Falla real semanal y %; D)
+Cobranza.
+Sección Supervisoras: tarjetas con: nombre, venta registrada y fecha, debe operativo/proyectado, cobranza vs
+falla, horario de primera venta y promotora. Botón [D] a pantalla de Venta de la supervisora con estilo ejecutivo.
+Diferencia clave: en tarjetas de promotoras (vista de venta de supervisora abierta desde ejecutivo) aparecen
+dos botones: Detalle (abre pantalla de la promotora sin opción de ingreso de clientes) y VENTA (lleva al
+Reporte de Venta del Ejecutivo para esa promotora).
+6.4 Reporte de Venta del Ejecutivo (Desembolso)
+Prellenado: fecha, ejecutivo, supervisora, promotora, número de semana del ejercicio. No se prellenan
+Falla/RQ/Adelantos (se definen al cierre con la promotora).
+Secciones (scroll): a) Falla (captura con sugerencia de seleccionar cliente y monto, con atajo a historial); b)
+Préstamo (lista de clientes y montos a prestar, prellenada, con Confirmar/Cancelar y causa); c) Recuperados
+(RQ): fecha/nombre/monto; d) Adelantos; e) Recréditos; f) Desembolso real = préstamo − 5% supervisora (se
+descuenta al cliente); g) Totales y comisiones (promotora con 10% fondo de ahorro, supervisora 5% a cliente),
+cómputo de inversión neta o entrega a financiera.
+Firmas: Ejecutivo, Supervisora, Promotora (canvas o firma electrónica). Botón Confirmar (cierra proceso y
+persiste BD) y Cancelar venta (rollback).
+Endpoints (Venta ejecutiva)
+Método
+Ruta
+Descripción
+GET
+/api/v1/ejecutivos/{id}/venta
+Resumen semanal (agregado).
+
+--- PAGE 9 ---
+GET
+/api/v1/supervisoras/{id}/venta
+Resumen semanal por supervisora (estilo ejecutivo).
+GET
+/api/v1/ventas/{promotoraId}/reporte
+Plantilla prellenada para desembolso.
+POST
+/api/v1/ventas/{promotoraId}/confirmar
+Confirma venta + desembolso (firma + persistencia).
+POST
+/api/v1/ventas/{promotoraId}/cancelar
+Cancela venta completa (con motivo).
+
+--- PAGE 10 ---
+7) Rutas por rol — COBRADOR (cartera vencida)
+7.1 Alcance
+El cobrador gestiona exclusivamente cartera vencida y créditos con 3 fallas de sistema (umbral).
+Puede asignar la cobranza a promotora/supervisora/ejecutivo o gestionarla él mismo.
+7.2 Menú y pantallas
+Menú: Mi día, Asignación, Registro de cobros, Resguardos, Reportes, Salir.
+Mi día: selecciona clientes a trabajar, imprime tabla con: nombre, dirección y teléfonos (cliente y aval), deuda,
+garantías a retirar (si aplica). Botón para abrir ubicación de cliente/aval.
+Registro de cobros: alta de pagos con método: efectivo o ‘resguardo’ (transferencias). Para resguardos:
+registrar comprobante (foto o folio), banco, referencia.
+OTP/verificación (opcional): Envío de código al cliente (SMS/WhatsApp). Solo se puede registrar el cobro
+tras ingresar el código mostrado por el cliente; si no hay conectividad, se permite modo manual con doble firma
+(cobrador + responsable).
+Reportes: diario, semanal, mensual o por rango (monto cobrado, # cuentas trabajadas, promesas, recuperado
+vs cartera, top N deudas).
+Endpoints (Cobrador)
+Método
+Ruta
+Descripción
+GET
+/api/v1/cobrador/cartera-vencida
+Lista asignada al cobrador (filtros por zona/riesgo).
+POST
+/api/v1/cobrador/seleccion-dia
+Guardar selección del día e imprimir.
+POST
+/api/v1/cobrador/pagos
+Registrar pago vencido (efectivo/resguardo, con evidencia).
+POST
+/api/v1/cobrador/asignaciones
+Asignar responsable de cobro (promotora/supervisora/ejecutivo).
+GET
+/api/v1/cobrador/reportes
+Generar reportes (PDF/CSV/XLS).
+
+--- PAGE 11 ---
+8) Oficina — Administrativo / Gerencia / Contabilidad /
+Dueño
+8.1 Panel de administración (parámetros)
+Catálogos parametrizables: horarios, días de venta, topes de venta, semanas por ejercicio, escalera de
+comisiones, reglas de bloqueo por % falla, reglas de supervisión, reglas de bonos, ventanas de cierre (sábado
+18:00, viernes 12:00), OTP on/off, políticas de resguardo, tope de crédito por plaza.
+Asignaciones: zonas, promotoras↔supervisoras, supervisoras↔ejecutivos. Altas/bajas de colaborador (incluye
+bloqueo de accesos).
+Contabilidad: conciliación de resguardos vs depósitos bancarios (carga de extractos), control de fondo de
+ahorro, cálculo de comisiones, emisión de CFDI (si aplica).
+Seguridad: gestión de roles/permisos, auditoría de cambios (quién/qué/cuándo/después).
+8.2 Dashboards
+Gerencia/Dueño: KPIs agregados por plaza y periodo: DEBE (op/proy), Falla real/sistema, Cartera
+(activa/vencida/inactiva), Venta registrada, Objetivo vs Venta, Recuperación de vencida, Tasa de re-crédito,
+Retención/fidelización, Productividad (venta vs falla), Rendimiento por zona.
+Administrativo/Contabilidad: conciliaciones, resguardos por banco, gastos vs comisión, alertas de anomalías
+(pagos duplicados, resguardos sin evidencia, OTP fallidos).
+9) Automatizaciones y alertas (quién/qué/cuándo)
+A promotora: viabilidad del prospecto (inmediata).
+A supervisora: cada vez que un prospecto pasa a “supervisar”; recordatorio si se acerca el día de venta y la
+promotora tiene ≥10% de falla real; cuando una promotora insiste con cliente no viable.
+A ejecutivo: cierre automático de venta con desembolso armado; alertas de supervisoras con alta falla;
+pendientes de cobro vencido.
+A cobrador: nuevas cuentas con 3 fallas de sistema; promesas que vencen hoy; resguardos pendientes de
+conciliar.
+A gerencia/administrativo: umbrales de cartera vencida, anomalías, KPIs fuera de banda.
+
+--- PAGE 12 ---
+10) API (Laravel 12) — Contratos sugeridos (MVP)
+10.1 Autenticación y archivos
+Método
+Ruta
+Body
+Respuesta
+POST
+/api/v1/auth/login
+user, pass
+token JWT, rol, permisos
+POST
+/api/v1/files
+file (multipart), propósito
+url_drive, metadata
+10.2 Prospectos y ventas
+Método
+Ruta
+Body/Params
+Respuesta
+POST
+/api/v1/prospectos
+datos cliente/aval, urls fotos
+prospecto
+POST
+/api/v1/prospectos/{id}/enviar-a-supervision
+—
+ok
+POST
+/api/v1/prospectos/{id}/doble-check
+status=aprobado|cancelado, motivo
+prospecto
+POST
+/api/v1/supervisiones
+campos formulario + evidencias
+supervision
+POST
+/api/v1/ventas/clientes
+tipo=nuevo|rec, clienteId, monto
+ventaItem
+GET
+/api/v1/ventas/{promotoraId}/reporte
+—
+plantilla desembolso
+POST
+/api/v1/ventas/{promotoraId}/confirmar
+payload desembolso + firmas
+venta cerrada
+POST
+/api/v1/ventas/{promotoraId}/cancelar
+motivo
+ok
+10.3 Cartera y pagos
+Método
+Ruta
+Body/Params
+Respuesta
+GET
+/api/v1/promotoras/{id}/cartera
+tipo=activa|vencida|inactiva
+lista
+POST
+/api/v1/pagos
+creditoId, monto, método=efectivo|resguardo, evidencia
+pago
+GET
+/api/v1/creditos/{id}/historial
+—
+pagos
+POST
+/api/v1/cobrador/asignaciones
+clienteId, responsable
+ok
+10.4 Reportes
+Método
+Ruta
+Body/Params
+Respuesta
+GET
+/api/v1/reportes
+tipo, periodo, filtros
+PDF/CSV/XLS + JSON
+10.5 Notas técnicas
+Resguardo (tarjeta/transferencia): requiere evidencia (foto/folio), banco, referencia; conciliación posterior en
+contabilidad.
+OTP (opcional): endpoint /otp/send y /otp/verify; configurable por gerencia; fallback manual con doble firma.
+
+--- PAGE 13 ---
+Time zone fija; todos los cierres y reglas de falla usan America/Mexico_City. Ventanas: sábado 18:00 (pago 1) y
+viernes 12:00 (cierre semanal).
+11) Datos y modelo (resumen mapeado al DBDiagram)
+11.1 Entidades mínimas
+Entidad
+Campos esenciales (además de id, created_at, updated_at, updated_by)
+Usuario
+nombre, rol, plaza, activo
+Promotora
+usuario_id, supervisora_id, debe_actual, nivel_comision, plaza
+Supervisora
+usuario_id, ejecutivo_id, plaza
+Ejecutivo
+usuario_id, plaza
+Cliente
+nombre, curp, tel, domicilio, plaza, status
+Aval
+nombre, curp, tel, domicilio, status
+Credito
+cliente_id, aval_id, promotora_id, supervisora_id, ejecutivo_id, monto, plazo, pago_sem, semana_actual, status, fecha_inicio, fecha_fin, recredito_de
+Prospecto
+cliente_datos, aval_datos, fotos_url, status, promotora_id, supervisora_id
+Supervision
+prospecto_id, campos_formulario, fotos_url, ubicacion, validado_por, status
+VentaItem
+promotora_id, cliente_id, tipo=nuevo|rec, monto, estado, causa_cancelacion
+Pago
+credito_id, fecha, monto, metodo=efectivo|resguardo, evidencia_url, registrado_por, origen=promotora|cobrador|oficina
+Parametro
+clave, valor, descripcion
+Alerta
+tipo, destinatarios, payload, leida, fecha
+11.2 Índices y rendimiento
+Índices por CURP, cliente, status y fechas. Tablas de pagos y créditos con índices compuestos (cliente_id,
+status, fecha).
+Históricos: mantener todo; usar vistas/materializadas para KPIs de alta consulta.
+
+--- PAGE 14 ---
+12) Reportes (definición y fórmulas)
+12.1 Catálogo de reportes (ejecutivo/administrativo)
+Clave
+Nombre
+Periodo sugerido
+Definición / Fórmulas
+R1
+Cobranza vs falla semanal
+semanal/mensual
+Cobranza recibida vs falla real; %falla = falla/(debe*1.0).
+R2
+Cobranza vs cartera vencida
+semanal/mensual
+Recuperado sobre cartera vencida total.
+R3
+Objetivo vs ventas realizadas
+semanal
+Venta acumulada vs objetivo S.M.A.R.T. (semanal).
+R4
+Objetivo vs ventas registradas
+semanal
+Registradas no ejecutadas aún.
+R5
+Clientes nuevos vs re-créditos
+semanal/mensual
+Conteo y monto por tipo.
+R6
+Tasa de cancelaciones
+mensual
+# cancelaciones / # ventas registradas.
+R7
+Top fallas reiteradas
+semanal/mensual
+Clientes con mayor # de fallas reales y de sistema.
+R8
+Productividad (venta vs falla)
+semanal
+Venta / (1 + %falla).
+R9
+Rendimiento por zona
+mensual
+Venta, cobranza, %falla por zona/plaza.
+R10
+Índice de seguimiento Vencida
+semanal/mensual
+Pagos registrados sobre metas de recuperación.
+R11
+Fidelización y retención
+trimestral
+% de re-créditos, permanencia, pérdida de clientes.
+12.2 Conversión ponderada (si hay mezcla de plazos)
+Si conviven 13/14/22 semanas, convertir el DEBE objetivo a efectivo con ponderación por mix de cartera: Venta
+= Σ( (DEBE_i ÷ factor_i) × 100 ), con factores 11, 10 y 8 respectivamente.
+13) Seguridad, auditoría y cumplimiento
+●
+JWT por sesión; revocación al baja de usuario.
+●
+Campos auditables: updated_at, updated_by en todas las escrituras.
+●
+Cifrar CURP y teléfonos en tránsito; minimizar exposición en logs.
+●
+Control de plazas y árboles de dependencia para visibilidad.
+●
+Resguardos conciliados vs banca; alertas por folios duplicados.
+●
+OTP opcional para cobranzas en campo; fallback manual con doble firma.
+14) Reglas de cierre y casos límite
+●
+Sábado 18:00: primer pago fuera de tiempo genera multa para promotora (no se registra en BD), pero cuenta
+para falla real si no se paga.
+●
+Viernes 12:00: cierre semanal; lo que no se recuperó se convierte en falla de sistema.
+
+--- PAGE 15 ---
+●
+Bloqueos de venta automáticos por % de falla real.
+●
+Re-crédito: uno sí y uno no (salvo nuevos que siempre supervisan).
+●
+Escalera doble sólo a partir de $7,500.
+15) Criterios de aceptación por pantalla (extracto)
+Pantalla
+Debe mostrar
+Debe permitir
+Restricciones/Alertas
+Promotora · Objetivo
+Meta semanal, ejercicio, avance
+Ver ventas por semana
+Actualiza al entrar; metas según S.M.A.R.T.
+Promotora · Venta
+Listado de clientes y total
+Agregar nuevo/rec
+Bloqueo por %falla; límites por gerencia
+Promotora · Cartera
+Activa/Vencida/Inactiva
+$/H/D/■ por cliente
+Diferido con semáforo
+Supervisora · Venta
+Prospectados/Por supervisar
+[Doble check]/[SUP]
+Horarios editables antes de corte
+Ejecutivo · Venta
+Agregado semanal
+Abrir VENTA por promotora
+Reporte prellenado; firmas; confirmar/cancelar
+Cobrador · Mi día
+Selección del día
+Imprimir tabla
+Ubicación rápida; garantías
+16) Glosario (rápido)
+●
+DEBE: Suma de pagos semanales esperados.
+●
+DEBE operativo: Real (considera re-créditos, RQ, adelantos y fallas).
+●
+DEBE proyectado: Sin re-créditos; mantiene pagos del crédito viejo hasta su semana final.
+●
+Falla real: Pago fuera de tiempo previo al cierre.
+●
+Falla de sistema: Pago no recuperado al cierre del viernes (se registra en BD).
+●
+RQ (recuperado): Pagos recuperados de fallas previas.
+●
+Resguardo: Pago por transferencia/tarjeta para cartera vencida (se concilia).
+ — Fin del documento —
+ 

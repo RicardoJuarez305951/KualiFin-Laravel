@@ -12,6 +12,7 @@ enum CreditoEstado: string
     case RECHAZADO = 'rechazado';
     case PROSPECTADO = 'prospectado';
     case PROSPECTADO_REACREDITO = 'prospectado_recredito';
+    case REQUIERE_AUTORIZACION = 'requiere_autorizacion';
     case SOLICITADO = 'solicitado';
     case SUPERVISADO = 'supervisado';
     case VENCIDO = 'vencido';
