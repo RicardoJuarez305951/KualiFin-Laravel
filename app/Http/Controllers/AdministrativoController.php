@@ -960,4 +960,221 @@ class AdministrativoController extends Controller
     {
         return $this->renderDashboard('auditoria_seguridad');
     }
+
+    /** Vista dedicada al flujo de autorizacion granular. */
+    public function autorizacion()
+    {
+        $summary = [
+            ['label' => 'Solicitudes pendientes', 'value' => 4, 'badge' => '3 urgentes'],
+            ['label' => 'Tiempo promedio', 'value' => '3h 15m', 'badge' => 'Ultimas 24h'],
+            ['label' => 'Autorizaciones hoy', 'value' => 9, 'badge' => 'Sin rechazos'],
+            ['label' => 'Rechazos esta semana', 'value' => 2, 'badge' => 'Por seguimiento'],
+        ];
+
+        $pendingRequests = [
+            [
+                'folio' => 'AUT-2403',
+                'cliente' => 'Lucia Salgado',
+                'solicitud' => 'Ajuste de linea +15 %',
+                'monto' => '$38,000 MXN',
+                'ingreso' => '21 ene 2025 - 10:42',
+                'responsable' => 'mjimenez',
+                'riesgo' => 'Medio',
+            ],
+            [
+                'folio' => 'AUT-2398',
+                'cliente' => 'Mario Castaneda',
+                'solicitud' => 'Desembolso extraordinario',
+                'monto' => '$52,500 MXN',
+                'ingreso' => '21 ene 2025 - 09:15',
+                'responsable' => 'sgutierrez',
+                'riesgo' => 'Alto',
+            ],
+            [
+                'folio' => 'AUT-2392',
+                'cliente' => 'Ana Valdez',
+                'solicitud' => 'Liberar documento retenido',
+                'monto' => '$0 MXN',
+                'ingreso' => '20 ene 2025 - 18:05',
+                'responsable' => 'analista.seguridad',
+                'riesgo' => 'Bajo',
+            ],
+            [
+                'folio' => 'AUT-2391',
+                'cliente' => 'Grupo Sol',
+                'solicitud' => 'Apertura de linea grupal',
+                'monto' => '$120,000 MXN',
+                'ingreso' => '20 ene 2025 - 17:33',
+                'responsable' => 'coordinacion.norte',
+                'riesgo' => 'Medio',
+            ],
+        ];
+
+        $recentApprovals = [
+            [
+                'folio' => 'AUT-2390',
+                'accion' => 'Incremento de linea',
+                'autorizo' => 'mrodriguez',
+                'fecha' => '20 ene 2025 - 14:25',
+                'comentarios' => 'Score actualizado con buro positivo.',
+            ],
+            [
+                'folio' => 'AUT-2387',
+                'accion' => 'Liberacion de retencion',
+                'autorizo' => 'analista.seguridad',
+                'fecha' => '20 ene 2025 - 12:04',
+                'comentarios' => 'Se incluyeron pruebas de domicilio adicionales.',
+            ],
+            [
+                'folio' => 'AUT-2381',
+                'accion' => 'Desembolso urgente',
+                'autorizo' => 'supervisor.aramirez',
+                'fecha' => '19 ene 2025 - 19:40',
+                'comentarios' => 'Cliente con excelente historial de pago.',
+            ],
+        ];
+
+        return view('administrativo.autorizacion', compact('summary', 'pendingRequests', 'recentApprovals'));
+    }
+
+    /** Registro y onboarding de nuevos colaboradores. */
+    public function nuevosColaboradores()
+    {
+        $pipeline = [
+            [
+                'nombre' => 'Karen Ruiz',
+                'posicion' => 'Promotor regional',
+                'estatus' => 'Documentacion',
+                'ingreso_estimado' => '03 feb 2025',
+                'region' => 'Bajio',
+                'responsable' => 'rrhh.cnavarro',
+            ],
+            [
+                'nombre' => 'Jose Martinez',
+                'posicion' => 'Analista de riesgo',
+                'estatus' => 'Psicometrico',
+                'ingreso_estimado' => '10 feb 2025',
+                'region' => 'Matriz',
+                'responsable' => 'rrhh.lherrera',
+            ],
+            [
+                'nombre' => 'Sandra Ochoa',
+                'posicion' => 'Ejecutivo de cobranza',
+                'estatus' => 'Capacitacion',
+                'ingreso_estimado' => '27 ene 2025',
+                'region' => 'Occidente',
+                'responsable' => 'operaciones.jvilla',
+            ],
+        ];
+
+        $inductionSchedule = [
+            [
+                'fecha' => '23 ene 2025',
+                'tema' => 'Modelo de negocio y valores',
+                'ponente' => 'Direccion general',
+            ],
+            [
+                'fecha' => '24 ene 2025',
+                'tema' => 'Politicas operativas y compliance',
+                'ponente' => 'Control interno',
+            ],
+            [
+                'fecha' => '27 ene 2025',
+                'tema' => 'Herramientas digitales de promotor',
+                'ponente' => 'Innovacion tecnologica',
+            ],
+        ];
+
+        $openPositions = [
+            ['puesto' => 'Supervisor de zona', 'region' => 'Sureste', 'vacantes' => 1, 'prioridad' => 'Alta'],
+            ['puesto' => 'Analista documental', 'region' => 'Matriz', 'vacantes' => 2, 'prioridad' => 'Media'],
+            ['puesto' => 'Promotor senior', 'region' => 'Centro', 'vacantes' => 3, 'prioridad' => 'Alta'],
+        ];
+
+        return view('administrativo.nuevos-colaboradores', compact('pipeline', 'inductionSchedule', 'openPositions'));
+    }
+
+    /** Seguimiento a planes de apertura de nuevas plazas. */
+    public function probablesAperturas()
+    {
+        $pipeline = [
+            [
+                'ciudad' => 'Queretaro',
+                'estatus' => 'Analisis de mercado',
+                'apertura_estimado' => 'Abr 2025',
+                'responsable' => 'expansion.agarcia',
+                'comentarios' => 'Poblacion objetivo con tasa de crecimiento 6 %.',
+            ],
+            [
+                'ciudad' => 'Tuxtla Gutierrez',
+                'estatus' => 'Viabilidad financiera',
+                'apertura_estimado' => 'Jun 2025',
+                'responsable' => 'finanzas.jrobles',
+                'comentarios' => 'Negociacion con aliados estrategicos en curso.',
+            ],
+            [
+                'ciudad' => 'Ciudad Obregon',
+                'estatus' => 'Pre-aprobacion',
+                'apertura_estimado' => 'May 2025',
+                'responsable' => 'expansion.rarias',
+                'comentarios' => 'Requiere validacion de cartera potencial.',
+            ],
+        ];
+
+        $regionalSummary = [
+            ['region' => 'Norte', 'sucursales_activas' => 8, 'proyeccion' => '+2', 'riesgo' => 'Medio'],
+            ['region' => 'Centro', 'sucursales_activas' => 12, 'proyeccion' => '+1', 'riesgo' => 'Bajo'],
+            ['region' => 'Sur', 'sucursales_activas' => 5, 'proyeccion' => '+2', 'riesgo' => 'Alto'],
+        ];
+
+        $nextSteps = [
+            ['fecha' => '24 ene', 'actividad' => 'Presentar plan Tuxtla', 'responsable' => 'finanzas.jrobles'],
+            ['fecha' => '29 ene', 'actividad' => 'Sesión comite expansion', 'responsable' => 'direccion.operaciones'],
+            ['fecha' => '05 feb', 'actividad' => 'Visita de sitio Queretaro', 'responsable' => 'expansion.agarcia'],
+        ];
+
+        return view('administrativo.probables-aperturas', compact('pipeline', 'regionalSummary', 'nextSteps'));
+    }
+
+    /** Tablero concentrado de iniciativas generales. */
+    public function administracionGeneral()
+    {
+        $initiatives = [
+            [
+                'nombre' => 'Modernizacion de oficinas',
+                'avance' => 68,
+                'lider' => 'infraestructura.mmendez',
+                'riesgo' => 'Medio',
+                'proximo_hito' => 'Entrega mobiliario - 31 ene',
+            ],
+            [
+                'nombre' => 'Centralizacion de cobranza',
+                'avance' => 45,
+                'lider' => 'operaciones.jvilla',
+                'riesgo' => 'Alto',
+                'proximo_hito' => 'Piloto en region Bajio - 07 feb',
+            ],
+            [
+                'nombre' => 'Programa de referidos',
+                'avance' => 82,
+                'lider' => 'marketing.lguerra',
+                'riesgo' => 'Bajo',
+                'proximo_hito' => 'Campaña digital - 24 ene',
+            ],
+        ];
+
+        $compliance = [
+            ['titulo' => 'Politica de gestion documental', 'estatus' => 'En actualizacion', 'responsable' => 'control.interno', 'limite' => '15 feb 2025'],
+            ['titulo' => 'Manual de ciberseguridad 2025', 'estatus' => 'Completo', 'responsable' => 'seguridad.tic', 'limite' => 'Entregado'],
+            ['titulo' => 'Informe de auditoria interna', 'estatus' => 'Revision', 'responsable' => 'auditoria@kuali', 'limite' => '05 feb 2025'],
+        ];
+
+        $alerts = [
+            ['tipo' => 'warning', 'mensaje' => 'Contrato marco con proveedor logistica vence en 12 dias.'],
+            ['tipo' => 'info', 'mensaje' => 'Se habilito tablero de indicadores para seguimiento diario.'],
+            ['tipo' => 'danger', 'mensaje' => 'Se requiere renovacion de poliza de responsabilidad civil.'],
+        ];
+
+        return view('administrativo.administracion-general', compact('initiatives', 'compliance', 'alerts'));
+    }
 }
