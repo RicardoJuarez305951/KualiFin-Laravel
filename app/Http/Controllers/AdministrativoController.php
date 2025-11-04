@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
+use Faker\Factory as FakerFactory;
+
 /**
  * Controlador temporal que expone las vistas del escritorio administrativo.
  * Usa datos mock para permitir maquetado/UI sin depender del backend real.
@@ -1377,6 +1380,10 @@ class AdministrativoController extends Controller
     /** Tablero concentrado de administracion general. */
     public function administracionGeneral()
     {
+        $faker = FakerFactory::create('es_MX');
+        $faker->seed(202501);
+        $today = Carbon::now();
+
         $summaryCards = [
             [
                 'title' => 'Desembolsos inversion',
@@ -1399,6 +1406,187 @@ class AdministrativoController extends Controller
                 'subtext' => 'Clientes con semana extra en seguimiento',
             ],
         ];
+
+        $kualifinHierarchy = [];
+        $promoterSequence = 101;
+        $formatCurrency = static fn (float $value): string => '$' . number_format($value, 2, '.', ',');
+        $zoneCatalog = ['Zona Norte', 'Zona Centro', 'Zona Sur', 'Zona Bajio', 'Zona Sureste', 'Zona Metropolitana'];
+
+        for ($executiveIndex = 1; $executiveIndex <= 3; $executiveIndex++) {
+            $executiveCode = 'EJ-' . str_pad((string) $executiveIndex, 2, '0', STR_PAD_LEFT);
+            $executive = [
+                'id' => $executiveCode,
+                'codigo' => $executiveCode,
+                'nombre' => $faker->name(),
+                'usuario' => $faker->unique()->userName(),
+                'supervisores' => [],
+            ];
+
+            for ($supervisorIndex = 1; $supervisorIndex <= 2; $supervisorIndex++) {
+                $supervisorCode = $executiveCode . '-SUP-' . str_pad((string) $supervisorIndex, 2, '0', STR_PAD_LEFT);
+                $supervisor = [
+                    'id' => $supervisorCode,
+                    'codigo' => $supervisorCode,
+                    'nombre' => $faker->name(),
+                    'usuario' => $faker->unique()->userName(),
+                    'promotores' => [],
+                ];
+
+                for ($promoterIndex = 1; $promoterIndex <= 3; $promoterIndex++) {
+                    $promoterCode = 'PROM-' . $promoterSequence++;
+                    $promoter = [
+                        'id' => $supervisorCode . '-PROM-' . str_pad((string) $promoterIndex, 2, '0', STR_PAD_LEFT),
+                        'codigo' => $promoterCode,
+                        'nombre' => $faker->name(),
+                        'usuario' => $faker->unique()->userName(),
+                        'ejecutivo' => $executive['nombre'],
+                        'supervisor' => $supervisor['nombre'],
+                        'zona' => $faker->randomElement($zoneCatalog),
+                        'porcentaje_rendimiento' => number_format($faker->randomFloat(1, 8.5, 13.5), 1) . '%',
+                        'clientes' => [],
+                    ];
+
+                    $clientTotal = $faker->numberBetween(9, 16);
+                    $loanTotal = 0.0;
+                    $weeklyTotal = 0.0;
+                    $balanceTotal = 0.0;
+                    $dateBuckets = [];
+
+                    for ($clientIndex = 0; $clientIndex < $clientTotal; $clientIndex++) {
+                        $weeksAgo = $faker->numberBetween(4, 40);
+                        $daysAdjustment = $faker->numberBetween(0, 3);
+                        $creditStart = $today->copy()->subWeeks($weeksAgo)->subDays($daysAdjustment);
+
+                        $loanAmount = (float) $faker->numberBetween(15000, 160000);
+                        $weeklyTerm = $faker->numberBetween(16, 48);
+                        $weeklyPayment = round($loanAmount / max($weeklyTerm, 1), 2);
+                        $paidWeeks = $faker->numberBetween(0, (int) floor($weeklyTerm * 0.6));
+                        $paidAmount = round($weeklyPayment * $paidWeeks, 2);
+                        $balance = round(max($loanAmount - $paidAmount, 0), 2);
+
+                        $paymentCursor = $creditStart->copy();
+                        if ($paymentCursor->dayOfWeek !== Carbon::MONDAY) {
+                            $paymentCursor = $paymentCursor->next(Carbon::MONDAY);
+                        }
+
+                        $paymentSchedule = [];
+                        $matrixPayments = [];
+                        $currentPayment = $paymentCursor->copy();
+                        for ($termWeek = 0; $termWeek < $weeklyTerm; $termWeek++) {
+                            $dateKey = $currentPayment->format('Y-m-d');
+                            $displayDate = $currentPayment->format('d/m/Y');
+                            $isFuture = $currentPayment->gt($today);
+
+                            $paymentSchedule[] = $displayDate;
+                            $matrixPayments[$dateKey] = [
+                                'amount' => $weeklyPayment,
+                                'display' => $formatCurrency($weeklyPayment),
+                                'is_future' => $isFuture,
+                            ];
+
+                            if (!isset($dateBuckets[$dateKey])) {
+                                $dateBuckets[$dateKey] = 0.0;
+                            }
+                            $dateBuckets[$dateKey] += $weeklyPayment;
+
+                            $currentPayment->addWeek();
+                        }
+
+                        $loanTotal += $loanAmount;
+                        $weeklyTotal += $weeklyPayment;
+                        $balanceTotal += $balance;
+
+                        $promoter['clientes'][] = [
+                            'nombre' => $faker->name(),
+                            'fecha_credito' => $creditStart->format('d/m/Y'),
+                            'prestamo' => $formatCurrency($loanAmount),
+                            'prestamo_valor' => $loanAmount,
+                            'abono_semanal' => $formatCurrency($weeklyPayment),
+                            'abono_semanal_valor' => $weeklyPayment,
+                            'saldo_pendiente' => $formatCurrency($balance),
+                            'saldo_pendiente_valor' => $balance,
+                            'estatus' => $faker->randomElement(['Activo', 'En seguimiento', 'Atraso leve', 'Renovacion']),
+                            'fechas_pago' => $paymentSchedule,
+                            'total_fechas_pago' => count($paymentSchedule),
+                            'pagos_por_fecha' => $matrixPayments,
+                            'pagos_por_fecha_filtrados' => [],
+                        ];
+                    }
+
+                    ksort($dateBuckets);
+                    $calendarColumns = [];
+                    foreach ($dateBuckets as $dateKey => $totalValue) {
+                        $dateInstance = Carbon::createFromFormat('Y-m-d', $dateKey);
+                        $calendarColumns[] = [
+                            'key' => $dateKey,
+                            'label' => $dateInstance->format('d/M/y'),
+                            'label_full' => $dateInstance->format('d/m/Y'),
+                            'total_value' => round($totalValue, 2),
+                            'total_formatted' => $formatCurrency($totalValue),
+                            'is_future' => $dateInstance->gt($today),
+                        ];
+                    }
+                    $calendarColumns = array_slice($calendarColumns, 0, 24);
+                    $allowedKeys = array_map(static fn ($column) => $column['key'], $calendarColumns);
+
+                    foreach ($promoter['clientes'] as &$clientData) {
+                        $filtered = [];
+                        foreach ($allowedKeys as $allowedKey) {
+                            $filtered[$allowedKey] = $clientData['pagos_por_fecha'][$allowedKey] ?? null;
+                        }
+                        $clientData['pagos_por_fecha_filtrados'] = $filtered;
+                    }
+                    unset($clientData);
+
+                    $projectedInvestment = $loanTotal * $faker->randomFloat(2, 0.18, 0.32);
+                    $maxSales = max($projectedInvestment * $faker->randomFloat(2, 1.05, 1.28), $projectedInvestment + $faker->numberBetween(1500, 8500));
+                    $previousFlow = $loanTotal * $faker->randomFloat(2, 0.45, 1.05);
+                    $totalRecover = $loanTotal + ($loanTotal * $faker->randomFloat(2, 0.18, 0.36));
+                    $realLoan = $loanTotal * $faker->randomFloat(2, 0.72, 0.96);
+                    $t4Recovered = $loanTotal * $faker->randomFloat(2, 0.42, 0.68);
+                    $fallPercentage = $faker->randomFloat(2, 0, 4.5);
+                    $commissionPromoter = $loanTotal * $faker->randomFloat(2, 0.02, 0.04);
+                    $commissionSupervisor = $loanTotal * $faker->randomFloat(2, 0.01, 0.025);
+                    $savingsFund = $loanTotal * $faker->randomFloat(2, 0.015, 0.035);
+                    $cashFlow = max($loanTotal * $faker->randomFloat(2, 0.18, 0.32), 0.0) + $faker->numberBetween(1200, 6800);
+
+                    $promoter['totals'] = [
+                        'prestamo_total' => $formatCurrency($loanTotal),
+                        'abono_total' => $formatCurrency($weeklyTotal),
+                        'saldo_total' => $formatCurrency($balanceTotal),
+                        'clientes' => $clientTotal,
+                    ];
+
+                    $promoter['financial_summary'] = [
+                        'proyeccion' => $formatCurrency($projectedInvestment),
+                        'ventas_maximas' => $formatCurrency($maxSales),
+                        'flujo_anterior' => $formatCurrency($previousFlow),
+                        'prestamo' => $formatCurrency($loanTotal),
+                        'total_recuperar' => $formatCurrency($totalRecover),
+                        'prestamo_real' => $formatCurrency($realLoan),
+                        't4_recuperado' => $formatCurrency($t4Recovered),
+                        'fallo' => number_format($fallPercentage, 2) . '%',
+                        'comision_promotor' => $formatCurrency($commissionPromoter),
+                        'comision_supervisor' => $formatCurrency($commissionSupervisor),
+                        'fondo_ahorro' => $formatCurrency($savingsFund),
+                        'flujo_efectivo' => $formatCurrency($cashFlow),
+                    ];
+
+                    $promoter['calendar_columns'] = $calendarColumns;
+                    $promoter['calendar_keys'] = $allowedKeys;
+                    $promoter['calendar_total_global'] = $formatCurrency(array_sum(array_map(
+                        static fn ($column) => $column['total_value'],
+                        $calendarColumns
+                    )));
+
+                    $supervisor['promotores'][] = $promoter;
+                }
+
+                $executive['supervisores'][] = $supervisor;
+            }
+
+            $kualifinHierarchy[] = $executive;
+        }
 
         $investmentDisbursements = [
             [
@@ -1578,6 +1766,7 @@ class AdministrativoController extends Controller
         ];
 
         return view('administrativo.administracion-general', [
+            'kualifinHierarchy' => $kualifinHierarchy,
             'summaryCards' => $summaryCards,
             'investmentDisbursements' => $investmentDisbursements,
             'creditOverview' => $creditOverview,
