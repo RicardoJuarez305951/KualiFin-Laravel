@@ -74,7 +74,7 @@
                 <x-layouts.navlink route="reportes" icon="📄" text="Reportes" />
 
                 {{-- Administrativo - accesos unificados --}}
-                <x-layouts.navlink route="administrativo.parametros" icon="??" text="Panel Administrativo" />
+                {{-- <x-layouts.navlink route="administrativo.parametros" icon="??" text="Panel Administrativo" /> --}}
                 <x-layouts.navlink route="administrativo.autorizacion" icon="AU" text="Autorización" />
                 <x-layouts.navlink route="administrativo.nuevos_colaboradores" icon="NC" text="Nuevos colaboradores" />
                 <x-layouts.navlink route="administrativo.probables_aperturas" icon="PA" text="Probables aperturas" />
