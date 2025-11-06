@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
+use Faker\Factory as FakerFactory;
+use Illuminate\Http\Request;
+
 /**
  * Controlador temporal que expone las vistas del escritorio administrativo.
  * Usa datos mock para permitir maquetado/UI sin depender del backend real.
@@ -960,4 +964,1113 @@ class AdministrativoController extends Controller
     {
         return $this->renderDashboard('auditoria_seguridad');
     }
+
+    /** Vista dedicada al flujo de autorizacion granular. */
+    public function autorizacion()
+    {
+        $authorizations = [
+            [
+                'numero' => '1',
+                'title' => 'Creditos extraordinarios',
+                'description' => 'Solicitudes cuyo monto supera el limite aprobado para el cliente y necesitan validacion especial.',
+                'columns' => [
+                    ['key' => 'folio', 'label' => 'Folio'],
+                    ['key' => 'cliente', 'label' => 'Cliente'],
+                    ['key' => 'monto_total', 'label' => 'Monto solicitado'],
+                    ['key' => 'monto_maximo', 'label' => 'Limite autorizado'],
+                    ['key' => 'excedente', 'label' => 'Monto excedente'],
+                    ['key' => 'periodicidad', 'label' => 'Periodicidad de pago'],
+                    ['key' => 'estado', 'label' => 'Estatus'],
+                    ['key' => 'promotor', 'label' => 'Promotor responsable'],
+                    ['key' => 'riesgo', 'label' => 'Riesgo'],
+                ],
+                'records' => [
+                    [
+                        'folio' => 'CR-2025-0118',
+                        'cliente' => 'Laura Campos (CURP CACL820514MDFRMN04)',
+                        'monto_total' => '$150,000.00',
+                        'monto_maximo' => '$120,000.00',
+                        'excedente' => '$30,000.00',
+                        'periodicidad' => 'semanal',
+                        'estado' => 'solicitado',
+                        'promotor' => 'PROM-142 / promotor.lgomez',
+                        'riesgo' => 'Alto',
+                    ],
+                    [
+                        'folio' => 'CR-2025-0152',
+                        'cliente' => 'Diego Nunez (CURP NUDD841210HDFJRG08)',
+                        'monto_total' => '$98,500.00',
+                        'monto_maximo' => '$70,000.00',
+                        'excedente' => '$28,500.00',
+                        'periodicidad' => 'quincenal',
+                        'estado' => 'prospectado',
+                        'promotor' => 'PROM-208 / promotor.ymedina',
+                        'riesgo' => 'Medio',
+                    ],
+                    [
+                        'folio' => 'CR-2025-0160',
+                        'cliente' => 'Grupo Aurora (CURP GAAI771001MOCBRN07)',
+                        'monto_total' => '$185,000.00',
+                        'monto_maximo' => '$140,000.00',
+                        'excedente' => '$45,000.00',
+                        'periodicidad' => 'semanal',
+                        'estado' => 'aprobado',
+                        'promotor' => 'PROM-099 / promotor.ssolano',
+                        'riesgo' => 'Alto',
+                    ],
+                ],
+            ],
+            [
+                'numero' => '2',
+                'title' => 'Recreditos fuera de tiempo',
+                'description' => 'Clientes que piden un nuevo credito aun cuando el anterior sigue activo o ya vencio.',
+                'columns' => [
+                    ['key' => 'folio', 'label' => 'Folio'],
+                    ['key' => 'cliente', 'label' => 'Cliente'],
+                    ['key' => 'estado', 'label' => 'Estatus actual'],
+                    ['key' => 'fecha_final', 'label' => 'Fecha de cierre prevista'],
+                    ['key' => 'dias_fuera_tiempo', 'label' => 'Dias fuera de tiempo'],
+                    ['key' => 'tiene_credito_activo', 'label' => 'Credito activo'],
+                    ['key' => 'monto_total', 'label' => 'Monto solicitado'],
+                    ['key' => 'riesgo', 'label' => 'Riesgo'],
+                ],
+                'records' => [
+                    [
+                        'folio' => 'CR-2024-0871',
+                        'cliente' => 'Brenda Morales (CURP MOBB890623MDFRRL05)',
+                        'estado' => 'prospectado_recredito',
+                        'fecha_final' => '2024-12-20',
+                        'dias_fuera_tiempo' => '32 dias',
+                        'tiene_credito_activo' => 'Si',
+                        'monto_total' => '$65,000.00',
+                        'riesgo' => 'Alto',
+                    ],
+                    [
+                        'folio' => 'CR-2024-0820',
+                        'cliente' => 'Luis Ortega (CURP OERL851102HDFNRD02)',
+                        'estado' => 'prospectado_recredito',
+                        'fecha_final' => '2024-11-28',
+                        'dias_fuera_tiempo' => '54 dias',
+                        'tiene_credito_activo' => 'Si',
+                        'monto_total' => '$48,500.00',
+                        'riesgo' => 'Medio',
+                    ],
+                    [
+                        'folio' => 'CR-2024-0799',
+                        'cliente' => 'Yesenia Gomez (CURP GOYJ901007MDFSMN03)',
+                        'estado' => 'prospectado_recredito',
+                        'fecha_final' => '2024-10-30',
+                        'dias_fuera_tiempo' => '83 dias',
+                        'tiene_credito_activo' => 'Si',
+                        'monto_total' => '$72,300.00',
+                        'riesgo' => 'Alto',
+                    ],
+                ],
+            ],
+            [
+                'numero' => '3',
+                'title' => 'Montos superiores a la meta del promotor',
+                'description' => 'Ventas que rebasan los topes habituales del promotor y requieren confirmacion antes de aprobarse.',
+                'columns' => [
+                    ['key' => 'promotor', 'label' => 'Promotor'],
+                    ['key' => 'folio', 'label' => 'Folio'],
+                    ['key' => 'monto_total', 'label' => 'Monto solicitado'],
+                    ['key' => 'venta_maxima', 'label' => 'Topes personales'],
+                    ['key' => 'venta_proyectada_objetivo', 'label' => 'Meta mensual'],
+                    ['key' => 'porcentaje_exceso', 'label' => 'Exceso vs meta'],
+                    ['key' => 'municipio', 'label' => 'Municipio del cliente'],
+                    ['key' => 'riesgo', 'label' => 'Riesgo'],
+                ],
+                'records' => [
+                    [
+                        'promotor' => 'PROM-071 / promotor.aflores',
+                        'folio' => 'CR-2025-0175',
+                        'monto_total' => '$92,000.00',
+                        'venta_maxima' => '$70,000.00',
+                        'venta_proyectada_objetivo' => '$68,500.00',
+                        'porcentaje_exceso' => '+31 %',
+                        'municipio' => 'Iztapalapa',
+                        'riesgo' => 'Medio',
+                    ],
+                    [
+                        'promotor' => 'PROM-132 / promotor.jvelazquez',
+                        'folio' => 'CR-2025-0179',
+                        'monto_total' => '$110,500.00',
+                        'venta_maxima' => '$80,000.00',
+                        'venta_proyectada_objetivo' => '$75,000.00',
+                        'porcentaje_exceso' => '+38 %',
+                        'municipio' => 'Tlalnepantla',
+                        'riesgo' => 'Alto',
+                    ],
+                    [
+                        'promotor' => 'PROM-204 / promotor.rcortes',
+                        'folio' => 'CR-2025-0182',
+                        'monto_total' => '$68,200.00',
+                        'venta_maxima' => '$55,000.00',
+                        'venta_proyectada_objetivo' => '$53,000.00',
+                        'porcentaje_exceso' => '+24 %',
+                        'municipio' => 'Naucalpan',
+                        'riesgo' => 'Medio',
+                    ],
+                ],
+            ],
+            [
+                'numero' => '5',
+                'title' => 'Domicilios y familiares repetidos',
+                'description' => 'Familias o domicilios que comparten varios creditos y requieren una revision para evitar duplicidades.',
+                'columns' => [
+                    ['key' => 'folio', 'label' => 'Folio'],
+                    ['key' => 'cliente', 'label' => 'Cliente'],
+                    ['key' => 'domicilio', 'label' => 'Domicilio'],
+                    ['key' => 'colonia_cp', 'label' => 'Colonia y CP'],
+                    ['key' => 'personas_en_domicilio', 'label' => 'Personas en el hogar'],
+                    ['key' => 'dependientes', 'label' => 'Dependientes economicos'],
+                    ['key' => 'conyuge_vive_con_cliente', 'label' => 'Conyuge vive con el cliente'],
+                    ['key' => 'comentarios', 'label' => 'Notas de seguimiento'],
+                    ['key' => 'riesgo', 'label' => 'Riesgo'],
+                ],
+                'records' => [
+                    [
+                        'folio' => 'CR-2025-0189',
+                        'cliente' => 'Marisol Vega (CURP VEMM900311MDFSRG06)',
+                        'domicilio' => 'Calle Jade 112',
+                        'colonia_cp' => 'Col. San Pedro, CP 09876',
+                        'personas_en_domicilio' => '6',
+                        'dependientes' => '4',
+                        'conyuge_vive_con_cliente' => 'Si',
+                        'comentarios' => 'Comparte domicilio con credito CR-2025-0192.',
+                        'riesgo' => 'Medio',
+                    ],
+                    [
+                        'folio' => 'CR-2025-0191',
+                        'cliente' => 'Daniel Pineda (CURP PIDC870902HDFRNL03)',
+                        'domicilio' => 'Av. Bosques 45',
+                        'colonia_cp' => 'Col. Las Flores, CP 07650',
+                        'personas_en_domicilio' => '8',
+                        'dependientes' => '5',
+                        'conyuge_vive_con_cliente' => 'No',
+                        'comentarios' => 'Cuatro familiares activos como avales en el mismo domicilio.',
+                        'riesgo' => 'Alto',
+                    ],
+                    [
+                        'folio' => 'CR-2025-0194',
+                        'cliente' => 'Rocio Hernandez (CURP HERJ931125MDFLRN01)',
+                        'domicilio' => 'Priv. Encino 6',
+                        'colonia_cp' => 'Col. Villas del Sur, CP 09730',
+                        'personas_en_domicilio' => '5',
+                        'dependientes' => '3',
+                        'conyuge_vive_con_cliente' => 'Si',
+                        'comentarios' => 'Informacion familiar coincide con cliente CR-2025-0188.',
+                        'riesgo' => 'Medio',
+                    ],
+                ],
+            ],
+            [
+                'numero' => '6',
+                'title' => 'Clientes con adeudos',
+                'description' => 'Personas con atrasos importantes o creditos cancelados que mantienen un saldo pendiente.',
+                'columns' => [
+                    ['key' => 'cliente', 'label' => 'Cliente'],
+                    ['key' => 'cliente_estado', 'label' => 'Estatus del cliente'],
+                    ['key' => 'folio', 'label' => 'Folio'],
+                    ['key' => 'estado_credito', 'label' => 'Estatus del credito'],
+                    ['key' => 'fecha_final', 'label' => 'Fecha de cierre prevista'],
+                    ['key' => 'dias_atraso', 'label' => 'Dias de atraso'],
+                    ['key' => 'monto_total', 'label' => 'Saldo pendiente'],
+                    ['key' => 'riesgo', 'label' => 'Riesgo'],
+                ],
+                'records' => [
+                    [
+                        'cliente' => 'Isabel Cortes (CURP COII870215MDFNRB07)',
+                        'cliente_estado' => 'deudor',
+                        'folio' => 'CR-2024-0755',
+                        'estado_credito' => 'vencido',
+                        'fecha_final' => '2024-11-30',
+                        'dias_atraso' => '52 dias',
+                        'monto_total' => '$43,200.00',
+                        'riesgo' => 'Alto',
+                    ],
+                    [
+                        'cliente' => 'Jorge Herrera (CURP HEGJ880901HDFRRN02)',
+                        'cliente_estado' => 'deudor',
+                        'folio' => 'CR-2024-0719',
+                        'estado_credito' => 'cancelado',
+                        'fecha_final' => '2024-09-18',
+                        'dias_atraso' => '118 dias',
+                        'monto_total' => '$58,900.00',
+                        'riesgo' => 'Alto',
+                    ],
+                    [
+                        'cliente' => 'Paola Oviedo (CURP OVPF900406MDFVLR04)',
+                        'cliente_estado' => 'deudor',
+                        'folio' => 'CR-2024-0694',
+                        'estado_credito' => 'vencido',
+                        'fecha_final' => '2024-10-12',
+                        'dias_atraso' => '94 dias',
+                        'monto_total' => '$36,700.00',
+                        'riesgo' => 'Medio',
+                    ],
+                ],
+            ],
+            [
+                'numero' => '7',
+                'title' => 'Cambio de plaza o supervisor',
+                'description' => 'Clientes que mudaron su negocio a otra zona y necesitan reasignacion de supervisor.',
+                'columns' => [
+                    ['key' => 'cliente', 'label' => 'Cliente'],
+                    ['key' => 'folio', 'label' => 'Folio'],
+                    ['key' => 'municipio', 'label' => 'Nuevo municipio'],
+                    ['key' => 'supervisor_actual', 'label' => 'Supervisor actual'],
+                    ['key' => 'supervisor_sugerido', 'label' => 'Supervisor sugerido'],
+                    ['key' => 'promotor', 'label' => 'Promotor'],
+                    ['key' => 'comentarios', 'label' => 'Notas de seguimiento'],
+                    ['key' => 'riesgo', 'label' => 'Riesgo'],
+                ],
+                'records' => [
+                    [
+                        'cliente' => 'Gabriel Rios (CURP RIOG880715HDFLSB01)',
+                        'folio' => 'CR-2025-0186',
+                        'municipio' => 'Queretaro',
+                        'supervisor_actual' => 'Erika Flores',
+                        'supervisor_sugerido' => 'Carlos Ramirez',
+                        'promotor' => 'PROM-188 / promotor.lgallardo',
+                        'comentarios' => 'Cliente cambio su negocio a plaza Bajio centro.',
+                        'riesgo' => 'Medio',
+                    ],
+                    [
+                        'cliente' => 'Monica Estrada (CURP ESMN900923MDFRRL06)',
+                        'folio' => 'CR-2025-0190',
+                        'municipio' => 'Tuxtla Gutierrez',
+                        'supervisor_actual' => 'Luis Cabrera',
+                        'supervisor_sugerido' => 'Andrea Molina',
+                        'promotor' => 'PROM-215 / promotor.zmurillo',
+                        'comentarios' => 'Requiere soporte del cluster sureste por nueva ubicacion.',
+                        'riesgo' => 'Alto',
+                    ],
+                    [
+                        'cliente' => 'Roberto Salazar (CURP SARJ851210HDFBRT05)',
+                        'folio' => 'CR-2025-0193',
+                        'municipio' => 'Ciudad Obregon',
+                        'supervisor_actual' => 'Ana Lopez',
+                        'supervisor_sugerido' => 'Hector Molina',
+                        'promotor' => 'PROM-164 / promotor.cparedes',
+                        'comentarios' => 'Sucursal original sin presencia en la nueva plaza.',
+                        'riesgo' => 'Medio',
+                    ],
+                ],
+            ],
+        ];
+
+        $totalSolicitudes = array_sum(array_map(static fn ($section) => count($section['records']), $authorizations));
+        $altoRiesgo = array_sum(array_map(
+            static fn ($section) => count(array_filter(
+                $section['records'],
+                static fn ($record) => ($record['riesgo'] ?? null) === 'Alto'
+            )),
+            $authorizations
+        ));
+
+        $stats = [
+            'categorias' => count($authorizations),
+            'solicitudes' => $totalSolicitudes,
+            'alertas_altas' => $altoRiesgo,
+        ];
+
+        return view('administrativo.autorizacion', compact('authorizations', 'stats'));
+    }
+
+    /** Registro y onboarding de nuevos colaboradores. */
+    public function nuevosColaboradores()
+    {
+        $pipeline = [
+            [
+                'nombre' => 'Karen Ruiz',
+                'posicion' => 'Promotor regional',
+                'estatus' => 'Documentacion',
+                'ingreso_estimado' => '03 feb 2025',
+                'region' => 'Bajio',
+                'responsable' => 'rrhh.cnavarro',
+            ],
+            [
+                'nombre' => 'Jose Martinez',
+                'posicion' => 'Analista de riesgo',
+                'estatus' => 'Psicometrico',
+                'ingreso_estimado' => '10 feb 2025',
+                'region' => 'Matriz',
+                'responsable' => 'rrhh.lherrera',
+            ],
+            [
+                'nombre' => 'Sandra Ochoa',
+                'posicion' => 'Ejecutivo de cobranza',
+                'estatus' => 'Capacitacion',
+                'ingreso_estimado' => '27 ene 2025',
+                'region' => 'Occidente',
+                'responsable' => 'operaciones.jvilla',
+            ],
+        ];
+
+        $inductionSchedule = [
+            [
+                'fecha' => '23 ene 2025',
+                'tema' => 'Modelo de negocio y valores',
+                'ponente' => 'Direccion general',
+            ],
+            [
+                'fecha' => '24 ene 2025',
+                'tema' => 'Politicas operativas y compliance',
+                'ponente' => 'Control interno',
+            ],
+            [
+                'fecha' => '27 ene 2025',
+                'tema' => 'Herramientas digitales de promotor',
+                'ponente' => 'Innovacion tecnologica',
+            ],
+        ];
+
+        $openPositions = [
+            ['puesto' => 'Supervisor de zona', 'region' => 'Sureste', 'vacantes' => 1, 'prioridad' => 'Alta'],
+            ['puesto' => 'Analista documental', 'region' => 'Matriz', 'vacantes' => 2, 'prioridad' => 'Media'],
+            ['puesto' => 'Promotor senior', 'region' => 'Centro', 'vacantes' => 3, 'prioridad' => 'Alta'],
+        ];
+
+        return view('administrativo.nuevos-colaboradores', compact('pipeline', 'inductionSchedule', 'openPositions'));
+    }
+
+    /** Seguimiento a planes de apertura de nuevas plazas. */
+    public function probablesAperturas()
+    {
+        $promotores = collect($this->probablesAperturasCatalog())
+            ->map(function (array $registro) {
+                return [
+                    'id' => $registro['id'],
+                    'promotor_aperturado' => $registro['promotor_aperturado'],
+                    'promotor_responsable' => $registro['promotor_responsable'],
+                    'territorio' => $registro['territorio'],
+                    'fase' => $registro['fase'],
+                    'ultima_actualizacion' => $registro['ultima_actualizacion'],
+                ];
+            })
+            ->values()
+            ->all();
+
+        return view('administrativo.probables-aperturas.index', compact('promotores'));
+    }
+
+    public function probablesAperturasShow(int $promotor)
+    {
+        $registro = collect($this->probablesAperturasCatalog())->firstWhere('id', $promotor);
+
+        if (! $registro) {
+            abort(404);
+        }
+
+        return view('administrativo.probables-aperturas.show', [
+            'promotor' => $registro,
+        ]);
+    }
+
+    protected function probablesAperturasCatalog(): array
+    {
+        return [
+            [
+                'id' => 1,
+                'promotor_aperturado' => 'Laura Hernandez',
+                'promotor_responsable' => 'Marcos Diaz',
+                'territorio' => 'Queretaro Norte',
+                'fase' => 'Encuesta validada',
+                'ultima_actualizacion' => '22 ene 2025',
+                'resumen' => 'Perfil con experiencia previa en microfinanzas y cartera comunitaria en zona norte.',
+                'siguiente_paso' => 'Agendar visita con supervisor regional y validar referencias laborales.',
+                'encuesta' => [
+                    [
+                        'titulo' => 'Datos generales',
+                        'items' => [
+                            ['label' => 'Edad', 'value' => '29 anos'],
+                            ['label' => 'Estado civil', 'value' => 'Casada'],
+                            ['label' => 'Dependientes economicos', 'value' => '2'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Vivienda y entorno',
+                        'items' => [
+                            ['label' => 'Tipo de vivienda', 'value' => 'Arrendada'],
+                            ['label' => 'Antiguedad en domicilio', 'value' => '4 anos'],
+                            ['label' => 'Servicios basicos', 'value' => 'Agua, luz, internet'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Ingresos y gastos',
+                        'items' => [
+                            ['label' => 'Ingreso mensual', 'value' => '$16,500'],
+                            ['label' => 'Gasto fijo mensual', 'value' => '$9,800'],
+                            ['label' => 'Capacidad de ahorro', 'value' => '$2,300'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Referencias',
+                        'items' => [
+                            ['label' => 'Referencia personal', 'value' => 'Sandra Mendez (coordinadora escolar)'],
+                            ['label' => 'Referencia laboral', 'value' => 'Pedro Campos (ex supervisor)'],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'id' => 2,
+                'promotor_aperturado' => 'Kevin Valenzuela',
+                'promotor_responsable' => 'Rocio Martinez',
+                'territorio' => 'Tuxtla Centro',
+                'fase' => 'Validacion documental',
+                'ultima_actualizacion' => '19 ene 2025',
+                'resumen' => 'Recomendado por la red de supervisores, con historial de venta directa y alto cierre.',
+                'siguiente_paso' => 'Completar verificaciones domiciliarias y revisar comprobantes fiscales.',
+                'encuesta' => [
+                    [
+                        'titulo' => 'Datos generales',
+                        'items' => [
+                            ['label' => 'Edad', 'value' => '33 anos'],
+                            ['label' => 'Estado civil', 'value' => 'Soltero'],
+                            ['label' => 'Dependientes economicos', 'value' => '1'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Actividad actual',
+                        'items' => [
+                            ['label' => 'Ocupacion', 'value' => 'Promotor independiente'],
+                            ['label' => 'Antiguedad en actividad', 'value' => '5 anos'],
+                            ['label' => 'Disponibilidad de horario', 'value' => 'Completa'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Ingresos y egresos',
+                        'items' => [
+                            ['label' => 'Ingreso mensual', 'value' => '$18,200'],
+                            ['label' => 'Gasto fijo mensual', 'value' => '$7,900'],
+                            ['label' => 'Compromisos crediticios', 'value' => 'Credito automotriz $3,500'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Referencias',
+                        'items' => [
+                            ['label' => 'Referencia personal', 'value' => 'Lucia Ortega (cliente)'],
+                            ['label' => 'Referencia laboral', 'value' => 'Mario Espinosa (supervisor externo)'],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'id' => 3,
+                'promotor_aperturado' => 'Beatriz Lara',
+                'promotor_responsable' => 'Hector Aguilar',
+                'territorio' => 'Ciudad Obregon Sur',
+                'fase' => 'Entrevista inicial',
+                'ultima_actualizacion' => '17 ene 2025',
+                'resumen' => 'Lider comunitaria con enfoque en proyectos productivos y alto potencial de vinculacion.',
+                'siguiente_paso' => 'Programar taller introductorio y levantar referencias comunitarias.',
+                'encuesta' => [
+                    [
+                        'titulo' => 'Datos generales',
+                        'items' => [
+                            ['label' => 'Edad', 'value' => '41 anos'],
+                            ['label' => 'Estado civil', 'value' => 'Unida'],
+                            ['label' => 'Dependientes economicos', 'value' => '3'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Vivienda y entorno',
+                        'items' => [
+                            ['label' => 'Tipo de vivienda', 'value' => 'Propia'],
+                            ['label' => 'Antiguedad en comunidad', 'value' => '10 anos'],
+                            ['label' => 'Participacion social', 'value' => 'Consejo de colonos'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Economia familiar',
+                        'items' => [
+                            ['label' => 'Ingreso familiar', 'value' => '$22,000'],
+                            ['label' => 'Egreso mensual', 'value' => '$13,500'],
+                            ['label' => 'Apoyos adicionales', 'value' => 'Programa local de emprendimiento'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Referencias',
+                        'items' => [
+                            ['label' => 'Referencia personal', 'value' => 'Ana Cordova (dirigente comunitaria)'],
+                            ['label' => 'Referencia laboral', 'value' => 'Luis Rios (ONG Desarrollo Sur)'],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /** Vista dedicada para capturar y revisar movimientos de entradas y salidas. */
+    public function entradasSalidas(Request $request)
+    {
+        $periodos = [
+            [
+                'key' => 'dia',
+                'label' => 'Dia',
+                'descripcion' => 'Movimientos capturados el 24 ene 2025',
+                'movimientos' => [
+                    [
+                        'tipo' => 'Entrada',
+                        'concepto' => 'Cobranza diaria Tuxtla',
+                        'notas' => 'Liquidacion de grupo "Fenix"',
+                        'costo' => '$58,200.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Pago de comisiones',
+                        'notas' => 'Referidos promotores',
+                        'costo' => '$12,750.00',
+                    ],
+                ],
+            ],
+            [
+                'key' => 'semana',
+                'label' => 'Semana',
+                'descripcion' => 'Resumen del 20 al 24 ene 2025',
+                'movimientos' => [
+                    [
+                        'tipo' => 'Entrada',
+                        'concepto' => 'Cobranza semanal promotores',
+                        'notas' => 'Abonos consolidados mobile',
+                        'costo' => '$385,400.00',
+                    ],
+                    [
+                        'tipo' => 'Entrada',
+                        'concepto' => 'Recuperacion cartera vencida',
+                        'notas' => 'Plan de regularizacion',
+                        'costo' => '$91,200.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Desembolsos autorizados',
+                        'notas' => 'Comite semana 04',
+                        'costo' => '$278,900.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Reposicion sucursales',
+                        'notas' => 'Fondo operativo regional',
+                        'costo' => '$66,000.00',
+                    ],
+                ],
+            ],
+            [
+                'key' => 'mes',
+                'label' => 'Mes',
+                'descripcion' => 'Cifras acumuladas enero 2025',
+                'movimientos' => [
+                    [
+                        'tipo' => 'Entrada',
+                        'concepto' => 'Inversionistas serie B',
+                        'notas' => 'Aporte extraordinario',
+                        'costo' => '$1,200,000.00',
+                    ],
+                    [
+                        'tipo' => 'Entrada',
+                        'concepto' => 'Cobranza consolidada',
+                        'notas' => 'Sucursales y mobile',
+                        'costo' => '$1,845,750.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Desembolsos totales',
+                        'notas' => 'Incluye nvos y renovaciones',
+                        'costo' => '$1,612,430.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Gastos operativos',
+                        'notas' => 'Nominas, logistica y soporte',
+                        'costo' => '$412,600.00',
+                    ],
+                ],
+            ],
+            [
+                'key' => 'trimestre',
+                'label' => 'Trimestre',
+                'descripcion' => 'Oct - Dic 2024',
+                'movimientos' => [
+                    [
+                        'tipo' => 'Entrada',
+                        'concepto' => 'Recuperacion total Q4',
+                        'notas' => 'Cierre fiscal 2024',
+                        'costo' => '$4,892,000.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Expansiones y mejoras',
+                        'notas' => 'Infraestructura y tecnologia',
+                        'costo' => '$1,280,500.00',
+                    ],
+                ],
+            ],
+            [
+                'key' => 'semestre',
+                'label' => 'Semestre',
+                'descripcion' => 'Jul - Dic 2024',
+                'movimientos' => [
+                    [
+                        'tipo' => 'Entrada',
+                        'concepto' => 'Cobranza H2',
+                        'notas' => 'Programas vigentes',
+                        'costo' => '$9,540,000.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Desembolsos H2',
+                        'notas' => 'Incluye fondo rotativo',
+                        'costo' => '$8,470,300.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Inversion capital humano',
+                        'notas' => 'Capacitaciones y contrataciones',
+                        'costo' => '$680,000.00',
+                    ],
+                ],
+            ],
+            [
+                'key' => 'anio',
+                'label' => 'Anual',
+                'descripcion' => 'Ejercicio 2024 completo',
+                'movimientos' => [
+                    [
+                        'tipo' => 'Entrada',
+                        'concepto' => 'Ingresos totales',
+                        'notas' => 'Cobranza + inversionistas',
+                        'costo' => '$18,920,000.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Egresos totales',
+                        'notas' => 'Desembolsos + gastos operativos',
+                        'costo' => '$16,870,000.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Provisiones',
+                        'notas' => 'Reservas de cartera y riesgos',
+                        'costo' => '$1,120,000.00',
+                    ],
+                ],
+            ],
+        ];
+
+        $periodoActivo = $request->query('periodo', 'semana');
+
+        if (! collect($periodos)->contains(fn ($periodo) => $periodo['key'] === $periodoActivo)) {
+            $periodoActivo = $periodos[0]['key'] ?? 'semana';
+        }
+
+        return view('administrativo.entradas-salidas', [
+            'periodos' => $periodos,
+            'periodoActivo' => $periodoActivo,
+        ]);
+    }
+
+    /** Tablero concentrado de administracion general. */
+    public function administracionGeneral()
+    {
+        $faker = FakerFactory::create('es_MX');
+        $faker->seed(202501);
+        $today = Carbon::now();
+
+        $summaryCards = [
+            [
+                'title' => 'Desembolsos inversion',
+                'value' => '$1,250,000',
+                'subtext' => 'Monto entregado esta semana',
+            ],
+            [
+                'title' => 'Creditos activos',
+                'value' => '864',
+                'subtext' => 'Estados aprobado, supervisado o desembolsado',
+            ],
+            [
+                'title' => 'Entradas netas',
+                'value' => '$732,500',
+                'subtext' => 'Liquidez disponible',
+            ],
+            [
+                'title' => 'Alertas de fallo',
+                'value' => '18',
+                'subtext' => 'Clientes con semana extra en seguimiento',
+            ],
+        ];
+
+        $kualifinHierarchy = [];
+        $promoterSequence = 101;
+        $formatCurrency = static fn (float $value): string => '$' . number_format($value, 2, '.', ',');
+        $zoneCatalog = ['Zona Norte', 'Zona Centro', 'Zona Sur', 'Zona Bajio', 'Zona Sureste', 'Zona Metropolitana'];
+
+        for ($executiveIndex = 1; $executiveIndex <= 3; $executiveIndex++) {
+            $executiveCode = 'EJ-' . str_pad((string) $executiveIndex, 2, '0', STR_PAD_LEFT);
+            $executive = [
+                'id' => $executiveCode,
+                'codigo' => $executiveCode,
+                'nombre' => $faker->name(),
+                'usuario' => $faker->unique()->userName(),
+                'supervisores' => [],
+            ];
+
+            for ($supervisorIndex = 1; $supervisorIndex <= 2; $supervisorIndex++) {
+                $supervisorCode = $executiveCode . '-SUP-' . str_pad((string) $supervisorIndex, 2, '0', STR_PAD_LEFT);
+                $supervisor = [
+                    'id' => $supervisorCode,
+                    'codigo' => $supervisorCode,
+                    'nombre' => $faker->name(),
+                    'usuario' => $faker->unique()->userName(),
+                    'promotores' => [],
+                ];
+
+                for ($promoterIndex = 1; $promoterIndex <= 3; $promoterIndex++) {
+                    $promoterCode = 'PROM-' . $promoterSequence++;
+                    $promoter = [
+                        'id' => $supervisorCode . '-PROM-' . str_pad((string) $promoterIndex, 2, '0', STR_PAD_LEFT),
+                        'codigo' => $promoterCode,
+                        'nombre' => $faker->name(),
+                        'usuario' => $faker->unique()->userName(),
+                        'ejecutivo' => $executive['nombre'],
+                        'supervisor' => $supervisor['nombre'],
+                        'zona' => $faker->randomElement($zoneCatalog),
+                        'porcentaje_rendimiento' => number_format($faker->randomFloat(1, 8.5, 13.5), 1) . '%',
+                        'clientes' => [],
+                    ];
+
+                    $clientTotal = $faker->numberBetween(9, 16);
+                    $loanTotal = 0.0;
+                    $weeklyTotal = 0.0;
+                    $balanceTotal = 0.0;
+                    $dateBuckets = [];
+
+                    for ($clientIndex = 0; $clientIndex < $clientTotal; $clientIndex++) {
+                        $weeksAgo = $faker->numberBetween(4, 40);
+                        $daysAdjustment = $faker->numberBetween(0, 3);
+                        $creditStart = $today->copy()->subWeeks($weeksAgo)->subDays($daysAdjustment);
+
+                        $loanAmount = (float) $faker->numberBetween(15000, 160000);
+                        $weeklyTerm = $faker->numberBetween(16, 48);
+                        $weeklyPayment = round($loanAmount / max($weeklyTerm, 1), 2);
+                        $paidWeeks = $faker->numberBetween(0, (int) floor($weeklyTerm * 0.6));
+                        $paidAmount = round($weeklyPayment * $paidWeeks, 2);
+                        $balance = round(max($loanAmount - $paidAmount, 0), 2);
+
+                        $paymentCursor = $creditStart->copy();
+                        if ($paymentCursor->dayOfWeek !== Carbon::MONDAY) {
+                            $paymentCursor = $paymentCursor->next(Carbon::MONDAY);
+                        }
+
+                        $paymentSchedule = [];
+                        $matrixPayments = [];
+                        $currentPayment = $paymentCursor->copy();
+                        for ($termWeek = 0; $termWeek < $weeklyTerm; $termWeek++) {
+                            $dateKey = $currentPayment->format('Y-m-d');
+                            $displayDate = $currentPayment->format('d/m/Y');
+                            $isFuture = $currentPayment->gt($today);
+
+                            $paymentSchedule[] = $displayDate;
+                            $matrixPayments[$dateKey] = [
+                                'amount' => $weeklyPayment,
+                                'display' => $formatCurrency($weeklyPayment),
+                                'is_future' => $isFuture,
+                            ];
+
+                            if (!isset($dateBuckets[$dateKey])) {
+                                $dateBuckets[$dateKey] = 0.0;
+                            }
+                            $dateBuckets[$dateKey] += $weeklyPayment;
+
+                            $currentPayment->addWeek();
+                        }
+
+                        $loanTotal += $loanAmount;
+                        $weeklyTotal += $weeklyPayment;
+                        $balanceTotal += $balance;
+
+                        $promoter['clientes'][] = [
+                            'nombre' => $faker->name(),
+                            'fecha_credito' => $creditStart->format('d/m/Y'),
+                            'prestamo' => $formatCurrency($loanAmount),
+                            'prestamo_valor' => $loanAmount,
+                            'abono_semanal' => $formatCurrency($weeklyPayment),
+                            'abono_semanal_valor' => $weeklyPayment,
+                            'saldo_pendiente' => $formatCurrency($balance),
+                            'saldo_pendiente_valor' => $balance,
+                            'estatus' => $faker->randomElement(['Activo', 'En seguimiento', 'Atraso leve', 'Renovacion']),
+                            'fechas_pago' => $paymentSchedule,
+                            'total_fechas_pago' => count($paymentSchedule),
+                            'pagos_por_fecha' => $matrixPayments,
+                            'pagos_por_fecha_filtrados' => [],
+                        ];
+                    }
+
+                    ksort($dateBuckets);
+                    $calendarColumns = [];
+                    foreach ($dateBuckets as $dateKey => $totalValue) {
+                        $dateInstance = Carbon::createFromFormat('Y-m-d', $dateKey);
+                        $calendarColumns[] = [
+                            'key' => $dateKey,
+                            'label' => $dateInstance->format('d/M/y'),
+                            'label_full' => $dateInstance->format('d/m/Y'),
+                            'total_value' => round($totalValue, 2),
+                            'total_formatted' => $formatCurrency($totalValue),
+                            'is_future' => $dateInstance->gt($today),
+                        ];
+                    }
+                    $calendarColumns = array_slice($calendarColumns, 0, 24);
+                    $allowedKeys = array_map(static fn ($column) => $column['key'], $calendarColumns);
+
+                    foreach ($promoter['clientes'] as &$clientData) {
+                        $filtered = [];
+                        foreach ($allowedKeys as $allowedKey) {
+                            $filtered[$allowedKey] = $clientData['pagos_por_fecha'][$allowedKey] ?? null;
+                        }
+                        $clientData['pagos_por_fecha_filtrados'] = $filtered;
+                    }
+                    unset($clientData);
+
+                    $projectedInvestment = $loanTotal * $faker->randomFloat(2, 0.18, 0.32);
+                    $maxSales = max($projectedInvestment * $faker->randomFloat(2, 1.05, 1.28), $projectedInvestment + $faker->numberBetween(1500, 8500));
+                    $previousFlow = $loanTotal * $faker->randomFloat(2, 0.45, 1.05);
+                    $totalRecover = $loanTotal + ($loanTotal * $faker->randomFloat(2, 0.18, 0.36));
+                    $realLoan = $loanTotal * $faker->randomFloat(2, 0.72, 0.96);
+                    $t4Recovered = $loanTotal * $faker->randomFloat(2, 0.42, 0.68);
+                    $fallPercentage = $faker->randomFloat(2, 0, 4.5);
+                    $commissionPromoter = $loanTotal * $faker->randomFloat(2, 0.02, 0.04);
+                    $commissionSupervisor = $loanTotal * $faker->randomFloat(2, 0.01, 0.025);
+                    $savingsFund = $loanTotal * $faker->randomFloat(2, 0.015, 0.035);
+                    $cashFlow = max($loanTotal * $faker->randomFloat(2, 0.18, 0.32), 0.0) + $faker->numberBetween(1200, 6800);
+
+                    $promoter['totals'] = [
+                        'prestamo_total' => $formatCurrency($loanTotal),
+                        'abono_total' => $formatCurrency($weeklyTotal),
+                        'saldo_total' => $formatCurrency($balanceTotal),
+                        'clientes' => $clientTotal,
+                    ];
+
+                    $promoter['financial_summary'] = [
+                        'proyeccion' => $formatCurrency($projectedInvestment),
+                        'ventas_maximas' => $formatCurrency($maxSales),
+                        'flujo_anterior' => $formatCurrency($previousFlow),
+                        'prestamo' => $formatCurrency($loanTotal),
+                        'total_recuperar' => $formatCurrency($totalRecover),
+                        'prestamo_real' => $formatCurrency($realLoan),
+                        't4_recuperado' => $formatCurrency($t4Recovered),
+                        'fallo' => number_format($fallPercentage, 2) . '%',
+                        'comision_promotor' => $formatCurrency($commissionPromoter),
+                        'comision_supervisor' => $formatCurrency($commissionSupervisor),
+                        'fondo_ahorro' => $formatCurrency($savingsFund),
+                        'flujo_efectivo' => $formatCurrency($cashFlow),
+                    ];
+
+                    $promoter['calendar_columns'] = $calendarColumns;
+                    $promoter['calendar_keys'] = $allowedKeys;
+                    $promoter['calendar_total_global'] = $formatCurrency(array_sum(array_map(
+                        static fn ($column) => $column['total_value'],
+                        $calendarColumns
+                    )));
+
+                    $supervisor['promotores'][] = $promoter;
+                }
+
+                $executive['supervisores'][] = $supervisor;
+            }
+
+            $kualifinHierarchy[] = $executive;
+        }
+
+        $investmentDisbursements = [
+            [
+                'folio' => 'INV-2025-014',
+                'cliente' => 'Grupo Crecer (CURP GRCG851214MDFNRG07)',
+                'monto' => '$420,000.00',
+                'fecha' => '21 ene 2025',
+                'estado' => 'Programado',
+                'destino' => 'Capital de trabajo',
+            ],
+            [
+                'folio' => 'INV-2025-013',
+                'cliente' => 'Ana Valdez (CURP VAAA900321MDFRLN03)',
+                'monto' => '$310,000.00',
+                'fecha' => '20 ene 2025',
+                'estado' => 'Desembolsado',
+                'destino' => 'Apertura de sucursal',
+            ],
+            [
+                'folio' => 'INV-2025-012',
+                'cliente' => 'Constructora Bajio (CURP COBE861122HDFRGN06)',
+                'monto' => '$285,000.00',
+                'fecha' => '18 ene 2025',
+                'estado' => 'En revision',
+                'destino' => 'Compra de maquinaria',
+            ],
+        ];
+
+        $creditOverview = [
+            [
+                'estado' => 'Prospectado',
+                'total' => 142,
+                'monto' => '$5,640,000.00',
+                'comentario' => 'Solicitudes capturadas en Kualifin.',
+            ],
+            [
+                'estado' => 'Solicitado',
+                'total' => 98,
+                'monto' => '$4,210,000.00',
+                'comentario' => 'Pendientes de autorizacion administrativa.',
+            ],
+            [
+                'estado' => 'Aprobado',
+                'total' => 215,
+                'monto' => '$11,580,000.00',
+                'comentario' => 'Listos para supervision y firmas.',
+            ],
+            [
+                'estado' => 'Desembolsado',
+                'total' => 327,
+                'monto' => '$18,430,000.00',
+                'comentario' => 'Calendario activo y cobranzas en curso.',
+            ],
+        ];
+
+        $cashFlow = [
+            [
+                'tipo' => 'Entrada',
+                'origen' => 'Cobranza promotores',
+                'monto' => '$385,400.00',
+                'detalle' => 'Pagos registrados en pagos_reales.',
+            ],
+            [
+                'tipo' => 'Entrada',
+                'origen' => 'Recuperacion inversiones',
+                'monto' => '$198,700.00',
+                'detalle' => 'Capital devuelto de contratos de inversion.',
+            ],
+            [
+                'tipo' => 'Salida',
+                'origen' => 'Nuevos desembolsos',
+                'monto' => '$410,000.00',
+                'detalle' => 'Creditos entregados en la semana.',
+            ],
+            [
+                'tipo' => 'Salida',
+                'origen' => 'Gastos operativos',
+                'monto' => '$98,600.00',
+                'detalle' => 'Pagos de soporte y servicios generales.',
+            ],
+        ];
+
+        $expenses = [
+            [
+                'concepto' => 'Capacitacion promotores',
+                'monto' => '$24,500.00',
+                'responsable' => 'operaciones.jvilla',
+                'fecha' => '19 ene 2025',
+                'comentario' => 'Curso onboarding zona centro.',
+            ],
+            [
+                'concepto' => 'Renta sucursal Tuxtla',
+                'monto' => '$38,900.00',
+                'responsable' => 'expansion.rarias',
+                'fecha' => '18 ene 2025',
+                'comentario' => 'Pago mensual sucursal piloto.',
+            ],
+            [
+                'concepto' => 'Plataforma Kualifin',
+                'monto' => '$21,300.00',
+                'responsable' => 'tecnologia.mvera',
+                'fecha' => '17 ene 2025',
+                'comentario' => 'Licenciamiento mensual y soporte.',
+            ],
+            [
+                'concepto' => 'Viaticos supervision',
+                'monto' => '$14,200.00',
+                'responsable' => 'supervision.elopez',
+                'fecha' => '16 ene 2025',
+                'comentario' => 'Visitas a clientes con atrasos.',
+            ],
+        ];
+
+        $weeklyProjection = [
+            'semana_actual' => [
+                'prestamos' => '$1,050,000.00',
+                'cobrado' => '$745,300.00',
+                'saldo_activo' => '$19,820,000.00',
+            ],
+            'semana_siguiente' => [
+                'meta_prestamos' => '$1,200,000.00',
+                'estimado_cobranza' => '$812,400.00',
+                'saldo_programado' => '$20,150,000.00',
+            ],
+            'notas' => 'Priorizar cierre de prospectos en zona norte y regularizar clientes con semana extra.',
+        ];
+
+        $failureHistory = [
+            [
+                'cliente' => 'Luis Ortega (CURP OERL851102HDFNRD02)',
+                'folio' => 'CR-2024-0820',
+                'promotor' => 'PROM-188 / promotor.lgallardo',
+                'semanas_extra' => 2,
+                'monto_pendiente' => '$18,400.00',
+                'ultimo_pago' => '12 ene 2025',
+            ],
+            [
+                'cliente' => 'Paola Oviedo (CURP OVPF900406MDFVLR04)',
+                'folio' => 'CR-2024-0694',
+                'promotor' => 'PROM-204 / promotor.rcortes',
+                'semanas_extra' => 1,
+                'monto_pendiente' => '$12,900.00',
+                'ultimo_pago' => '08 ene 2025',
+            ],
+            [
+                'cliente' => 'Jorge Herrera (CURP HEGJ880901HDFRRN02)',
+                'folio' => 'CR-2024-0719',
+                'promotor' => 'PROM-132 / promotor.jvelazquez',
+                'semanas_extra' => 3,
+                'monto_pendiente' => '$21,600.00',
+                'ultimo_pago' => '29 dic 2024',
+            ],
+        ];
+
+        $reports = [
+            [
+                'nombre' => 'Reporte mensual de cartera',
+                'periodo' => 'Diciembre 2024',
+                'responsable' => 'finanzas.jrobles',
+                'estatus' => 'Entregado',
+                'descarga' => '#',
+            ],
+            [
+                'nombre' => 'Concentrado de desembolsos',
+                'periodo' => 'Enero 2025',
+                'responsable' => 'inversiones.cluna',
+                'estatus' => 'En validacion',
+                'descarga' => '#',
+            ],
+            [
+                'nombre' => 'Reporte anual indicadores',
+                'periodo' => '2024',
+                'responsable' => 'direccion.finanzas',
+                'estatus' => 'Programado',
+                'descarga' => '#',
+            ],
+        ];
+
+        return view('administrativo.administracion-general', [
+            'kualifinHierarchy' => $kualifinHierarchy,
+            'summaryCards' => $summaryCards,
+            'investmentDisbursements' => $investmentDisbursements,
+            'creditOverview' => $creditOverview,
+            'cashFlow' => $cashFlow,
+            'expenses' => $expenses,
+            'weeklyProjection' => $weeklyProjection,
+            'failureHistory' => $failureHistory,
+            'reports' => $reports,
+        ]);
+    }
 }
+

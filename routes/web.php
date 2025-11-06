@@ -205,6 +205,12 @@ Route::middleware(['auth','verified'])->group(function () {
             Route::get('/ventas-desembolsos', 'ventasDesembolsos')->name('ventas_desembolsos');
             Route::get('/inversiones', 'inversiones')->name('inversiones');
             Route::get('/auditoria-seguridad', 'auditoriaSeguridad')->name('auditoria_seguridad');
+            Route::get('/autorizacion', 'autorizacion')->name('autorizacion');
+            Route::get('/nuevos-colaboradores', 'nuevosColaboradores')->name('nuevos_colaboradores');
+            Route::get('/probables-aperturas', 'probablesAperturas')->name('probables_aperturas');
+            Route::get('/probables-aperturas/{promotor}', 'probablesAperturasShow')->name('probables_aperturas.show');
+            Route::get('/administracion-general', 'administracionGeneral')->name('administracion_general');
+            Route::get('/entradas-salidas', 'entradasSalidas')->name('entradas_salidas');
         });
 
     // Panel Administrativo
