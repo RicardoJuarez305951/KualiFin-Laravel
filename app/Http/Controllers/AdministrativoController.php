@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use Faker\Factory as FakerFactory;
+use Illuminate\Http\Request;
 
 /**
  * Controlador temporal que expone las vistas del escritorio administrativo.
@@ -1338,43 +1339,337 @@ class AdministrativoController extends Controller
     /** Seguimiento a planes de apertura de nuevas plazas. */
     public function probablesAperturas()
     {
-        $pipeline = [
+        $promotores = collect($this->probablesAperturasCatalog())
+            ->map(function (array $registro) {
+                return [
+                    'id' => $registro['id'],
+                    'promotor_aperturado' => $registro['promotor_aperturado'],
+                    'promotor_responsable' => $registro['promotor_responsable'],
+                    'territorio' => $registro['territorio'],
+                    'fase' => $registro['fase'],
+                    'ultima_actualizacion' => $registro['ultima_actualizacion'],
+                ];
+            })
+            ->values()
+            ->all();
+
+        return view('administrativo.probables-aperturas.index', compact('promotores'));
+    }
+
+    public function probablesAperturasShow(int $promotor)
+    {
+        $registro = collect($this->probablesAperturasCatalog())->firstWhere('id', $promotor);
+
+        if (! $registro) {
+            abort(404);
+        }
+
+        return view('administrativo.probables-aperturas.show', [
+            'promotor' => $registro,
+        ]);
+    }
+
+    protected function probablesAperturasCatalog(): array
+    {
+        return [
             [
-                'ciudad' => 'Queretaro',
-                'estatus' => 'Analisis de mercado',
-                'apertura_estimado' => 'Abr 2025',
-                'responsable' => 'expansion.agarcia',
-                'comentarios' => 'Poblacion objetivo con tasa de crecimiento 6 %.',
+                'id' => 1,
+                'promotor_aperturado' => 'Laura Hernandez',
+                'promotor_responsable' => 'Marcos Diaz',
+                'territorio' => 'Queretaro Norte',
+                'fase' => 'Encuesta validada',
+                'ultima_actualizacion' => '22 ene 2025',
+                'resumen' => 'Perfil con experiencia previa en microfinanzas y cartera comunitaria en zona norte.',
+                'siguiente_paso' => 'Agendar visita con supervisor regional y validar referencias laborales.',
+                'encuesta' => [
+                    [
+                        'titulo' => 'Datos generales',
+                        'items' => [
+                            ['label' => 'Edad', 'value' => '29 anos'],
+                            ['label' => 'Estado civil', 'value' => 'Casada'],
+                            ['label' => 'Dependientes economicos', 'value' => '2'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Vivienda y entorno',
+                        'items' => [
+                            ['label' => 'Tipo de vivienda', 'value' => 'Arrendada'],
+                            ['label' => 'Antiguedad en domicilio', 'value' => '4 anos'],
+                            ['label' => 'Servicios basicos', 'value' => 'Agua, luz, internet'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Ingresos y gastos',
+                        'items' => [
+                            ['label' => 'Ingreso mensual', 'value' => '$16,500'],
+                            ['label' => 'Gasto fijo mensual', 'value' => '$9,800'],
+                            ['label' => 'Capacidad de ahorro', 'value' => '$2,300'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Referencias',
+                        'items' => [
+                            ['label' => 'Referencia personal', 'value' => 'Sandra Mendez (coordinadora escolar)'],
+                            ['label' => 'Referencia laboral', 'value' => 'Pedro Campos (ex supervisor)'],
+                        ],
+                    ],
+                ],
             ],
             [
-                'ciudad' => 'Tuxtla Gutierrez',
-                'estatus' => 'Viabilidad financiera',
-                'apertura_estimado' => 'Jun 2025',
-                'responsable' => 'finanzas.jrobles',
-                'comentarios' => 'Negociacion con aliados estrategicos en curso.',
+                'id' => 2,
+                'promotor_aperturado' => 'Kevin Valenzuela',
+                'promotor_responsable' => 'Rocio Martinez',
+                'territorio' => 'Tuxtla Centro',
+                'fase' => 'Validacion documental',
+                'ultima_actualizacion' => '19 ene 2025',
+                'resumen' => 'Recomendado por la red de supervisores, con historial de venta directa y alto cierre.',
+                'siguiente_paso' => 'Completar verificaciones domiciliarias y revisar comprobantes fiscales.',
+                'encuesta' => [
+                    [
+                        'titulo' => 'Datos generales',
+                        'items' => [
+                            ['label' => 'Edad', 'value' => '33 anos'],
+                            ['label' => 'Estado civil', 'value' => 'Soltero'],
+                            ['label' => 'Dependientes economicos', 'value' => '1'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Actividad actual',
+                        'items' => [
+                            ['label' => 'Ocupacion', 'value' => 'Promotor independiente'],
+                            ['label' => 'Antiguedad en actividad', 'value' => '5 anos'],
+                            ['label' => 'Disponibilidad de horario', 'value' => 'Completa'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Ingresos y egresos',
+                        'items' => [
+                            ['label' => 'Ingreso mensual', 'value' => '$18,200'],
+                            ['label' => 'Gasto fijo mensual', 'value' => '$7,900'],
+                            ['label' => 'Compromisos crediticios', 'value' => 'Credito automotriz $3,500'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Referencias',
+                        'items' => [
+                            ['label' => 'Referencia personal', 'value' => 'Lucia Ortega (cliente)'],
+                            ['label' => 'Referencia laboral', 'value' => 'Mario Espinosa (supervisor externo)'],
+                        ],
+                    ],
+                ],
             ],
             [
-                'ciudad' => 'Ciudad Obregon',
-                'estatus' => 'Pre-aprobacion',
-                'apertura_estimado' => 'May 2025',
-                'responsable' => 'expansion.rarias',
-                'comentarios' => 'Requiere validacion de cartera potencial.',
+                'id' => 3,
+                'promotor_aperturado' => 'Beatriz Lara',
+                'promotor_responsable' => 'Hector Aguilar',
+                'territorio' => 'Ciudad Obregon Sur',
+                'fase' => 'Entrevista inicial',
+                'ultima_actualizacion' => '17 ene 2025',
+                'resumen' => 'Lider comunitaria con enfoque en proyectos productivos y alto potencial de vinculacion.',
+                'siguiente_paso' => 'Programar taller introductorio y levantar referencias comunitarias.',
+                'encuesta' => [
+                    [
+                        'titulo' => 'Datos generales',
+                        'items' => [
+                            ['label' => 'Edad', 'value' => '41 anos'],
+                            ['label' => 'Estado civil', 'value' => 'Unida'],
+                            ['label' => 'Dependientes economicos', 'value' => '3'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Vivienda y entorno',
+                        'items' => [
+                            ['label' => 'Tipo de vivienda', 'value' => 'Propia'],
+                            ['label' => 'Antiguedad en comunidad', 'value' => '10 anos'],
+                            ['label' => 'Participacion social', 'value' => 'Consejo de colonos'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Economia familiar',
+                        'items' => [
+                            ['label' => 'Ingreso familiar', 'value' => '$22,000'],
+                            ['label' => 'Egreso mensual', 'value' => '$13,500'],
+                            ['label' => 'Apoyos adicionales', 'value' => 'Programa local de emprendimiento'],
+                        ],
+                    ],
+                    [
+                        'titulo' => 'Referencias',
+                        'items' => [
+                            ['label' => 'Referencia personal', 'value' => 'Ana Cordova (dirigente comunitaria)'],
+                            ['label' => 'Referencia laboral', 'value' => 'Luis Rios (ONG Desarrollo Sur)'],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /** Vista dedicada para capturar y revisar movimientos de entradas y salidas. */
+    public function entradasSalidas(Request $request)
+    {
+        $periodos = [
+            [
+                'key' => 'dia',
+                'label' => 'Dia',
+                'descripcion' => 'Movimientos capturados el 24 ene 2025',
+                'movimientos' => [
+                    [
+                        'tipo' => 'Entrada',
+                        'concepto' => 'Cobranza diaria Tuxtla',
+                        'notas' => 'Liquidacion de grupo "Fenix"',
+                        'costo' => '$58,200.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Pago de comisiones',
+                        'notas' => 'Referidos promotores',
+                        'costo' => '$12,750.00',
+                    ],
+                ],
+            ],
+            [
+                'key' => 'semana',
+                'label' => 'Semana',
+                'descripcion' => 'Resumen del 20 al 24 ene 2025',
+                'movimientos' => [
+                    [
+                        'tipo' => 'Entrada',
+                        'concepto' => 'Cobranza semanal promotores',
+                        'notas' => 'Abonos consolidados mobile',
+                        'costo' => '$385,400.00',
+                    ],
+                    [
+                        'tipo' => 'Entrada',
+                        'concepto' => 'Recuperacion cartera vencida',
+                        'notas' => 'Plan de regularizacion',
+                        'costo' => '$91,200.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Desembolsos autorizados',
+                        'notas' => 'Comite semana 04',
+                        'costo' => '$278,900.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Reposicion sucursales',
+                        'notas' => 'Fondo operativo regional',
+                        'costo' => '$66,000.00',
+                    ],
+                ],
+            ],
+            [
+                'key' => 'mes',
+                'label' => 'Mes',
+                'descripcion' => 'Cifras acumuladas enero 2025',
+                'movimientos' => [
+                    [
+                        'tipo' => 'Entrada',
+                        'concepto' => 'Inversionistas serie B',
+                        'notas' => 'Aporte extraordinario',
+                        'costo' => '$1,200,000.00',
+                    ],
+                    [
+                        'tipo' => 'Entrada',
+                        'concepto' => 'Cobranza consolidada',
+                        'notas' => 'Sucursales y mobile',
+                        'costo' => '$1,845,750.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Desembolsos totales',
+                        'notas' => 'Incluye nvos y renovaciones',
+                        'costo' => '$1,612,430.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Gastos operativos',
+                        'notas' => 'Nominas, logistica y soporte',
+                        'costo' => '$412,600.00',
+                    ],
+                ],
+            ],
+            [
+                'key' => 'trimestre',
+                'label' => 'Trimestre',
+                'descripcion' => 'Oct - Dic 2024',
+                'movimientos' => [
+                    [
+                        'tipo' => 'Entrada',
+                        'concepto' => 'Recuperacion total Q4',
+                        'notas' => 'Cierre fiscal 2024',
+                        'costo' => '$4,892,000.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Expansiones y mejoras',
+                        'notas' => 'Infraestructura y tecnologia',
+                        'costo' => '$1,280,500.00',
+                    ],
+                ],
+            ],
+            [
+                'key' => 'semestre',
+                'label' => 'Semestre',
+                'descripcion' => 'Jul - Dic 2024',
+                'movimientos' => [
+                    [
+                        'tipo' => 'Entrada',
+                        'concepto' => 'Cobranza H2',
+                        'notas' => 'Programas vigentes',
+                        'costo' => '$9,540,000.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Desembolsos H2',
+                        'notas' => 'Incluye fondo rotativo',
+                        'costo' => '$8,470,300.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Inversion capital humano',
+                        'notas' => 'Capacitaciones y contrataciones',
+                        'costo' => '$680,000.00',
+                    ],
+                ],
+            ],
+            [
+                'key' => 'anio',
+                'label' => 'Anual',
+                'descripcion' => 'Ejercicio 2024 completo',
+                'movimientos' => [
+                    [
+                        'tipo' => 'Entrada',
+                        'concepto' => 'Ingresos totales',
+                        'notas' => 'Cobranza + inversionistas',
+                        'costo' => '$18,920,000.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Egresos totales',
+                        'notas' => 'Desembolsos + gastos operativos',
+                        'costo' => '$16,870,000.00',
+                    ],
+                    [
+                        'tipo' => 'Salida',
+                        'concepto' => 'Provisiones',
+                        'notas' => 'Reservas de cartera y riesgos',
+                        'costo' => '$1,120,000.00',
+                    ],
+                ],
             ],
         ];
 
-        $regionalSummary = [
-            ['region' => 'Norte', 'sucursales_activas' => 8, 'proyeccion' => '+2', 'riesgo' => 'Medio'],
-            ['region' => 'Centro', 'sucursales_activas' => 12, 'proyeccion' => '+1', 'riesgo' => 'Bajo'],
-            ['region' => 'Sur', 'sucursales_activas' => 5, 'proyeccion' => '+2', 'riesgo' => 'Alto'],
-        ];
+        $periodoActivo = $request->query('periodo', 'semana');
 
-        $nextSteps = [
-            ['fecha' => '24 ene', 'actividad' => 'Presentar plan Tuxtla', 'responsable' => 'finanzas.jrobles'],
-            ['fecha' => '29 ene', 'actividad' => 'Sesión comite expansion', 'responsable' => 'direccion.operaciones'],
-            ['fecha' => '05 feb', 'actividad' => 'Visita de sitio Queretaro', 'responsable' => 'expansion.agarcia'],
-        ];
+        if (! collect($periodos)->contains(fn ($periodo) => $periodo['key'] === $periodoActivo)) {
+            $periodoActivo = $periodos[0]['key'] ?? 'semana';
+        }
 
-        return view('administrativo.probables-aperturas', compact('pipeline', 'regionalSummary', 'nextSteps'));
+        return view('administrativo.entradas-salidas', [
+            'periodos' => $periodos,
+            'periodoActivo' => $periodoActivo,
+        ]);
     }
 
     /** Tablero concentrado de administracion general. */
@@ -1778,3 +2073,4 @@ class AdministrativoController extends Controller
         ]);
     }
 }
+
