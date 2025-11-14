@@ -13,47 +13,298 @@ use Illuminate\Http\Request;
 class AdministrativoController extends Controller
 {
     // --- Paneles con datos de muestra para prototipos ---
-    /** Panel de reportes con metricas dummy. */
+    /** Panel de reportes con opciones de vistas. */
     public function reportes()
     {
+        $reportViews = [
+            [
+                'numero' => '01',
+                'title' => 'Venta y falla',
+                'description' => 'Cruce semanal de venta efectiva, DEBE y fallas reales/sistema.',
+                'route' => route('reportes.venta_falla'),
+                'iconBg' => 'bg-blue-500',
+                'gradient' => 'from-blue-50 to-blue-100',
+            ],
+            [
+                'numero' => '02',
+                'title' => 'Falla acumulada',
+                'description' => 'Seguimiento por cohorte con reglas de semana extra y garantias.',
+                'route' => route('reportes.falla_acumulada'),
+                'iconBg' => 'bg-purple-500',
+                'gradient' => 'from-purple-50 to-purple-100',
+            ],
+            [
+                'numero' => '03',
+                'title' => 'Crecimiento y decrecimiento',
+                'description' => 'Comparativos por plaza, DEBE y clientes activos.',
+                'route' => route('reportes.crecimiento'),
+                'iconBg' => 'bg-emerald-500',
+                'gradient' => 'from-emerald-50 to-emerald-100',
+            ],
+            [
+                'numero' => '04',
+                'title' => 'Zonas de riesgo',
+                'description' => 'Mapa de falla real, sistema y bloqueos operativos.',
+                'route' => route('reportes.zonas_riesgo'),
+                'iconBg' => 'bg-rose-500',
+                'gradient' => 'from-rose-50 to-rose-100',
+            ],
+            [
+                'numero' => '05',
+                'title' => 'Cartera actual',
+                'description' => 'Aging, mezcla de plazos y clientes clave.',
+                'route' => route('reportes.cartera_actual'),
+                'iconBg' => 'bg-indigo-500',
+                'gradient' => 'from-indigo-50 to-indigo-100',
+            ],
+        ];
+
+        return view('reportes', compact('reportViews'));
+    }
+
+    /** Centro de administracion con accesos numerados. */
+    public function administracion()
+    {
+        $administracionViews = [
+            [
+                'numero' => '01',
+                'title' => 'Desembolsos para inversion',
+                'description' => 'Control operativo y documentos imprimibles para inversion.',
+                'route' => route('administrativo.desembolsos_inversion'),
+                'iconBg' => 'bg-emerald-500',
+                'gradient' => 'from-emerald-50 to-emerald-100',
+            ],
+            [
+                'numero' => '02',
+                'title' => 'Cierres por ejecutivo',
+                'description' => 'Bitacora de cierres semanales, DEBE y fallas por ejecutivo.',
+                'route' => route('administrativo.cierre_ejecutivo'),
+                'iconBg' => 'bg-blue-500',
+                'gradient' => 'from-blue-50 to-blue-100',
+            ],
+            [
+                'numero' => '03',
+                'title' => 'Cierre semanal',
+                'description' => 'Resumen consolidado por promotora y filtros de supervisor.',
+                'route' => route('administrativo.cierre_semanal'),
+                'iconBg' => 'bg-amber-500',
+                'gradient' => 'from-amber-50 to-amber-100',
+            ],
+        ];
+
+        return view('administrativo.administracion', compact('administracionViews'));
+    }
+
+    /** Reporte detallado de venta vs falla semanal. */
+    public function reporteVentaFalla()
+    {
+        $vistaMeta = [
+            'numero' => '1',
+            'title' => 'Venta y falla',
+            'category' => 'Reportes',
+        ];
+
+        $filters = [
+            'periods' => ['Semana 03 2025', 'Semana 02 2025', 'Semana 01 2025', 'Semana 52 2024'],
+            'plazas' => ['Todas las plazas', 'Metropolitana', 'Puebla', 'Bajio', 'Queretaro'],
+            'ejecutivos' => ['Todos', 'Mariana Torres', 'Selene Vega', 'Eduardo Nunez'],
+        ];
+
+        $metrics = [
+            [
+                'label' => 'Venta acumulada',
+                'value' => '$ 3.8 M',
+                'helper' => 'DEBE operativo equivalente $4.18 M',
+                'trend' => '+8% vs semana previa',
+            ],
+            [
+                'label' => 'Falla real promedio',
+                'value' => '2.8%',
+                'helper' => 'Alerta si supera 3% por plaza',
+                'trend' => '-0.4 pts',
+            ],
+            [
+                'label' => 'Falla de sistema',
+                'value' => '1.1%',
+                'helper' => 'Convierte a semana extra',
+                'trend' => '+0.1 pts',
+            ],
+            [
+                'label' => 'Recuperado (RQ)',
+                'value' => '$ 420 K',
+                'helper' => 'Pagos recuperados tras falla',
+                'trend' => '+5% semana',
+            ],
+        ];
+
+        $timeline = [
+            ['period' => 'Semana 03', 'venta' => 3800000, 'debe' => 4180000, 'falla_real' => 0.028, 'falla_sistema' => 0.011],
+            ['period' => 'Semana 02', 'venta' => 3520000, 'debe' => 3960000, 'falla_real' => 0.032, 'falla_sistema' => 0.010],
+            ['period' => 'Semana 01', 'venta' => 3440000, 'debe' => 3850000, 'falla_real' => 0.035, 'falla_sistema' => 0.012],
+            ['period' => 'Semana 52', 'venta' => 3300000, 'debe' => 3700000, 'falla_real' => 0.041, 'falla_sistema' => 0.013],
+        ];
+
+        $fallas = [
+            ['cause' => 'Pagos fuera de horario (falla real)', 'impact' => '38 clientes', 'mitigation' => 'Recordatorios automaticos viernes 16:00'],
+            ['cause' => 'Depositos sin conciliacion', 'impact' => '12 folios', 'mitigation' => 'Cruce diario Tesoreria - Banca'],
+            ['cause' => 'Cambio de promotora no documentado', 'impact' => '6 cuentas', 'mitigation' => 'Checklist de reasignacion'],
+        ];
+
+        $alerts = [
+            ['type' => 'warning', 'message' => 'Plaza Puebla supera 3 fallas reales; aplicar semana extra y seguimiento supervisor.'],
+            ['type' => 'info', 'message' => 'Ejecutivo Selene Vega mantiene bono cero falla por tercera semana.'],
+        ];
+
+        return view('reportes.venta-falla', compact('filters', 'metrics', 'timeline', 'fallas', 'alerts', 'vistaMeta'));
+    }
+
+    /** Seguimiento de falla acumulada por cohorte. */
+    public function reporteFallaAcumulada()
+    {
+        $vistaMeta = [
+            'numero' => '3',
+            'title' => 'Falla acumulada',
+            'category' => 'Reportes',
+        ];
+
         $summary = [
-            ['title' => 'Total desembolsado', 'value' => 1250000, 'trend' => '+12.5%'],
-            ['title' => 'Cartera vigente', 'value' => 870000, 'trend' => '+4.3%'],
-            ['title' => 'Pagos recibidos', 'value' => 215000, 'trend' => '+8.1%'],
-            ['title' => 'Clientes activos', 'value' => 186, 'trend' => '+5.0%'],
+            ['label' => 'Falla acumulada 4 semanas', 'value' => '8.4%', 'trend' => '-0.6 pts'],
+            ['label' => 'Semana extra aplicada', 'value' => '32 grupos', 'trend' => '+4'],
+            ['label' => 'Garantias solicitadas', 'value' => '12 casos', 'trend' => 'sin cambio'],
+            ['label' => 'Clientes en monitoreo', 'value' => 86, 'trend' => '-9%'],
         ];
 
-        $recentReports = [
-            [
-                'title' => 'Reporte de desembolsos - Enero 2025',
-                'owner' => 'Ana Lopez',
-                'status' => 'Generado',
-                'updated_at' => '2025-01-18 10:32',
-                'download_url' => '#',
-            ],
-            [
-                'title' => 'Revision cartera en riesgo',
-                'owner' => 'Carlos Ramirez',
-                'status' => 'En revision',
-                'updated_at' => '2025-01-17 18:11',
-                'download_url' => '#',
-            ],
-            [
-                'title' => 'Pagos y cobranza - Semana 02',
-                'owner' => 'Brenda Martinez',
-                'status' => 'Pendiente',
-                'updated_at' => '2025-01-16 09:45',
-                'download_url' => '#',
-            ],
+        $cohorts = [
+            ['cohort' => 'Semana 49 2024', 'clientes' => 160, 'debe' => '$ 1.4 M', 'fallas' => '9.2%', 'rq' => '$ 180 K'],
+            ['cohort' => 'Semana 50 2024', 'clientes' => 148, 'debe' => '$ 1.2 M', 'fallas' => '8.7%', 'rq' => '$ 150 K'],
+            ['cohort' => 'Semana 51 2024', 'clientes' => 172, 'debe' => '$ 1.35 M', 'fallas' => '8.0%', 'rq' => '$ 142 K'],
+            ['cohort' => 'Semana 52 2024', 'clientes' => 154, 'debe' => '$ 1.25 M', 'fallas' => '7.6%', 'rq' => '$ 138 K'],
         ];
 
-        $scheduled = [
-            ['name' => 'Informe semanal de operacion', 'frequency' => 'Cada lunes', 'next_run' => '2025-01-20 08:00'],
-            ['name' => 'Reporte de cartera vencida', 'frequency' => 'Cada miercoles', 'next_run' => '2025-01-22 08:00'],
-            ['name' => 'Concentrado de desembolsos', 'frequency' => 'Mensual', 'next_run' => '2025-02-01 08:00'],
+        $clients = [
+            ['cliente' => 'Grupo Amanecer', 'promotora' => 'Centro', 'fallas_real' => 3, 'fallas_sistema' => 1, 'status' => 'Semana extra'],
+            ['cliente' => 'Cooperativa Semilla', 'promotora' => 'Bajio', 'fallas_real' => 2, 'fallas_sistema' => 0, 'status' => 'Seguimiento semanal'],
+            ['cliente' => 'Casa Sur', 'promotora' => 'Puebla', 'fallas_real' => 4, 'fallas_sistema' => 1, 'status' => 'Solicitar garantias'],
         ];
 
-        return view('reportes', compact('summary', 'recentReports', 'scheduled'));
+        $thresholds = [
+            ['rule' => '3 fallas reales', 'action' => 'No subir monto en siguiente ciclo'],
+            ['rule' => '2 fallas de sistema', 'action' => 'Solicitar garantias al liberar'],
+            ['rule' => 'Semana extra activa', 'action' => 'Reforzar cobranza ejecutiva y supervisora'],
+        ];
+
+        return view('reportes.falla-acumulada', compact('summary', 'cohorts', 'clients', 'thresholds', 'vistaMeta'));
+    }
+
+    /** Reporte de crecimiento/decrecimiento por plaza. */
+    public function reporteCrecimientoDecrecimiento()
+    {
+        $vistaMeta = [
+            'numero' => '4',
+            'title' => 'Crecimiento y decrecimiento',
+            'category' => 'Reportes',
+        ];
+
+        $growthSummary = [
+            ['plaza' => 'Metropolitana', 'crecimiento' => '+12%', 'debe' => '$ 1.6 M', 'nuevos' => 46],
+            ['plaza' => 'Puebla', 'crecimiento' => '+6%', 'debe' => '$ 1.1 M', 'nuevos' => 38],
+            ['plaza' => 'Queretaro', 'crecimiento' => '+3%', 'debe' => '$ 780 K', 'nuevos' => 28],
+            ['plaza' => 'Bajio', 'crecimiento' => '-4%', 'debe' => '$ 640 K', 'nuevos' => 19],
+        ];
+
+        $history = [
+            ['periodo' => 'Sep 24', 'venta' => 3200000, 'clientes' => 540],
+            ['periodo' => 'Oct 24', 'venta' => 3380000, 'clientes' => 556],
+            ['periodo' => 'Nov 24', 'venta' => 3460000, 'clientes' => 563],
+            ['periodo' => 'Dic 24', 'venta' => 3600000, 'clientes' => 575],
+            ['periodo' => 'Ene 25', 'venta' => 3800000, 'clientes' => 589],
+        ];
+
+        $drivers = [
+            ['factor' => 'Crecimiento', 'detail' => 'Mayor conversion de recreditos en Metropolitana (+18%)'],
+            ['factor' => 'Crecimiento', 'detail' => 'Baja falla real por debajo de 2% mantiene bonos'],
+            ['factor' => 'Decrecimiento', 'detail' => 'Bajio detiene altas por rotacion de promotora'],
+            ['factor' => 'Decrecimiento', 'detail' => 'Zona Toluca con limite temporal de cartera'],
+        ];
+
+        $actions = [
+            ['name' => 'Expandir plazas con DEBE sano', 'owner' => 'Gerencia', 'deadline' => '31 ene'],
+            ['name' => 'Plan de recuperacion Bajio', 'owner' => 'Ejecutivo Selene Vega', 'deadline' => '24 ene'],
+            ['name' => 'Sesiones de crecimiento S.M.A.R.T', 'owner' => 'Supervision', 'deadline' => '28 ene'],
+        ];
+
+        return view('reportes.crecimiento-decrecimiento', compact('growthSummary', 'history', 'drivers', 'actions', 'vistaMeta'));
+    }
+
+    /** Vista de zonas de riesgo operativo. */
+    public function reporteZonasRiesgo()
+    {
+        $vistaMeta = [
+            'numero' => '5',
+            'title' => 'Zonas de riesgo',
+            'category' => 'Reportes',
+        ];
+
+        $zones = [
+            ['zona' => 'Metropolitana Norte', 'riesgo' => 'Medio', 'falla_real' => '2.1%', 'falla_sistema' => '0.9%', 'acciones' => 'Monitoreo semanal'],
+            ['zona' => 'Bajio Oriente', 'riesgo' => 'Alto', 'falla_real' => '3.8%', 'falla_sistema' => '1.8%', 'acciones' => 'Reforzar visitas de ejecutivo'],
+            ['zona' => 'Puebla Centro', 'riesgo' => 'Alto', 'falla_real' => '4.2%', 'falla_sistema' => '1.5%', 'acciones' => 'Semana extra + bloqueo de montos'],
+            ['zona' => 'Queretaro Sur', 'riesgo' => 'Bajo', 'falla_real' => '1.7%', 'falla_sistema' => '0.6%', 'acciones' => 'Mantener seguimiento'],
+        ];
+
+        $signals = [
+            ['tipo' => 'Falla real reiterada', 'detalle' => 'Mas de 3 pagos fuera de tiempo en 2 semanas'],
+            ['tipo' => 'Falla de sistema', 'detalle' => 'Pagos sin recuperar al viernes 12:00'],
+            ['tipo' => 'Cartera vencida', 'detalle' => 'Clientes >30 dias requieren plan de recuperacion'],
+            ['tipo' => 'Bloqueo de venta', 'detalle' => 'Automatica cuando la falla real supera 12%'],
+        ];
+
+        $playbook = [
+            ['etapa' => 'Alerta temprana', 'accion' => 'Enviar recordatorio a promotora y supervisor'],
+            ['etapa' => 'Zona en observacion', 'accion' => 'Aplicar semana extra y validar garantias'],
+            ['etapa' => 'Riesgo alto', 'accion' => 'Ejecutivo toma cartera + bloqueo de nuevos creditos'],
+        ];
+
+        return view('reportes.zonas-riesgo', compact('zones', 'signals', 'playbook', 'vistaMeta'));
+    }
+
+    /** Estado de cartera actual y mezcla por plazo. */
+    public function reporteCarteraActual()
+    {
+        $vistaMeta = [
+            'numero' => '6',
+            'title' => 'Cartera actual',
+            'category' => 'Reportes',
+        ];
+
+        $portfolioMetrics = [
+            ['label' => 'Cartera vigente', 'value' => '$ 870 K', 'helper' => 'DEBE semanal $ 98 K'],
+            ['label' => 'Cartera vencida 8-30', 'value' => '$ 640 K', 'helper' => 'Seccion riesgo medio'],
+            ['label' => 'Clientes activos', 'value' => 589, 'helper' => '+5% vs mes previo'],
+            ['label' => 'Ticket promedio', 'value' => '$ 6,200', 'helper' => 'Escalera doble vigente'],
+        ];
+
+        $aging = [
+            ['bucket' => '0-7 dias', 'monto' => '$ 310 K', 'clientes' => 192],
+            ['bucket' => '8-30 dias', 'monto' => '$ 640 K', 'clientes' => 124],
+            ['bucket' => '31-60 dias', 'monto' => '$ 120 K', 'clientes' => 42],
+            ['bucket' => '61+ dias', 'monto' => '$ 36 K', 'clientes' => 11],
+        ];
+
+        $mix = [
+            ['plazo' => '13 semanas', 'porcentaje' => 58, 'debe_factor' => 11],
+            ['plazo' => '14 semanas', 'porcentaje' => 32, 'debe_factor' => 10],
+            ['plazo' => '22 semanas', 'porcentaje' => 10, 'debe_factor' => 8],
+        ];
+
+        $clients = [
+            ['cliente' => 'Grupo Semilla', 'promotora' => 'Centro', 'saldo' => '$ 62 K', 'estatus' => 'Al corriente'],
+            ['cliente' => 'Casa Norte', 'promotora' => 'Bajio', 'saldo' => '$ 54 K', 'estatus' => 'Vencida 12 dias'],
+            ['cliente' => 'Cooperativa Flor', 'promotora' => 'Metropolitana', 'saldo' => '$ 48 K', 'estatus' => 'Seguimiento supervisor'],
+            ['cliente' => 'Textiles Lopez', 'promotora' => 'Puebla', 'saldo' => '$ 42 K', 'estatus' => 'Plan de recuperacion'],
+        ];
+
+        return view('reportes.cartera-actual', compact('portfolioMetrics', 'aging', 'mix', 'clients', 'vistaMeta'));
     }
 
     /** Consola de revision documental (placeholder). */
@@ -953,6 +1204,75 @@ class AdministrativoController extends Controller
         return $this->renderDashboard('cierre_semanal');
     }
 
+    /** Vista especifica de cierres por ejecutivo. */
+    public function cierreEjecutivo()
+    {
+        $vistaMeta = [
+            'numero' => '2',
+            'title' => 'Cierres por ejecutivo',
+            'category' => 'Administracion',
+        ];
+
+        $filters = [
+            'periods' => ['Semana 03 2025', 'Semana 02 2025', 'Semana 01 2025'],
+            'ejecutivos' => ['Todos', 'Mariana Torres', 'Selene Vega', 'Eduardo Nunez'],
+            'supervisores' => ['Todos', 'Claudia Trevino', 'Erika Flores', 'Jorge Ramirez', 'Luis Tellez'],
+        ];
+
+        $executives = [
+            [
+                'nombre' => 'Mariana Torres',
+                'plaza' => 'Metropolitana',
+                'venta' => '$ 1.45 M',
+                'debe_operativo' => '$ 1.58 M',
+                'falla_real' => '2.4%',
+                'falla_sistema' => '0.9%',
+                'bono' => 'Elegible bono cero falla',
+                'observaciones' => 'Mantener recordatorios sabado 10:00 para evitar multas.',
+                'promotoras' => [
+                    ['nombre' => 'Equipo Centro', 'ventas' => '$ 680 K', 'debe' => '$ 740 K', 'mora7' => '2.2%', 'semana_paro' => 'Semana 04'],
+                    ['nombre' => 'Equipo Norte', 'ventas' => '$ 520 K', 'debe' => '$ 560 K', 'mora7' => '2.6%', 'semana_paro' => 'Semana 05'],
+                ],
+            ],
+            [
+                'nombre' => 'Selene Vega',
+                'plaza' => 'Toluca / Queretaro',
+                'venta' => '$ 1.05 M',
+                'debe_operativo' => '$ 1.16 M',
+                'falla_real' => '2.9%',
+                'falla_sistema' => '1.3%',
+                'bono' => 'Observacion por falla real > 3%',
+                'observaciones' => 'Reforzar seguimiento con promotoras Toluca, semana extra en curso.',
+                'promotoras' => [
+                    ['nombre' => 'Equipo Toluca', 'ventas' => '$ 520 K', 'debe' => '$ 560 K', 'mora7' => '3.4%', 'semana_paro' => 'Semana 03'],
+                    ['nombre' => 'Equipo Queretaro', 'ventas' => '$ 430 K', 'debe' => '$ 480 K', 'mora7' => '2.1%', 'semana_paro' => 'Semana 05'],
+                ],
+            ],
+            [
+                'nombre' => 'Eduardo Nunez',
+                'plaza' => 'Puebla / Bajio',
+                'venta' => '$ 1.32 M',
+                'debe_operativo' => '$ 1.44 M',
+                'falla_real' => '3.6%',
+                'falla_sistema' => '1.5%',
+                'bono' => 'Aplicar garantias grupo Casa Sur',
+                'observaciones' => 'Activar bloqueo de montos para promotoras con 3 fallas reales.',
+                'promotoras' => [
+                    ['nombre' => 'Equipo Puebla', 'ventas' => '$ 620 K', 'debe' => '$ 670 K', 'mora7' => '3.9%', 'semana_paro' => 'Semana 04'],
+                    ['nombre' => 'Equipo Bajio', 'ventas' => '$ 540 K', 'debe' => '$ 590 K', 'mora7' => '4.1%', 'semana_paro' => 'Semana 05'],
+                ],
+            ],
+        ];
+
+        $activity = [
+            ['time' => 'Hoy 10:12', 'message' => 'Puebla supera 3 fallas reales consecutivas. Semana extra autorizada.'],
+            ['time' => 'Hoy 09:40', 'message' => 'Ejecutivo Selene Vega confirmo cierre Toluca sin pendientes.'],
+            ['time' => 'Ayer 18:15', 'message' => 'Reunion con Gerencia: bloquear recreditos a cartera con falla de sistema.'],
+        ];
+
+        return view('administrativo.cierre-ejecutivo', compact('filters', 'executives', 'activity', 'vistaMeta'));
+    }
+
     /** Placeholder para las solicitudes y aprobaciones de inversion. */
     public function inversiones()
     {
@@ -967,6 +1287,26 @@ class AdministrativoController extends Controller
 
     /** Vista dedicada al flujo de autorizacion granular. */
     public function autorizacion()
+    {
+        $data = $this->getAutorizacionData();
+
+        return view('administrativo.autorizacion', $data);
+    }
+
+    public function autorizacionVista(int $vista)
+    {
+        $data = $this->getAutorizacionData();
+        $section = collect($data['authorizations'])->firstWhere('numero', (string) $vista);
+
+        abort_if(! $section, 404);
+
+        return view('administrativo.autorizacion.vista', [
+            'section' => $section,
+            'stats' => $data['stats'],
+        ]);
+    }
+
+    private function getAutorizacionData(): array
     {
         $authorizations = [
             [
@@ -1276,11 +1616,48 @@ class AdministrativoController extends Controller
             'alertas_altas' => $altoRiesgo,
         ];
 
-        return view('administrativo.autorizacion', compact('authorizations', 'stats'));
+        return compact('authorizations', 'stats');
     }
 
-    /** Registro y onboarding de nuevos colaboradores. */
     public function nuevosColaboradores()
+    {
+        return view('administrativo.nuevos-colaboradores', $this->getNuevosColaboradoresData());
+    }
+
+    public function nuevosColaboradoresVista(int $vista)
+    {
+        $data = $this->getNuevosColaboradoresData();
+
+        $views = [
+            1 => [
+                'numero' => 1,
+                'slug' => 'pipeline',
+                'title' => 'Pipeline de incorporación',
+                'description' => 'Seguimiento detallado de candidatos activos y responsables asignados.',
+            ],
+            2 => [
+                'numero' => 2,
+                'slug' => 'agenda',
+                'title' => 'Agenda de inducción',
+                'description' => 'Calendario de sesiones confirmadas y ponentes.',
+            ],
+            3 => [
+                'numero' => 3,
+                'slug' => 'vacantes',
+                'title' => 'Vacantes prioritarias',
+                'description' => 'Posiciones críticas con su nivel de prioridad.',
+            ],
+        ];
+
+        $vistaMeta = $views[$vista] ?? null;
+        abort_if(! $vistaMeta, 404);
+
+        return view('administrativo.nuevos-colaboradores.vista', array_merge($data, [
+            'vistaMeta' => $vistaMeta,
+        ]));
+    }
+
+    private function getNuevosColaboradoresData(): array
     {
         $pipeline = [
             [
@@ -1333,11 +1710,43 @@ class AdministrativoController extends Controller
             ['puesto' => 'Promotor senior', 'region' => 'Centro', 'vacantes' => 3, 'prioridad' => 'Alta'],
         ];
 
-        return view('administrativo.nuevos-colaboradores', compact('pipeline', 'inductionSchedule', 'openPositions'));
+        return compact('pipeline', 'inductionSchedule', 'openPositions');
     }
 
     /** Seguimiento a planes de apertura de nuevas plazas. */
     public function probablesAperturas()
+    {
+        return view('administrativo.probables-aperturas.index', $this->getProbablesAperturasData());
+    }
+
+    public function probablesAperturasVista(int $vista)
+    {
+        $data = $this->getProbablesAperturasData();
+
+        $views = [
+            1 => [
+                'numero' => 1,
+                'slug' => 'lista',
+                'title' => 'Lista de promotores',
+                'description' => 'Pipeline completo y responsables de cada apertura.',
+            ],
+            2 => [
+                'numero' => 2,
+                'slug' => 'insights',
+                'title' => 'Insights y seguimiento',
+                'description' => 'Fases del proceso, territorios prioritarios y próximas acciones.',
+            ],
+        ];
+
+        $vistaMeta = $views[$vista] ?? null;
+        abort_if(! $vistaMeta, 404);
+
+        return view('administrativo.probables-aperturas.vista', array_merge($data, [
+            'vistaMeta' => $vistaMeta,
+        ]));
+    }
+
+    private function getProbablesAperturasData(): array
     {
         $promotores = collect($this->probablesAperturasCatalog())
             ->map(function (array $registro) {
@@ -1353,7 +1762,43 @@ class AdministrativoController extends Controller
             ->values()
             ->all();
 
-        return view('administrativo.probables-aperturas.index', compact('promotores'));
+        $phaseSummary = collect($promotores)
+            ->groupBy('fase')
+            ->map(fn ($group, $fase) => [
+                'fase' => $fase,
+                'total' => $group->count(),
+            ])
+            ->values()
+            ->all();
+
+        $territorySummary = collect($promotores)
+            ->groupBy('territorio')
+            ->map(fn ($group, $territorio) => [
+                'territorio' => $territorio,
+                'total' => $group->count(),
+            ])
+            ->sortByDesc('total')
+            ->take(5)
+            ->values()
+            ->all();
+
+        $seguimientoSugerido = collect($promotores)
+            ->sortByDesc('ultima_actualizacion')
+            ->take(3)
+            ->map(function (array $promotor) {
+                return [
+                    'promotor' => $promotor['promotor_aperturado'],
+                    'responsable' => $promotor['promotor_responsable'],
+                    'territorio' => $promotor['territorio'],
+                    'fase' => $promotor['fase'],
+                    'proxima_accion' => 'Contactar responsable y validar encuesta',
+                    'ultima_actualizacion' => $promotor['ultima_actualizacion'],
+                ];
+            })
+            ->values()
+            ->all();
+
+        return compact('promotores', 'phaseSummary', 'territorySummary', 'seguimientoSugerido');
     }
 
     public function probablesAperturasShow(int $promotor)
@@ -1674,6 +2119,61 @@ class AdministrativoController extends Controller
 
     /** Tablero concentrado de administracion general. */
     public function administracionGeneral()
+    {
+        return view('administrativo.administracion-general', $this->getAdministracionGeneralData());
+    }
+
+    public function administracionGeneralVista(int $vista)
+    {
+        $data = $this->getAdministracionGeneralData();
+
+        $views = [
+            1 => [
+                'numero' => 1,
+                'slug' => 'desembolsos-inversion',
+                'title' => 'Desembolsos para inversion',
+            ],
+            2 => [
+                'numero' => 2,
+                'slug' => 'sistema-kualifin',
+                'title' => 'Sistema Kualifin',
+            ],
+            3 => [
+                'numero' => 3,
+                'slug' => 'entradas-salidas',
+                'title' => 'Entradas y salidas',
+            ],
+            4 => [
+                'numero' => 4,
+                'slug' => 'gastos-autorizados',
+                'title' => 'Gastos autorizados',
+            ],
+            5 => [
+                'numero' => 5,
+                'slug' => 'proyeccion-semanal',
+                'title' => 'Proyeccion semanal',
+            ],
+            6 => [
+                'numero' => 6,
+                'slug' => 'alertas-operativas',
+                'title' => 'Historial de fallo',
+            ],
+            7 => [
+                'numero' => 7,
+                'slug' => 'reportes-operativos',
+                'title' => 'Reportes operativos',
+            ],
+        ];
+
+        $vistaMeta = $views[$vista] ?? null;
+        abort_if(! $vistaMeta, 404);
+
+        return view('administrativo.administracion-general.vista', array_merge($data, [
+            'vistaMeta' => $vistaMeta,
+        ]));
+    }
+
+    private function getAdministracionGeneralData(): array
     {
         $faker = FakerFactory::create('es_MX');
         $faker->seed(202501);
@@ -2060,7 +2560,7 @@ class AdministrativoController extends Controller
             ],
         ];
 
-        return view('administrativo.administracion-general', [
+        return [
             'kualifinHierarchy' => $kualifinHierarchy,
             'summaryCards' => $summaryCards,
             'investmentDisbursements' => $investmentDisbursements,
@@ -2070,7 +2570,6 @@ class AdministrativoController extends Controller
             'weeklyProjection' => $weeklyProjection,
             'failureHistory' => $failureHistory,
             'reports' => $reports,
-        ]);
+        ];
     }
 }
-

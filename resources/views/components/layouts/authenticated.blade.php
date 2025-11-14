@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -64,21 +64,31 @@
         }"
     >
         <div class="h-full px-3 pb-4 overflow-y-auto bg-white">
-            <ul class="space-y-2 font-medium">
+                        <ul class="space-y-2 font-medium">
                 <x-layouts.navlink route="dashboard" icon="📊" text="Dashboard" />
                 <x-layouts.navlink route="consulta.historica" icon="📜" text="Consulta Historica" />
-                <x-layouts.navlink route="mobile.index" icon="📱" text="Vista Movil" />
+                {{-- <x-layouts.navlink route="mobile.index" icon="📱" text="Vista Movil" /> --}}
                 <x-layouts.navlink route="admin.index" icon="🏢" text="Panel Administrativo" />
                 <x-layouts.navlink route="panelRevision" icon="📝" text="Panel de Revision" />
                 <x-layouts.navlink route="preAprobacion" icon="✅" text="Pre Aprobacion" />
-                <x-layouts.navlink route="reportes" icon="📄" text="Reportes" />
 
-                {{-- Administrativo - accesos unificados --}}
-                {{-- <x-layouts.navlink route="administrativo.parametros" icon="??" text="Panel Administrativo" /> --}}
-                <x-layouts.navlink route="administrativo.autorizacion" icon="AU" text="Autorización" />
+                <li class="pt-4">
+                    <p class="px-2 text-xs font-semibold tracking-wide text-gray-500 uppercase" x-show="!sidebarCollapsed">
+                        Administracion
+                    </p>
+                </li>
+                <x-layouts.navlink route="administrativo.administracion" icon="🏛️" text="Administracion" />
+                <x-layouts.navlink route="administrativo.autorizacion" icon="AU" text="Autorizacion" />
                 <x-layouts.navlink route="administrativo.nuevos_colaboradores" icon="NC" text="Nuevos colaboradores" />
                 <x-layouts.navlink route="administrativo.probables_aperturas" icon="PA" text="Probables aperturas" />
-                <x-layouts.navlink route="administrativo.administracion_general" icon="AG" text="Administración General" />
+                <x-layouts.navlink route="administrativo.administracion_general" icon="AG" text="Administracion General" />
+
+                <li class="pt-4">
+                    <p class="px-2 text-xs font-semibold tracking-wide text-gray-500 uppercase" x-show="!sidebarCollapsed">
+                        Reportes
+                    </p>
+                </li>
+                <x-layouts.navlink route="reportes" icon="📄" text="Centro de reportes" />
             </ul>
             
             <div class="pt-4 mt-4 space-y-2 border-t border-gray-200">
@@ -116,4 +126,7 @@
     @stack('scripts')
 </body>
 </html>
+
+
+
 

@@ -178,6 +178,11 @@ Route::middleware(['auth','verified'])->group(function () {
     Route::controller(AdministrativoController::class)->group(function () {
         Route::get('/recreditoCliente', 'recreditoClientes')->name('recreditoClientes');
         Route::get('/reportes', 'reportes')->name('reportes');
+        Route::get('/reportes/venta-falla', 'reporteVentaFalla')->name('reportes.venta_falla');
+        Route::get('/reportes/falla-acumulada', 'reporteFallaAcumulada')->name('reportes.falla_acumulada');
+        Route::get('/reportes/crecimiento', 'reporteCrecimientoDecrecimiento')->name('reportes.crecimiento');
+        Route::get('/reportes/zonas-riesgo', 'reporteZonasRiesgo')->name('reportes.zonas_riesgo');
+        Route::get('/reportes/cartera-actual', 'reporteCarteraActual')->name('reportes.cartera_actual');
         Route::get('/panelRevision', 'panelRevision')->name('panelRevision');
     });
     Route::get('/preAprobacion', fn() => view('preaprobacion.index'))->name('preAprobacion');
@@ -196,9 +201,11 @@ Route::middleware(['auth','verified'])->group(function () {
             Route::get('/documentos/{documento}', 'documentosShow')->name('documentos.show');
             Route::get('/documentos/{documento}/editar', 'documentosEdit')->name('documentos.edit');
 
-            Route::get('/autorizaciones', 'autorizaciones')->name('autorizaciones');
-            Route::get('/desembolsos-inversion', 'desembolsosInversion')->name('desembolsos_inversion');
-            Route::get('/cierre-semanal', 'cierreSemanal')->name('cierre_semanal');
+        Route::get('/autorizaciones', 'autorizaciones')->name('autorizaciones');
+        Route::get('/administracion', 'administracion')->name('administracion');
+        Route::get('/desembolsos-inversion', 'desembolsosInversion')->name('desembolsos_inversion');
+        Route::get('/cierre-ejecutivo', 'cierreEjecutivo')->name('cierre_ejecutivo');
+        Route::get('/cierre-semanal', 'cierreSemanal')->name('cierre_semanal');
             Route::get('/parametros', 'parametros')->name('parametros');
             Route::get('/asignaciones', 'asignaciones')->name('asignaciones');
             Route::get('/cartera-global', 'carteraGlobal')->name('cartera_global');
@@ -206,10 +213,14 @@ Route::middleware(['auth','verified'])->group(function () {
             Route::get('/inversiones', 'inversiones')->name('inversiones');
             Route::get('/auditoria-seguridad', 'auditoriaSeguridad')->name('auditoria_seguridad');
             Route::get('/autorizacion', 'autorizacion')->name('autorizacion');
+            Route::get('/autorizacion/vista/{vista}', 'autorizacionVista')->name('autorizacion.vista');
             Route::get('/nuevos-colaboradores', 'nuevosColaboradores')->name('nuevos_colaboradores');
+            Route::get('/nuevos-colaboradores/vista/{vista}', 'nuevosColaboradoresVista')->name('nuevos_colaboradores.vista');
             Route::get('/probables-aperturas', 'probablesAperturas')->name('probables_aperturas');
+            Route::get('/probables-aperturas/vista/{vista}', 'probablesAperturasVista')->name('probables_aperturas.vista');
             Route::get('/probables-aperturas/{promotor}', 'probablesAperturasShow')->name('probables_aperturas.show');
             Route::get('/administracion-general', 'administracionGeneral')->name('administracion_general');
+            Route::get('/administracion-general/vista/{vista}', 'administracionGeneralVista')->name('administracion_general.vista');
             Route::get('/entradas-salidas', 'entradasSalidas')->name('entradas_salidas');
         });
 
